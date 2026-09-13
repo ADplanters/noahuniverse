@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PLACE PARTNER | 파트너 통합 CRM 시스템</title>
+    <title>ADplanters x NOAH UNIVERSE | 공식 파트너십 관리 시스템</title>
 
-    <!-- Tailwind CSS 및 브랜드 커스텀 컬러 설정 (에르메스 오렌지 & 브랜드 레드) -->
+    <!-- Tailwind CSS 및 브랜드 커스텀 컬러 설정 (에르메스 오렌지 & 노아 딥블루) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -13,20 +13,16 @@
                 extend: {
                     colors: {
                         hermes: {
-                            DEFAULT: '#F37021', // 에르메스 메인 오렌지
+                            DEFAULT: '#F37021', // 에르메스 시그니처 오렌지
                             light: '#fde9db',
                             hover: '#e05d0e'
-                        },
-                        brand: {
-                            DEFAULT: '#E50914', // PLACE PARTNER 시그니처 레드
-                            dark: '#B81D24'
                         },
                         noah: {
                             DEFAULT: '#0047AB', // 노아 유니버스 딥블루
                             light: '#e0ebf9'
                         },
                         adplanters: {
-                            DEFAULT: '#111827' // 애드플랜터스 다크
+                            DEFAULT: '#111827' // 애드플랜터스 메인 다크
                         }
                     }
                 }
@@ -39,7 +35,7 @@
 
     <!-- 커스텀 스타일: 모눈종이 배경 및 사선 워터마크 -->
     <style>
-        /* 격자 모눈종이 배경 */
+        /* 모눈종이 격자 배경 */
         .bg-grid-pattern {
             background-color: #fcfcfc;
             background-image: 
@@ -48,7 +44,7 @@
             background-size: 24px 24px;
         }
 
-        /* 은은한 사선 브랜드 워터마크 */
+        /* 은은한 사선 워터마크 */
         .watermark-container {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -58,7 +54,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            opacity: 0.035;
+            opacity: 0.04;
         }
 
         .watermark-text {
@@ -66,11 +62,15 @@
             white-space: nowrap;
             font-size: 3.5rem;
             font-weight: 900;
-            letter-spacing: 0.1em;
+            letter-spacing: 0.08em;
             display: flex;
-            gap: 2rem;
+            gap: 2.5rem;
             user-select: none;
         }
+
+        .wm-ad { color: #111827; }
+        .wm-hermes { color: #F37021; }
+        .wm-noah { color: #0047AB; }
 
         @keyframes bounceShort {
             0%, 100% { transform: translateY(0); }
@@ -86,42 +86,58 @@
     <!-- 배경 사선 워터마크 (ADplanters x Noah Universe) -->
     <div class="watermark-container">
         <div class="watermark-text">
-            <span>PLACE PARTNER</span>
-            <span>ADPLANTERS</span> 
-            <span>NOAH UNIVERSE COMPANY</span>
-            <span>PLACE PARTNER</span>
-            <span>ADPLANTERS</span> 
-            <span>NOAH UNIVERSE COMPANY</span>
+            <span class="wm-ad">ADPLANTERS</span> 
+            <span class="wm-hermes">✕</span>
+            <span class="wm-noah">NOAH UNIVERSE COMPANY</span>
+            <span class="wm-ad">ADPLANTERS</span> 
+            <span class="wm-hermes">✕</span>
+            <span class="wm-noah">NOAH UNIVERSE COMPANY</span>
         </div>
     </div>
 
     <!-- ==================================================================== -->
-    <!-- 1. 로그인 화면 (최초 접속 시 노출되는 메인 진입로) -->
+    <!-- 1. 파트너십 통합 로그인 화면 (ADplanters x NOAH UNIVERSE 브랜딩) -->
     <!-- ==================================================================== -->
     <div id="loginSection" class="relative z-10 flex-1 flex flex-col items-center justify-center p-4">
+        
+        <!-- 브랜드 헤더 영역 -->
         <div class="text-center mb-8">
-            <div class="text-brand text-4xl font-black mb-1">✱</div>
-            <h1 class="text-3xl font-black tracking-tight text-brand">PLACE PARTNER</h1>
-            <p class="text-xs font-bold text-gray-500 mt-2 tracking-wider">계약 및 영업 관리 시스템</p>
+            <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-hermes-light text-hermes mb-4 shadow-sm">
+                <i class="fa-solid fa-handshake-angle text-2xl"></i>
+            </div>
+            
+            <div class="flex items-center justify-center gap-2 text-2xl sm:text-3xl font-black tracking-tight mb-2">
+                <span class="text-adplanters">AD<span class="text-hermes">planters</span></span>
+                <span class="text-gray-300 font-normal">✕</span>
+                <span class="text-noah">NOAH UNIVERSE</span>
+            </div>
+            
+            <p class="text-xs font-bold text-gray-500 tracking-wider">공식 파트너십 B2B 고객 관리 및 통합 문의 시스템</p>
         </div>
 
-        <div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-xl shadow-gray-200/50 border border-gray-100 text-center">
-            <p class="text-xs font-semibold text-gray-500 mb-6">서비스를 이용하려면 로그인이 필요합니다.</p>
+        <!-- 구글 로그인 카드리프 -->
+        <div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-xl shadow-orange-950/5 border border-gray-100 text-center">
+            <div class="mb-6">
+                <span class="inline-block px-3 py-1 bg-hermes-light text-hermes text-[11px] font-bold rounded-full mb-2">
+                    권한 인증 시스템
+                </span>
+                <p class="text-xs font-semibold text-gray-500">지정된 파트너 계정으로 로그인해 주세요.</p>
+            </div>
             
-            <button id="googleLoginBtn" class="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-50 text-gray-700 font-bold border border-gray-300 rounded-2xl py-3 px-4 transition shadow-sm hover:shadow">
-                <svg class="w-5 h-5" viewBox="0 0 24 24">
+            <button id="googleLoginBtn" class="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-50 text-gray-700 font-bold border border-gray-300 focus:ring-2 focus:ring-hermes/50 rounded-2xl py-3.5 px-4 transition shadow-sm hover:shadow">
+                <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                     <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
                     <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
                     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
                 </svg>
-                <span>Google 계정으로 로그인</span>
+                <span>Google 계정으로 인증 로그인</span>
             </button>
         </div>
     </div>
 
     <!-- ==================================================================== -->
-    <!-- 2. CRM 대시보드 화면 (로그인 및 승인 완료 유저에게만 노출) -->
+    <!-- 2. CRM 파트너 대시보드 화면 -->
     <!-- ==================================================================== -->
     <div id="dashboardSection" class="hidden relative z-10 min-h-screen flex w-full">
         <!-- 좌측 사이드바 -->
@@ -129,27 +145,27 @@
             <div class="p-6 flex items-center justify-center border-b border-gray-100">
                 <div class="text-xl font-black tracking-tighter">
                     <span class="text-adplanters">AD</span><span class="text-hermes">planters</span>
-                    <span class="text-gray-300 mx-1">x</span>
+                    <span class="text-gray-300 mx-1">✕</span>
                     <span class="text-noah text-sm">NOAH</span>
                 </div>
             </div>
             
             <nav class="flex-1 p-4 space-y-1">
                 <a href="#" class="flex items-center gap-3 bg-hermes text-white px-4 py-3 rounded-lg font-bold shadow-md shadow-orange-200/50">
-                    <i class="fa-solid fa-chart-pie w-5"></i> 통합 대시보드
+                    <i class="fa-solid fa-chart-pie w-5"></i> 파트너 통합 보드
                 </a>
                 <a href="#" class="flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition">
-                    <i class="fa-solid fa-list-check w-5"></i> 클라이언트 관리 보드
+                    <i class="fa-solid fa-list-check w-5"></i> 클라이언트 문의/요청
                 </a>
                 <a href="#" class="flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition">
-                    <i class="fa-solid fa-users-gear w-5"></i> 사용자 권한 설정
+                    <i class="fa-solid fa-users-gear w-5"></i> 권한 승인 관리
                 </a>
             </nav>
 
             <div class="p-4 border-t border-gray-100 flex items-center justify-between">
                 <div class="flex items-center gap-3 overflow-hidden">
-                    <div class="w-9 h-9 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-sm font-bold flex-shrink-0">
-                        <i class="fa-solid fa-user"></i>
+                    <div class="w-9 h-9 rounded-full bg-hermes-light text-hermes flex items-center justify-center text-sm font-bold flex-shrink-0">
+                        <i class="fa-solid fa-user-check"></i>
                     </div>
                     <div class="truncate">
                         <p class="text-xs font-bold text-gray-800 truncate" id="currentUserName">사용자</p>
@@ -164,12 +180,12 @@
         <main class="ml-64 flex-1 flex flex-col min-h-screen relative z-0 pl-8 pr-8 pb-12 pt-6">
             <header class="flex justify-between items-end mb-8 bg-white/80 p-6 rounded-2xl border border-gray-200 shadow-sm backdrop-blur-sm">
                 <div>
-                    <h1 class="text-2xl font-black text-gray-900">클라이언트 통합 관리 보드</h1>
-                    <p class="text-sm text-gray-500 mt-1">Firebase Firestore와 동기화되는 중앙 고객 제어 시스템입니다.</p>
+                    <h1 class="text-2xl font-black text-gray-900">ADplanters x Noah 파트너십 관리 보드</h1>
+                    <p class="text-sm text-gray-500 mt-1">Firebase Firestore 기반 실시간 통합 고객 관리 시스템입니다.</p>
                 </div>
                 
                 <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 flex items-center gap-3">
-                    <span class="text-xs font-bold text-gray-500"><i class="fa-solid fa-eye text-hermes"></i> 권한 View:</span>
+                    <span class="text-xs font-bold text-gray-500"><i class="fa-solid fa-eye text-hermes"></i> 권한 시뮬레이션:</span>
                     <select id="roleSelector" class="text-sm border-gray-300 rounded-lg bg-white px-3 py-1.5 focus:ring-hermes focus:border-hermes outline-none font-bold text-gray-700">
                         <option value="admin">1. 마스터 대표 어드민 (애드플랜터스)</option>
                         <option value="subadmin">2. 서브 관리자 (노아유니버스 대표)</option>
@@ -190,31 +206,31 @@
                 </div>
                 <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-bold text-gray-500 mb-1">대기중</p>
+                        <p class="text-xs font-bold text-gray-500 mb-1">대기중 이슈</p>
                         <p class="text-2xl font-black text-red-500" id="statWait">0<span class="text-sm font-medium text-gray-500 ml-1">건</span></p>
                     </div>
                     <div class="w-12 h-12 rounded-xl bg-red-50 text-red-500 flex items-center justify-center text-xl"><i class="fa-solid fa-circle-question"></i></div>
                 </div>
                 <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-bold text-gray-500 mb-1">진행중</p>
+                        <p class="text-xs font-bold text-gray-500 mb-1">진행중 업무</p>
                         <p class="text-2xl font-black text-noah" id="statIng">0<span class="text-sm font-medium text-gray-500 ml-1">건</span></p>
                     </div>
                     <div class="w-12 h-12 rounded-xl bg-noah-light text-noah flex items-center justify-center text-xl"><i class="fa-solid fa-spinner"></i></div>
                 </div>
                 <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-bold text-gray-500 mb-1">완료</p>
+                        <p class="text-xs font-bold text-gray-500 mb-1">완료 항목</p>
                         <p class="text-2xl font-black text-gray-900" id="statDone">0<span class="text-sm font-medium text-gray-500 ml-1">건</span></p>
                     </div>
                     <div class="w-12 h-12 rounded-xl bg-gray-100 text-gray-600 flex items-center justify-center text-xl"><i class="fa-solid fa-check-double"></i></div>
                 </div>
             </div>
 
-            <!-- 데이터 테이블 -->
+            <!-- 데이터 게시판 -->
             <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1">
                 <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-white">
-                    <h2 class="font-bold text-gray-800"><i class="fa-solid fa-table-list text-hermes mr-2"></i> 클라이언트 이슈 리스트</h2>
+                    <h2 class="font-bold text-gray-800"><i class="fa-solid fa-table-list text-hermes mr-2"></i> 이슈 및 공식 문의 리스트</h2>
                     <button id="openModalBtn" class="bg-hermes hover:bg-hermes-hover text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition flex items-center gap-2">
                         <i class="fa-solid fa-plus"></i> 신규 이슈 등록
                     </button>
@@ -251,7 +267,7 @@
     <div id="createModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center">
         <div class="bg-white rounded-2xl w-full max-w-lg p-6 shadow-2xl border border-gray-100">
             <div class="flex justify-between items-center mb-6 border-b pb-4">
-                <h3 class="text-lg font-bold text-gray-900"><i class="fa-solid fa-pen-to-square text-hermes mr-2"></i> 신규 클라이언트 이슈 등록</h3>
+                <h3 class="text-lg font-bold text-gray-900"><i class="fa-solid fa-pen-to-square text-hermes mr-2"></i> 신규 이슈/문의 등록</h3>
                 <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
             
@@ -318,8 +334,8 @@
             </div>
             <h3 class="text-lg font-bold text-gray-900 mb-2">가입신청 승인 대기중</h3>
             <p class="text-xs text-gray-500 leading-relaxed mb-6">
-                현재 대표 관리자의 승인을 기다리고 있습니다.<br>
-                승인이 완료되면 시스템에 접속하실 수 있습니다.
+                현재 ADplanters 대표 관리자의 승인을 기다리고 있습니다.<br>
+                승인이 완료되면 파트너 시스템에 접속하실 수 있습니다.
             </p>
             <button id="closePendingBtn" class="w-full bg-gray-900 hover:bg-black text-white text-xs font-bold py-3 rounded-xl transition">
                 확인 (로그아웃)
@@ -350,7 +366,7 @@
         const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
 
-        // 어드민 자동 승인 대상 이메일
+        // 자동 마스터 승인 대상 이메일
         const ADMIN_EMAILS = ["hhjhhj422@naver.com", "adp@adplanters.com"];
 
         // DOM 요소 정의
@@ -368,36 +384,36 @@
         const cancelBtn = document.getElementById('cancelBtn');
         const taskForm = document.getElementById('taskForm');
 
-        // 모달 열기/닫기
+        // 모달 제어
         openModalBtn.addEventListener('click', () => createModal.classList.remove('hidden'));
         closeModalBtn.addEventListener('click', () => createModal.classList.add('hidden'));
         cancelBtn.addEventListener('click', () => createModal.classList.add('hidden'));
 
-        // 구글 로그인 핸들러
+        // 구글 로그인 처리
         googleLoginBtn.addEventListener('click', async () => {
             try {
                 await signInWithPopup(auth, provider);
             } catch (error) {
                 console.error("로그인 에러:", error);
-                alert("구글 로그인 처리 중 오류가 발생했습니다.");
+                alert("구글 인증 처리 중 오류가 발생했습니다.");
             }
         });
 
-        // 로그아웃 핸들러
+        // 로그아웃 처리
         logoutBtn.addEventListener('click', () => signOut(auth));
         closePendingBtn.addEventListener('click', () => {
             pendingModal.classList.add('hidden');
             signOut(auth);
         });
 
-        // 로그인 인증 상태 및 승인 판별 로직
+        // 인증 상태에 따른 화면 전환 및 승인 권한 분기
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 const userEmail = user.email;
                 const userRef = doc(db, "users", user.uid);
                 const userSnap = await getDoc(userRef);
 
-                // 대표자 이메일인 경우 자동 어드민 승인
+                // 대표 이메일 자동 어드민 승인
                 if (ADMIN_EMAILS.includes(userEmail)) {
                     await setDoc(userRef, {
                         email: userEmail,
@@ -410,7 +426,7 @@
                     return;
                 }
 
-                // 일반 계정일 경우 Firestore 권한 조회
+                // 일반 파트너/직원 권한 조회
                 if (!userSnap.exists()) {
                     await setDoc(userRef, {
                         email: userEmail,
@@ -429,14 +445,14 @@
                     }
                 }
             } else {
-                // 비로그인 상태일 때 무조건 로그인 창 표시
+                // 비로그인 상태일 경우 로그인 UI 활성화
                 loginSection.classList.remove('hidden');
                 dashboardSection.classList.add('hidden');
                 pendingModal.classList.add('hidden');
             }
         });
 
-        // 대시보드 화면 렌더링
+        // 대시보드 표시
         function showDashboard(user, role) {
             loginSection.classList.add('hidden');
             pendingModal.classList.add('hidden');
@@ -449,14 +465,14 @@
             fetchTasks(role);
         }
 
-        // 대기 팝업 표시
+        // 승인 대기 팝업 표시
         function showPendingPopup() {
             loginSection.classList.remove('hidden');
             dashboardSection.classList.add('hidden');
             pendingModal.classList.remove('hidden');
         }
 
-        // 상태 뱃지 반환
+        // 상태 뱃지 함수
         function getStatusBadge(status) {
             if (status === '대기중' || status === '승인대기') return `<span class="bg-red-50 text-red-600 px-2.5 py-1 rounded-md text-xs font-bold border border-red-100">${status}</span>`;
             if (status === '진행중') return `<span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md text-xs font-bold border border-blue-100">${status}</span>`;
@@ -464,11 +480,11 @@
             return `<span>${status}</span>`;
         }
 
-        // Firestore 이슈 목록 가져오기 (Read)
+        // Firestore 읽기 (Read)
         async function fetchTasks(role) {
             const tbody = document.getElementById('boardTable');
             const emptyState = document.getElementById('emptyState');
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin text-hermes mr-2"></i> 데이터를 수신하는 중...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin text-hermes mr-2"></i> 파트너 데이터를 조회하는 중...</td></tr>';
 
             try {
                 const tasksRef = collection(db, "crm_tasks");
@@ -519,7 +535,6 @@
                     tbody.innerHTML += tr;
                 });
 
-                // 삭제 이벤트 등록
                 document.querySelectorAll('.delete-btn').forEach(btn => {
                     btn.addEventListener('click', async (e) => {
                         const docId = e.currentTarget.getAttribute('data-id');
@@ -532,7 +547,7 @@
 
             } catch (e) {
                 console.error("Firestore error:", e);
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-red-500 font-bold">데이터 로드에 실패했습니다.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-red-500 font-bold">데이터를 불러오는 중 오류가 발생했습니다.</td></tr>';
             }
         }
 
@@ -544,7 +559,7 @@
             document.getElementById('statDone').innerText = data.filter(d => d.status === '완료').length;
         }
 
-        // 신규 이슈 추가 등록 (Write)
+        // 신규 항목 저장 (Write)
         taskForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -571,7 +586,7 @@
             }
         });
 
-        // 권한 변경 시 필터 렌더링
+        // 시뮬레이션 권한 변경 시 재렌더링
         roleSelector.addEventListener('change', (e) => {
             fetchTasks(e.target.value);
         });

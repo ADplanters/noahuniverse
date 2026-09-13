@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <!-- 파비콘 -->
+    <!-- 파비콘 (AP 완벽 중앙 정렬) -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='16' fill='%23F37021'/><text x='50%' y='50%' font-family='system-ui, -apple-system, sans-serif' font-weight='900' font-size='30' fill='%23FFFFFF' text-anchor='middle' dominant-baseline='central' dy='0.1em'>AP</text></svg>">
     
-    <!-- SNS 공유용 메타데이터 (Open Graph) -->
+    <!-- SNS 공유용 메타데이터 -->
     <meta property="og:type" content="website">
     <meta property="og:title" content="ADplanters x NOAH UNIVERSE | 공식 파트너십">
     <meta property="og:description" content="ADplanters와 NOAH UNIVERSE의 B2B 파트너십 통합 관리 및 문의 시스템입니다.">
@@ -39,11 +39,11 @@
 </head>
 <body class="bg-grid-pattern text-gray-800 font-sans min-h-screen relative flex flex-col justify-between overflow-x-hidden">
 
-    <!-- 워터마크 컨테이너 -->
+    <!-- 배경 워터마크 -->
     <div class="watermark-container" aria-hidden="true" id="watermarkBox"></div>
 
     <!-- ==================================================================== -->
-    <!-- 1. 로그인 화면 -->
+    <!-- 1. 로그인 화면 (비인증 상태) -->
     <!-- ==================================================================== -->
     <div id="loginSection" class="relative z-10 flex-1 flex flex-col items-center justify-center p-4">
         <div class="text-center mb-8">
@@ -51,7 +51,6 @@
                 <i class="fa-solid fa-handshake-angle text-2xl"></i>
             </div>
             <div class="flex items-center justify-center gap-2 text-2xl sm:text-3xl font-black tracking-tight mb-2">
-                <!-- ★ 로고 색상 오렌지(hermes)로 전면 통일 ★ -->
                 <span class="text-hermes">ADplanters</span>
                 <span class="text-gray-300 font-normal">✕</span>
                 <span class="text-noah">NOAH UNIVERSE</span>
@@ -59,7 +58,7 @@
             <p class="text-xs font-bold text-gray-500 tracking-wider">공식 파트너십 B2B 고객 관리 및 통합 문의 시스템</p>
         </div>
 
-        <div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-xl shadow-orange-950/5 border border-gray-100 text-center">
+        <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-xl shadow-orange-950/5 border border-gray-100 text-center">
             <div class="mb-6">
                 <span class="inline-block px-3 py-1 bg-hermes-light text-hermes text-[11px] font-bold rounded-full mb-2">권한 인증 시스템</span>
                 <p class="text-xs font-semibold text-gray-500">지정된 파트너 계정으로 로그인해 주세요.</p>
@@ -77,21 +76,40 @@
     </div>
 
     <!-- ==================================================================== -->
-    <!-- 2. 대시보드 화면 -->
+    <!-- 2. 대시보드 화면 (반응형 지원) -->
     <!-- ==================================================================== -->
-    <div id="dashboardSection" class="hidden relative z-10 min-h-screen flex w-full">
-        <!-- 사이드바 -->
-        <aside class="w-64 bg-white/95 backdrop-blur-md border-r border-gray-200 flex-shrink-0 flex flex-col fixed h-full z-10 shadow-sm">
-            <div class="p-6 flex items-center justify-center border-b border-gray-100">
+    <div id="dashboardSection" class="hidden relative z-10 min-h-screen flex flex-col md:flex-row w-full">
+        
+        <!-- 모달/드로어 닫기용 모바일 오버레이 -->
+        <div id="mobileOverlay" class="fixed inset-0 bg-black/50 z-30 hidden md:hidden backdrop-blur-sm transition-opacity"></div>
+
+        <!-- [모바일 상단 헤더] -->
+        <div class="md:hidden flex justify-between items-center bg-white/90 backdrop-blur-md px-4 py-3 border-b border-gray-200 sticky top-0 z-20">
+            <div class="text-lg font-black tracking-tighter">
+                <span class="text-hermes">ADplanters</span>
+                <span class="text-gray-300 mx-1">✕</span>
+                <span class="text-noah text-xs">NOAH</span>
+            </div>
+            <button id="mobileMenuBtn" class="text-gray-700 hover:text-hermes text-xl p-1.5 focus:outline-none rounded-lg hover:bg-gray-100 transition">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+        </div>
+
+        <!-- [사이드바] 데스크톱: 좌측 고정 / 모바일: 슬라이드 드로어 -->
+        <aside id="sidebar" class="w-64 bg-white/95 backdrop-blur-md border-r border-gray-200 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 h-full z-40 shadow-xl md:shadow-sm transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
+            <div class="p-5 md:p-6 flex items-center justify-between border-b border-gray-100">
                 <div class="text-xl font-black tracking-tighter">
-                    <!-- ★ 좌측 상단 로고 색상 오렌지(hermes)로 전면 통일 ★ -->
                     <span class="text-hermes">ADplanters</span>
                     <span class="text-gray-300 mx-1">✕</span>
                     <span class="text-noah text-sm">NOAH</span>
                 </div>
+                <!-- 모바일용 닫기 버튼 -->
+                <button id="closeSidebarBtn" class="md:hidden text-gray-400 hover:text-gray-600 p-1">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
             </div>
             
-            <nav class="flex-1 p-4 space-y-1" id="mainNav">
+            <nav class="flex-1 p-4 space-y-1 overflow-y-auto" id="mainNav">
                 <a href="#" data-menu="dashboard" class="nav-item flex items-center gap-3 bg-hermes text-white px-4 py-3 rounded-lg font-bold shadow-md shadow-orange-200/50 transition">
                     <i class="fa-solid fa-chart-pie w-5"></i> 파트너 통합 보드
                 </a>
@@ -101,7 +119,6 @@
                 <a href="#" data-menu="inquiries" class="nav-item flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition">
                     <i class="fa-solid fa-list-check w-5"></i> 업무 이슈/요청 리스트
                 </a>
-                <!-- 어드민 전용 메뉴 -->
                 <a href="#" data-menu="approvals" id="menuApprovals" class="nav-item hidden items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition">
                     <i class="fa-solid fa-user-shield w-5"></i> 권한 승인 관리
                 </a>
@@ -123,150 +140,150 @@
             </div>
         </aside>
 
-        <!-- 메인 콘텐츠 -->
-        <main class="ml-64 flex-1 flex flex-col min-h-screen relative z-0 pl-8 pr-8 pb-12 pt-6">
-            <header class="flex justify-between items-center mb-8 bg-white/80 p-6 rounded-2xl border border-gray-200 shadow-sm backdrop-blur-sm">
+        <!-- [메인 콘텐츠 영역] 모바일 패딩 및 반응형 마진 조절 -->
+        <main class="md:ml-64 flex-1 flex flex-col min-h-screen relative z-0 p-4 md:px-8 md:py-6 w-full">
+            <header class="flex justify-between items-center mb-6 md:mb-8 bg-white/80 p-4 md:p-6 rounded-2xl border border-gray-200 shadow-sm backdrop-blur-sm">
                 <div>
-                    <h1 class="text-2xl font-black text-gray-900" id="pageTitle">ADplanters x Noah 파트너십 관리 보드</h1>
-                    <p class="text-sm text-gray-500 mt-1" id="pageDesc">Firebase Firestore 기반 실시간 통합 고객 관리 시스템입니다.</p>
+                    <h1 class="text-xl md:text-2xl font-black text-gray-900" id="pageTitle">ADplanters x Noah 파트너십 관리 보드</h1>
+                    <p class="text-xs md:text-sm text-gray-500 mt-1" id="pageDesc">Firebase Firestore 기반 실시간 통합 고객 관리 시스템입니다.</p>
                 </div>
             </header>
 
-            <!-- 뷰 1. 통계 (대시보드 홈) -->
-            <div id="statsContainer" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
-                    <div><p class="text-xs font-bold text-gray-500 mb-1">총 이슈 항목</p><p class="text-2xl font-black text-gray-900" id="statTotal">0<span class="text-sm font-medium text-gray-500 ml-1">개</span></p></div>
-                    <div class="w-12 h-12 rounded-xl bg-hermes-light text-hermes flex items-center justify-center text-xl"><i class="fa-solid fa-building"></i></div>
+            <!-- 뷰 1. 통계 (모바일 2열 / 데스크톱 4열) -->
+            <div id="statsContainer" class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
+                <div class="bg-white p-4 md:p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
+                    <div><p class="text-xs font-bold text-gray-500 mb-1">총 이슈 항목</p><p class="text-xl md:text-2xl font-black text-gray-900" id="statTotal">0<span class="text-xs font-medium text-gray-500 ml-1">개</span></p></div>
+                    <div class="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-hermes-light text-hermes flex items-center justify-center text-lg md:text-xl"><i class="fa-solid fa-building"></i></div>
                 </div>
-                <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
-                    <div><p class="text-xs font-bold text-gray-500 mb-1">대기중 이슈</p><p class="text-2xl font-black text-red-500" id="statWait">0<span class="text-sm font-medium text-gray-500 ml-1">건</span></p></div>
-                    <div class="w-12 h-12 rounded-xl bg-red-50 text-red-500 flex items-center justify-center text-xl"><i class="fa-solid fa-circle-question"></i></div>
+                <div class="bg-white p-4 md:p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
+                    <div><p class="text-xs font-bold text-gray-500 mb-1">대기중 이슈</p><p class="text-xl md:text-2xl font-black text-red-500" id="statWait">0<span class="text-xs font-medium text-gray-500 ml-1">건</span></p></div>
+                    <div class="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-red-50 text-red-500 flex items-center justify-center text-lg md:text-xl"><i class="fa-solid fa-circle-question"></i></div>
                 </div>
-                <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
-                    <div><p class="text-xs font-bold text-gray-500 mb-1">진행중 업무</p><p class="text-2xl font-black text-noah" id="statIng">0<span class="text-sm font-medium text-gray-500 ml-1">건</span></p></div>
-                    <div class="w-12 h-12 rounded-xl bg-noah-light text-noah flex items-center justify-center text-xl"><i class="fa-solid fa-spinner"></i></div>
+                <div class="bg-white p-4 md:p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
+                    <div><p class="text-xs font-bold text-gray-500 mb-1">진행중 업무</p><p class="text-xl md:text-2xl font-black text-noah" id="statIng">0<span class="text-xs font-medium text-gray-500 ml-1">건</span></p></div>
+                    <div class="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-noah-light text-noah flex items-center justify-center text-lg md:text-xl"><i class="fa-solid fa-spinner"></i></div>
                 </div>
-                <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
-                    <div><p class="text-xs font-bold text-gray-500 mb-1">완료 항목</p><p class="text-2xl font-black text-gray-900" id="statDone">0<span class="text-sm font-medium text-gray-500 ml-1">건</span></p></div>
-                    <div class="w-12 h-12 rounded-xl bg-gray-100 text-gray-600 flex items-center justify-center text-xl"><i class="fa-solid fa-check-double"></i></div>
+                <div class="bg-white p-4 md:p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
+                    <div><p class="text-xs font-bold text-gray-500 mb-1">완료 항목</p><p class="text-xl md:text-2xl font-black text-gray-900" id="statDone">0<span class="text-xs font-medium text-gray-500 ml-1">건</span></p></div>
+                    <div class="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gray-100 text-gray-600 flex items-center justify-center text-lg md:text-xl"><i class="fa-solid fa-check-double"></i></div>
                 </div>
             </div>
 
             <!-- 뷰 2. 클라이언트 DB 관리 리스트 -->
-            <div id="clientsContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-8">
-                <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-white">
-                    <h2 class="font-bold text-gray-800"><i class="fa-solid fa-address-book text-hermes mr-2"></i> 통합 클라이언트 DB 리스트</h2>
-                    <button id="openClientModalBtn" class="bg-hermes hover:bg-hermes-hover text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition flex items-center gap-2">
-                        <i class="fa-solid fa-plus"></i> 신규 클라이언트 추가
+            <div id="clientsContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8">
+                <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-white">
+                    <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-address-book text-hermes mr-2"></i> 클라이언트 DB 리스트</h2>
+                    <button id="openClientModalBtn" class="bg-hermes hover:bg-hermes-hover text-white text-xs font-bold px-3 py-2 md:px-4 md:py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-plus"></i> <span class="hidden sm:inline">신규 클라이언트 </span>추가
                     </button>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse whitespace-nowrap">
                         <thead>
                             <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
-                                <th class="p-4 font-bold">상호명</th>
-                                <th class="p-4 font-bold">URL (홈/인스타)</th>
-                                <th class="p-4 font-bold">메타광고 계정 (ID/PW)</th>
-                                <th class="p-4 font-bold">월 예산</th>
-                                <th class="p-4 font-bold">작업/광고 시작일</th>
-                                <th class="p-4 font-bold">등록자</th>
-                                <th class="p-4 font-bold">연결된 담당자(Player)</th>
-                                <th class="p-4 font-bold text-center admin-only-col">관리(Admin)</th>
+                                <th class="p-3 md:p-4 font-bold">상호명</th>
+                                <th class="p-3 md:p-4 font-bold">URL (홈/인스타)</th>
+                                <th class="p-3 md:p-4 font-bold">메타광고 계정 (ID/PW)</th>
+                                <th class="p-3 md:p-4 font-bold">월 예산</th>
+                                <th class="p-3 md:p-4 font-bold">작업/광고 시작일</th>
+                                <th class="p-3 md:p-4 font-bold">등록자</th>
+                                <th class="p-3 md:p-4 font-bold">연결된 담당자</th>
+                                <th class="p-3 md:p-4 font-bold text-center admin-only-col">관리(Admin)</th>
                             </tr>
                         </thead>
                         <tbody id="clientsTable" class="text-sm divide-y divide-gray-100"></tbody>
                     </table>
                 </div>
-                <div id="emptyClients" class="hidden py-16 text-center flex-col items-center justify-center">
-                    <i class="fa-solid fa-folder-open text-4xl text-gray-300 mb-3"></i>
-                    <p class="text-gray-500 font-medium">조회 가능한 클라이언트 데이터가 없습니다.</p>
+                <div id="emptyClients" class="hidden py-12 md:py-16 text-center flex-col items-center justify-center">
+                    <i class="fa-solid fa-folder-open text-3xl md:text-4xl text-gray-300 mb-3"></i>
+                    <p class="text-gray-500 font-medium text-xs md:text-sm">조회 가능한 클라이언트 데이터가 없습니다.</p>
                 </div>
             </div>
 
             <!-- 뷰 3. 이슈 리스트 -->
-            <div id="tasksContainer" class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-8">
-                <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-white">
-                    <h2 class="font-bold text-gray-800"><i class="fa-solid fa-table-list text-hermes mr-2"></i> 업무 이슈/요청 리스트</h2>
-                    <button id="openModalBtn" class="bg-hermes hover:bg-hermes-hover text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition flex items-center gap-2">
-                        <i class="fa-solid fa-plus"></i> 신규 이슈 등록
+            <div id="tasksContainer" class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8">
+                <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-white">
+                    <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-table-list text-hermes mr-2"></i> 업무 이슈/요청 리스트</h2>
+                    <button id="openModalBtn" class="bg-hermes hover:bg-hermes-hover text-white text-xs font-bold px-3 py-2 md:px-4 md:py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-plus"></i> <span class="hidden sm:inline">신규 이슈 </span>등록
                     </button>
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
+                    <table class="w-full text-left border-collapse whitespace-nowrap md:whitespace-normal">
                         <thead>
                             <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
-                                <th class="p-4 font-bold">클라이언트명</th>
-                                <th class="p-4 font-bold">분류</th>
-                                <th class="p-4 font-bold">요청사항</th>
-                                <th class="p-4 font-bold">이슈 작성자</th>
-                                <th class="p-4 font-bold">상태</th>
-                                <th class="p-4 font-bold">등록일</th>
-                                <th class="p-4 font-bold text-center">삭제</th>
+                                <th class="p-3 md:p-4 font-bold">클라이언트명</th>
+                                <th class="p-3 md:p-4 font-bold">분류</th>
+                                <th class="p-3 md:p-4 font-bold">요청사항</th>
+                                <th class="p-3 md:p-4 font-bold">작성자</th>
+                                <th class="p-3 md:p-4 font-bold">상태</th>
+                                <th class="p-3 md:p-4 font-bold">등록일</th>
+                                <th class="p-3 md:p-4 font-bold text-center">삭제</th>
                             </tr>
                         </thead>
                         <tbody id="boardTable" class="text-sm divide-y divide-gray-100"></tbody>
                     </table>
                 </div>
-                <div id="emptyState" class="hidden py-16 text-center flex-col items-center justify-center">
-                    <i class="fa-solid fa-folder-open text-4xl text-gray-300 mb-3"></i>
-                    <p class="text-gray-500 font-medium">조회 가능한 업무 이슈 데이터가 없습니다.</p>
+                <div id="emptyState" class="hidden py-12 md:py-16 text-center flex-col items-center justify-center">
+                    <i class="fa-solid fa-folder-open text-3xl md:text-4xl text-gray-300 mb-3"></i>
+                    <p class="text-gray-500 font-medium text-xs md:text-sm">조회 가능한 업무 이슈 데이터가 없습니다.</p>
                 </div>
             </div>
 
             <!-- 뷰 4. 권한 승인 (어드민 전용) -->
             <div id="approvalsContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1">
-                <div class="p-5 border-b border-gray-100 bg-white">
-                    <h2 class="font-bold text-gray-800"><i class="fa-solid fa-user-shield text-hermes mr-2"></i> 파트너십 가입 대기 유저 목록</h2>
+                <div class="p-4 md:p-5 border-b border-gray-100 bg-white">
+                    <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-user-shield text-hermes mr-2"></i> 파트너십 가입 대기 유저 목록</h2>
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
+                    <table class="w-full text-left border-collapse whitespace-nowrap">
                         <thead>
                             <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
-                                <th class="p-4 font-bold">이름</th>
-                                <th class="p-4 font-bold">이메일 계정</th>
-                                <th class="p-4 font-bold">역할(Role) 지정</th>
-                                <th class="p-4 font-bold text-center">승인 처리</th>
+                                <th class="p-3 md:p-4 font-bold">이름</th>
+                                <th class="p-3 md:p-4 font-bold">이메일 계정</th>
+                                <th class="p-3 md:p-4 font-bold">역할(Role) 지정</th>
+                                <th class="p-3 md:p-4 font-bold text-center">승인 처리</th>
                             </tr>
                         </thead>
                         <tbody id="approvalsTable" class="text-sm divide-y divide-gray-100"></tbody>
                     </table>
                 </div>
-                <div id="emptyApprovals" class="hidden py-16 text-center flex-col items-center justify-center">
-                    <i class="fa-solid fa-user-check text-4xl text-gray-300 mb-3"></i>
-                    <p class="text-gray-500 font-medium">가입 대기 중인 유저가 없습니다.</p>
+                <div id="emptyApprovals" class="hidden py-12 md:py-16 text-center flex-col items-center justify-center">
+                    <i class="fa-solid fa-user-check text-3xl md:text-4xl text-gray-300 mb-3"></i>
+                    <p class="text-gray-500 font-medium text-xs md:text-sm">가입 대기 중인 유저가 없습니다.</p>
                 </div>
             </div>
         </main>
     </div>
 
     <!-- ==================================================================== -->
-    <!-- 모달 팝업 영역 -->
+    <!-- 모달 팝업 영역 (반응형 너비 및 패딩 적용) -->
     <!-- ==================================================================== -->
     
     <!-- 클라이언트 추가 모달 -->
-    <div id="clientModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center">
-        <div class="bg-white rounded-2xl w-full max-w-2xl p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-6 border-b pb-4">
-                <h3 class="text-lg font-bold text-gray-900"><i class="fa-solid fa-address-card text-hermes mr-2"></i> 신규 클라이언트 DB 등록</h3>
+    <div id="clientModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-xl p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-5 border-b pb-3">
+                <h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-address-card text-hermes mr-2"></i> 신규 클라이언트 DB 등록</h3>
                 <button id="closeClientModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
             <form id="clientForm" class="space-y-4">
                 <div><label class="block text-xs font-bold text-gray-700 mb-1">1. 상호명 (필수)</label><input type="text" id="c_name" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">2. 홈페이지 URL</label><input type="url" id="c_homeUrl" placeholder="https://" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">3. 인스타그램 URL</label><input type="url" id="c_instaUrl" placeholder="https://instagram.com/" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                 </div>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">4. 메타광고계정 ID</label><input type="text" id="c_metaId" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">5. 메타광고계정 PW</label><input type="text" id="c_metaPw" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                 </div>
                 <div><label class="block text-xs font-bold text-gray-700 mb-1">6. 월 광고 예산</label><input type="text" id="c_budget" placeholder="예: 300만원" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">7. 인스타 기술작업 시작일</label><input type="date" id="c_instaDate" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">8. 메타 광고 시작 예정일</label><input type="date" id="c_metaDate" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                 </div>
                 <div><label class="block text-xs font-bold text-gray-700 mb-1">9. 등록자 (자동입력)</label><input type="text" id="c_registerName" readonly class="w-full text-sm bg-gray-50 border border-gray-200 text-gray-500 rounded-lg p-2.5 outline-none font-bold"></div>
-                <div class="flex justify-end gap-2 pt-4 border-t mt-6">
+                <div class="flex justify-end gap-2 pt-4 border-t mt-5">
                     <button type="button" id="cancelClientBtn" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-xs font-bold">취소</button>
                     <button type="submit" class="px-5 py-2 bg-hermes hover:bg-hermes-hover text-white rounded-xl text-xs font-bold shadow-md">클라이언트 등록</button>
                 </div>
@@ -275,14 +292,14 @@
     </div>
 
     <!-- 다중 담당자 연결 모달 (Admin 전용) -->
-    <div id="assignModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center">
-        <div class="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl border border-gray-100">
-            <div class="flex justify-between items-center mb-4 border-b pb-4">
-                <h3 class="text-lg font-bold text-gray-900"><i class="fa-solid fa-users text-hermes mr-2"></i> 담당자 다중 연결</h3>
+    <div id="assignModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-sm p-5 md:p-6 shadow-2xl border border-gray-100">
+            <div class="flex justify-between items-center mb-4 border-b pb-3">
+                <h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-users text-hermes mr-2"></i> 담당자 다중 연결</h3>
                 <button id="closeAssignModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
-            <p class="text-xs text-gray-500 mb-4">해당 클라이언트를 전담할 인원을 선택하세요. (다중 선택 가능)</p>
-            <div id="managerCheckboxList" class="flex flex-col gap-2 mb-6 max-h-48 overflow-y-auto p-2 bg-gray-50 rounded-lg border border-gray-100"></div>
+            <p class="text-xs text-gray-500 mb-4">해당 클라이언트를 전담할 인원을 선택하세요.</p>
+            <div id="managerCheckboxList" class="flex flex-col gap-2 mb-5 max-h-48 overflow-y-auto p-2 bg-gray-50 rounded-lg border border-gray-100"></div>
             <div class="flex justify-end gap-2 border-t pt-4">
                 <button type="button" id="cancelAssignBtn" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-xs font-bold">취소</button>
                 <button type="button" id="saveAssignBtn" class="px-5 py-2 bg-adplanters hover:bg-black text-white rounded-xl text-xs font-bold shadow-md">배정 완료</button>
@@ -291,20 +308,20 @@
     </div>
 
     <!-- 신규 이슈 등록 모달 -->
-    <div id="createModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center">
-        <div class="bg-white rounded-2xl w-full max-w-lg p-6 shadow-2xl border border-gray-100">
-            <div class="flex justify-between items-center mb-6 border-b pb-4">
-                <h3 class="text-lg font-bold text-gray-900"><i class="fa-solid fa-pen-to-square text-hermes mr-2"></i> 신규 이슈 등록</h3>
+    <div id="createModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-lg p-5 md:p-6 shadow-2xl border border-gray-100">
+            <div class="flex justify-between items-center mb-5 border-b pb-3">
+                <h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-pen-to-square text-hermes mr-2"></i> 신규 이슈 등록</h3>
                 <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
             <form id="taskForm" class="space-y-4">
                 <div><label class="block text-xs font-bold text-gray-700 mb-1">클라이언트명</label><input type="text" id="inputClient" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">분류</label><select id="inputType" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"><option value="Q&A">Q&A</option><option value="보고서">보고서</option><option value="디자인">디자인</option><option value="시스템">시스템</option></select></div>
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">소속</label><select id="inputAgency" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"><option value="noah">노아유니버스</option><option value="adplanters">애드플랜터스</option></select></div>
                 </div>
                 <div><label class="block text-xs font-bold text-gray-700 mb-1">제목</label><input type="text" id="inputTitle" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">작성자</label><input type="text" id="inputStaff" placeholder="예: 홍길동" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">상태</label><select id="inputStatus" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"><option value="대기중">대기중</option><option value="진행중">진행중</option><option value="완료">완료</option></select></div>
                 </div>
@@ -316,7 +333,7 @@
         </div>
     </div>
 
-    <!-- 대기 팝업 -->
+    <!-- 승인 대기 팝업 -->
     <div id="pendingModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl w-full max-w-sm p-6 text-center shadow-2xl border border-gray-100 animate-bounce-short">
             <div class="w-14 h-14 bg-orange-100 text-hermes rounded-full flex items-center justify-center text-2xl mx-auto mb-4"><i class="fa-solid fa-clock"></i></div>
@@ -326,7 +343,7 @@
         </div>
     </div>
 
-    <!-- 분리된 JS 파일 연결 -->
+    <!-- JS 모듈 연결 -->
     <script type="module" src="app.js"></script>
 </body>
 </html>

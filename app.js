@@ -16,16 +16,17 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-// ★ 관리자(Admin) 권한을 가질 대표 이메일
 const ADMIN_EMAILS = ["hhjhhj422@gmail.com", "adp@adplanters.com"];
 let currentUserRole = ''; 
 let currentUserName = ''; 
 let currentAssignClientId = null; 
 
+// DOM Elements
 const loginSection = document.getElementById('loginSection');
 const dashboardSection = document.getElementById('dashboardSection');
 const pendingModal = document.getElementById('pendingModal');
 
+// Views
 const statsContainer = document.getElementById('statsContainer');
 const tasksContainer = document.getElementById('tasksContainer');
 const clientsContainer = document.getElementById('clientsContainer');
@@ -35,11 +36,33 @@ const menuApprovals = document.getElementById('menuApprovals');
 const pageTitle = document.getElementById('pageTitle');
 const pageDesc = document.getElementById('pageDesc');
 
+// Mobile UI Elements
+const sidebar = document.getElementById('sidebar');
+const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+const mobileOverlay = document.getElementById('mobileOverlay');
+
+// Modals
 const createModal = document.getElementById('createModal');
 const clientModal = document.getElementById('clientModal');
 const assignModal = document.getElementById('assignModal');
 
-// 모달 토글
+// ★ [모바일 전용] 드로어 메뉴 열기/닫기 제어 ★
+function openMobileSidebar() {
+    sidebar.classList.remove('-translate-x-full');
+    mobileOverlay.classList.remove('hidden');
+}
+
+function closeMobileSidebar() {
+    sidebar.classList.add('-translate-x-full');
+    mobileOverlay.classList.add('hidden');
+}
+
+if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', openMobileSidebar);
+if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', closeMobileSidebar);
+if (mobileOverlay) mobileOverlay.addEventListener('click', closeMobileSidebar);
+
+// 공통 모달 닫기
 document.getElementById('openModalBtn').addEventListener('click', () => createModal.classList.remove('hidden'));
 document.getElementById('closeModalBtn').addEventListener('click', () => createModal.classList.add('hidden'));
 document.getElementById('cancelBtn').addEventListener('click', () => createModal.classList.add('hidden'));
@@ -59,7 +82,7 @@ document.getElementById('googleLoginBtn').addEventListener('click', () => signIn
 document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
 document.getElementById('closePendingBtn').addEventListener('click', () => { pendingModal.classList.add('hidden'); signOut(auth); });
 
-// [1] 라우팅 (메뉴 탭)
+// [1] 라우터 (메뉴 이동 시 모바일 사이드바 자동 닫힘 처리 포함)
 navItems.forEach(item => {
     item.addEventListener('click', (e) => {
         e.preventDefault();
@@ -98,6 +121,9 @@ navItems.forEach(item => {
             pageDesc.innerText = '신규 가입 유저의 역할을 지정하고 접속 권한을 승인합니다.';
             fetchApprovals();
         }
+
+        // 모바일 화면일 경우 메뉴 선택 후 사이드바 닫기
+        closeMobileSidebar();
     });
 });
 
@@ -413,7 +439,7 @@ document.getElementById('taskForm').addEventListener('submit', async (e) => {
     } catch (error) { alert("저장 실패: " + error.message); }
 });
 
-// [5] 유저 가입 승인 로직 (Admin 전용 - 3단계 권한 부여)
+// [5] 유저 가입 승인 로직 (Admin 전용)
 async function fetchApprovals() {
     if(currentUserRole !== 'admin') return;
     const tbody = document.getElementById('approvalsTable');
@@ -438,7 +464,6 @@ async function fetchApprovals() {
                     <td class="p-4 font-bold text-gray-900">${user.name}</td>
                     <td class="p-4 text-gray-500 font-medium">${user.email}</td>
                     <td class="p-4">
-                        <!-- ★ 3단계 권한 부여 옵션 ★ -->
                         <select class="role-select text-xs font-bold border border-gray-300 rounded p-1.5 focus:border-hermes outline-none" data-uid="${docSnap.id}">
                             <option value="player">Player (담당 직원)</option>
                             <option value="leader">리더 (노아 대표)</option>

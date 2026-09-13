@@ -16,17 +16,16 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
+// ★ 관리자(Admin) 권한을 가질 대표 이메일
 const ADMIN_EMAILS = ["hhjhhj422@gmail.com", "adp@adplanters.com"];
 let currentUserRole = ''; 
 let currentUserName = ''; 
 let currentAssignClientId = null; 
 
-// DOM 요소 맵핑
 const loginSection = document.getElementById('loginSection');
 const dashboardSection = document.getElementById('dashboardSection');
 const pendingModal = document.getElementById('pendingModal');
 
-// Views
 const statsContainer = document.getElementById('statsContainer');
 const tasksContainer = document.getElementById('tasksContainer');
 const clientsContainer = document.getElementById('clientsContainer');
@@ -35,19 +34,16 @@ const navItems = document.querySelectorAll('.nav-item');
 const menuApprovals = document.getElementById('menuApprovals');
 const pageTitle = document.getElementById('pageTitle');
 const pageDesc = document.getElementById('pageDesc');
-const roleSelector = document.getElementById('roleSelector');
 
-// Modals
 const createModal = document.getElementById('createModal');
 const clientModal = document.getElementById('clientModal');
 const assignModal = document.getElementById('assignModal');
 
-// 공통 모달 닫기
+// 모달 토글
 document.getElementById('openModalBtn').addEventListener('click', () => createModal.classList.remove('hidden'));
 document.getElementById('closeModalBtn').addEventListener('click', () => createModal.classList.add('hidden'));
 document.getElementById('cancelBtn').addEventListener('click', () => createModal.classList.add('hidden'));
 
-// 클라이언트 등록 모달
 document.getElementById('openClientModalBtn').addEventListener('click', () => {
     document.getElementById('c_registerName').value = currentUserName;
     clientModal.classList.remove('hidden');
@@ -55,7 +51,6 @@ document.getElementById('openClientModalBtn').addEventListener('click', () => {
 document.getElementById('closeClientModalBtn').addEventListener('click', () => clientModal.classList.add('hidden'));
 document.getElementById('cancelClientBtn').addEventListener('click', () => clientModal.classList.add('hidden'));
 
-// 담당자 다중 배정 모달 (Admin)
 document.getElementById('closeAssignModalBtn').addEventListener('click', () => assignModal.classList.add('hidden'));
 document.getElementById('cancelAssignBtn').addEventListener('click', () => assignModal.classList.add('hidden'));
 
@@ -112,7 +107,7 @@ onAuthStateChanged(auth, async (user) => {
         const userRef = doc(db, "users", user.uid);
         const userSnap = await getDoc(userRef);
         currentUserName = user.displayName || "담당자";
-        document.getElementById('inputStaff').value = currentUserName; // 이슈 작성자 기본세팅
+        document.getElementById('inputStaff').value = currentUserName;
 
         if (ADMIN_EMAILS.includes(user.email)) {
             await setDoc(userRef, { email: user.email, name: currentUserName, role: "admin", status: "approved" }, { merge: true });
@@ -154,9 +149,7 @@ function showDashboard(user) {
     document.getElementById('currentUserName').innerText = user.displayName || '사용자';
     document.getElementById('currentUserEmail').innerText = user.email;
     document.getElementById('currentUserRoleName').innerText = getRoleDisplayName(currentUserRole);
-    roleSelector.value = currentUserRole;
     
-    // 어드민 UI 토글
     if(currentUserRole === 'admin') {
         menuApprovals.classList.remove('hidden');
         const oldStyle = document.getElementById('adminStyle');
@@ -179,9 +172,7 @@ function showPendingPopup() {
     pendingModal.classList.remove('hidden');
 }
 
-// ============================================================================
-// [3] 클라이언트 DB 로직 (Player는 자신에게 할당된 클라이언트만 열람)
-// ============================================================================
+// [3] 클라이언트 DB 로직
 document.getElementById('clientForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const newClient = {
@@ -194,8 +185,8 @@ document.getElementById('clientForm').addEventListener('submit', async (e) => {
         instaDate: document.getElementById('c_instaDate').value,
         metaDate: document.getElementById('c_metaDate').value,
         registeredBy: document.getElementById('c_registerName').value,
-        managers: [], // 기본 미배정 (Admin이 처리)
-        agency: document.getElementById('inputAgency').value || "noah", // 소속 자동 기입
+        managers: [], 
+        agency: document.getElementById('inputAgency').value || "noah", 
         createdAt: new Date().toISOString()
     };
 
@@ -217,7 +208,6 @@ async function fetchClients() {
 
     try {
         let q = collection(db, "clients");
-        // Player는 자신(currentUserName)이 매니저 배열에 포함된 클라이언트만 조회
         if (currentUserRole === 'player') {
             q = query(collection(db, "clients"), where("managers", "array-contains", currentUserName));
         }
@@ -286,7 +276,7 @@ async function openAssignModal(clientId) {
         usersSnap.forEach(userDoc => {
             const uData = userDoc.data();
             const isChecked = currentManagers.includes(uData.name) ? 'checked' : '';
-            const roleName = uData.role === 'leader' ? '리더' : 'Player';
+            const roleName = uData.role === 'admin' ? '최상위 관리자' : (uData.role === 'leader' ? '리더' : 'Player');
             
             const checkboxHtml = `
                 <label class="flex items-center gap-3 p-2 hover:bg-white rounded cursor-pointer transition border border-transparent hover:border-gray-200">
@@ -315,9 +305,7 @@ document.getElementById('saveAssignBtn').addEventListener('click', async () => {
     } catch (error) { alert("업데이트 실패: " + error.message); }
 });
 
-// ============================================================================
-// [4] 이슈 리스트 (Player는 자신에게 할당된 클라이언트의 이슈만 볼 수 있음)
-// ============================================================================
+// [4] 이슈 리스트 로직
 async function fetchTasks() {
     const tbody = document.getElementById('boardTable');
     const emptyState = document.getElementById('emptyState');
@@ -327,7 +315,6 @@ async function fetchTasks() {
         let fetchedData = [];
         const querySnapshot = await getDocs(collection(db, "crm_tasks"));
         
-        // Player: 자신이 담당자로 배정된 클라이언트 목록을 먼저 가져온 후, 해당 클라이언트의 이슈만 필터링
         if (currentUserRole === 'player') {
             const cQ = query(collection(db, "clients"), where("managers", "array-contains", currentUserName));
             const cSnap = await getDocs(cQ);
@@ -336,20 +323,17 @@ async function fetchTasks() {
 
             querySnapshot.forEach((docSnap) => {
                 const data = docSnap.data();
-                // 담당 클라이언트 이슈이거나, 자신이 직접 작성한 이슈인 경우에만 노출
                 if (myClients.includes(data.client) || data.staff === currentUserName) {
                     fetchedData.push({ id: docSnap.id, ...data });
                 }
             });
         } 
-        // Leader: 노아 유니버스 관련 이슈 열람
         else if (currentUserRole === 'leader') {
             querySnapshot.forEach((docSnap) => {
                 const data = docSnap.data();
                 if (data.agency === "noah") fetchedData.push({ id: docSnap.id, ...data });
             });
         } 
-        // Admin: 전체 열람
         else {
             querySnapshot.forEach((docSnap) => { fetchedData.push({ id: docSnap.id, ...docSnap.data() }); });
         }
@@ -429,9 +413,7 @@ document.getElementById('taskForm').addEventListener('submit', async (e) => {
     } catch (error) { alert("저장 실패: " + error.message); }
 });
 
-// ============================================================================
-// [5] 유저 가입 승인 로직 (Admin 전용 - 드롭다운 Player/Leader 단순화)
-// ============================================================================
+// [5] 유저 가입 승인 로직 (Admin 전용 - 3단계 권한 부여)
 async function fetchApprovals() {
     if(currentUserRole !== 'admin') return;
     const tbody = document.getElementById('approvalsTable');
@@ -456,10 +438,11 @@ async function fetchApprovals() {
                     <td class="p-4 font-bold text-gray-900">${user.name}</td>
                     <td class="p-4 text-gray-500 font-medium">${user.email}</td>
                     <td class="p-4">
-                        <!-- ★ Player / Leader 로 단순화된 승인 드롭다운 ★ -->
+                        <!-- ★ 3단계 권한 부여 옵션 ★ -->
                         <select class="role-select text-xs font-bold border border-gray-300 rounded p-1.5 focus:border-hermes outline-none" data-uid="${docSnap.id}">
                             <option value="player">Player (담당 직원)</option>
                             <option value="leader">리더 (노아 대표)</option>
+                            <option value="admin">최상위 관리자 (Admin)</option>
                         </select>
                     </td>
                     <td class="p-4 text-center">
@@ -483,12 +466,6 @@ async function fetchApprovals() {
         });
     } catch (error) { console.error("유저 로드 에러:", error); }
 }
-
-// 개발 편의용 시뮬레이터 이벤트 바인딩
-roleSelector.addEventListener('change', (e) => {
-    currentUserRole = e.target.value;
-    showDashboard({ displayName: currentUserName, email: "simulated@email.com" });
-});
 
 // 동적 배경 워터마크
 document.addEventListener('DOMContentLoaded', () => {

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>ADplanters x NOAH UNIVERSE - OG Image Generator (1200x630)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        hermes: { DEFAULT: '#F37021', light: '#fde9db' },
+                        noah: { DEFAULT: '#0047AB', light: '#e0ebf9' },
+                        adplanters: { DEFAULT: '#111827' }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- 폰트어썸 아이콘 CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #0f172a;
+        }
+
+        /* SNS 표준 메타 이미지 규격 (1200px * 630px) */
+        .og-canvas {
+            width: 1200px;
+            height: 630px;
+            background-color: #fcfcfc;
+            background-image: 
+                linear-gradient(to right, rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+            background-size: 24px 24px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 60px;
+            box-sizing: border-box;
+        }
+
+        /* 배경 워터마크 */
+        .watermark-container {
+            position: absolute;
+            top: -40%; left: -40%;
+            width: 180%; height: 180%;
+            z-index: 0;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+            transform: rotate(-20deg);
+            opacity: 0.04;
+            user-select: none;
+        }
+
+        .watermark-row {
+            display: flex;
+            white-space: nowrap;
+            gap: 36px;
+            font-size: 0.85rem;
+            font-weight: 800;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1200x630 OG 이미지 영역 -->
+    <div class="og-canvas">
+        
+        <!-- 은은한 촘촘 사선 워터마크 -->
+        <div class="watermark-container" aria-hidden="true">
+            <div class="watermark-row">
+                <span>ADPLANTERS ✕ NOAH UNIVERSE COMPANY</span>
+                <span>ADPLANTERS ✕ NOAH UNIVERSE COMPANY</span>
+                <span>ADPLANTERS ✕ NOAH UNIVERSE COMPANY</span>
+                <span>ADPLANTERS ✕ NOAH UNIVERSE COMPANY</span>
+            </div>
+            <div class="watermark-row">
+                <span>ADPLANTERS ✕ NOAH UNIVERSE COMPANY</span>
+                <span>ADPLANTERS ✕ NOAH UNIVERSE COMPANY</span>
+                <span>ADPLANTERS ✕ NOAH UNIVERSE COMPANY</span>
+                <span>ADPLANTERS ✕ NOAH UNIVERSE COMPANY</span>
+            </div>
+            <div class="watermark-row">
+                <span>ADPLANTERS ✕ NOAH UNIVERSE COMPANY</span>
+                <span>ADPLANTERS ✕ NOAH UNIVERSE COMPANY</span>
+                <span>ADPLANTERS ✕ NOAH UNIVERSE COMPANY</span>
+                <span>ADPLANTERS ✕ NOAH UNIVERSE COMPANY</span>
+            </div>
+            <div class="watermark-row">
+                <span>ADPLANTERS ✕ NOAH UNIVERSE COMPANY</span>
+                <span>ADPLANTERS ✕ NOAH UNIVERSE COMPANY</span>
+                <span>ADPLANTERS ✕ NOAH UNIVERSE COMPANY</span>
+                <span>ADPLANTERS ✕ NOAH UNIVERSE COMPANY</span>
+            </div>
+            <div class="watermark-row">
+                <span>ADPLANTERS ✕ NOAH UNIVERSE COMPANY</span>
+                <span>ADPLANTERS ✕ NOAH UNIVERSE COMPANY</span>
+                <span>ADPLANTERS ✕ NOAH UNIVERSE COMPANY</span>
+                <span>ADPLANTERS ✕ NOAH UNIVERSE COMPANY</span>
+            </div>
+            <div class="watermark-row">
+                <span>ADPLANTERS ✕ NOAH UNIVERSE COMPANY</span>
+                <span>ADPLANTERS ✕ NOAH UNIVERSE COMPANY</span>
+                <span>ADPLANTERS ✕ NOAH UNIVERSE COMPANY</span>
+                <span>ADPLANTERS ✕ NOAH UNIVERSE COMPANY</span>
+            </div>
+        </div>
+
+        <!-- 상단 뱃지 영역 -->
+        <div class="relative z-10 flex justify-between items-center">
+            <div class="inline-flex items-center gap-2 bg-hermes-light text-hermes px-4 py-2 rounded-full font-bold text-sm tracking-wider shadow-sm">
+                <i class="fa-solid fa-shield-halved"></i> OFFICIAL B2B PARTNERSHIP
+            </div>
+            <div class="text-gray-400 font-bold text-sm tracking-widest">
+                SYSTEM VER 1.0
+            </div>
+        </div>
+
+        <!-- 중앙 브랜드 로고 및 텍스트 타이틀 -->
+        <div class="relative z-10 my-auto text-center">
+            <div class="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-hermes text-white shadow-lg shadow-orange-500/20 mb-6">
+                <i class="fa-solid fa-handshake-angle text-4xl"></i>
+            </div>
+            
+            <h1 class="text-5xl font-black tracking-tight mb-4 flex items-center justify-center gap-4">
+                <span class="text-adplanters">AD<span class="text-hermes">planters</span></span>
+                <span class="text-gray-300 font-light">✕</span>
+                <span class="text-noah">NOAH UNIVERSE</span>
+            </h1>
+
+            <p class="text-xl font-bold text-gray-600 tracking-tight">
+                공식 파트너십 B2B 고객 관리 및 통합 문의 시스템
+            </p>
+        </div>
+
+        <!-- 하단 도메인 주소 및 하단 라인 -->
+        <div class="relative z-10 pt-6 border-t border-gray-200 flex justify-between items-center">
+            <div class="text-sm font-bold text-gray-500">
+                ADplanters x NOAH UNIVERSE Integrated CRM Board
+            </div>
+            <div class="text-sm font-black text-hermes tracking-wider">
+                adplanters.github.io/noahuniverse/
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

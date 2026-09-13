@@ -1,0 +1,48 @@
+/* 커스텀 배경 모눈종이 패턴 */
+.bg-grid-pattern {
+    background-color: #fcfcfc;
+    background-image: 
+        linear-gradient(to right, rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+    background-size: 24px 24px;
+}
+
+/* 촘촘한 워터마크 컨테이너 레이어 */
+.watermark-container {
+    position: fixed;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 36px;
+    transform: rotate(-20deg);
+    opacity: 0.04;
+    user-select: none;
+}
+
+/* 워터마크 개별 행 (JS에서 반복 생성) */
+.watermark-row {
+    display: flex;
+    white-space: nowrap;
+    gap: 40px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+}
+
+/* 워터마크 브랜드 컬러 적용 */
+.wm-ad { color: #111827; }
+.wm-hermes { color: #F37021; }
+.wm-noah { color: #0047AB; }
+
+/* 팝업 통통 튀는 애니메이션 */
+@keyframes bounceShort {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+.animate-bounce-short {
+    animation: bounceShort 1.5s ease-in-out infinite;
+}

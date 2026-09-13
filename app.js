@@ -2,7 +2,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, getDocs, query, where, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// Firebase 설정
 const firebaseConfig = {
     apiKey: "AIzaSyABMgjiEEqx1b4tBxl5CKQWL_3ifuVxKPI",
     authDomain: "partner-noah.firebaseapp.com",
@@ -17,27 +16,49 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-// 마스터 계정
 const ADMIN_EMAILS = ["hhjhhj422@gmail.com", "adp@adplanters.com"];
 let currentUserRole = ''; 
+let currentUserName = ''; // 등록 담당자명 자동 기입을 위한 변수
+let currentAssignClientId = null; // 담당자 배정 시 클릭한 클라이언트 ID 임시 저장
 
-// DOM 요소
+// DOM 요소 맵핑
 const loginSection = document.getElementById('loginSection');
 const dashboardSection = document.getElementById('dashboardSection');
 const pendingModal = document.getElementById('pendingModal');
-const createModal = document.getElementById('createModal');
+
+// Views
 const statsContainer = document.getElementById('statsContainer');
 const tasksContainer = document.getElementById('tasksContainer');
+const clientsContainer = document.getElementById('clientsContainer');
 const approvalsContainer = document.getElementById('approvalsContainer');
 const navItems = document.querySelectorAll('.nav-item');
 const menuApprovals = document.getElementById('menuApprovals');
 const pageTitle = document.getElementById('pageTitle');
 const pageDesc = document.getElementById('pageDesc');
 
-// 이벤트 리스너: 모달 및 로그인
+// Modals
+const createModal = document.getElementById('createModal');
+const clientModal = document.getElementById('clientModal');
+const assignModal = document.getElementById('assignModal');
+
+// 이벤트 리스너 (모달 및 로그인)
 document.getElementById('openModalBtn').addEventListener('click', () => createModal.classList.remove('hidden'));
 document.getElementById('closeModalBtn').addEventListener('click', () => createModal.classList.add('hidden'));
 document.getElementById('cancelBtn').addEventListener('click', () => createModal.classList.add('hidden'));
+
+// 클라이언트 등록 모달 이벤트
+document.getElementById('openClientModalBtn').addEventListener('click', () => {
+    document.getElementById('c_registerName').value = currentUserName; // 로그인한 사람 자동기입
+    clientModal.classList.remove('hidden');
+});
+document.getElementById('closeClientModalBtn').addEventListener('click', () => clientModal.classList.add('hidden'));
+document.getElementById('cancelClientBtn').addEventListener('click', () => clientModal.classList.add('hidden'));
+
+// 담당자 다중 배정 모달 닫기
+document.getElementById('closeAssignModalBtn').addEventListener('click', () => assignModal.classList.add('hidden'));
+document.getElementById('cancelAssignBtn').addEventListener('click', () => assignModal.classList.add('hidden'));
+
+// Auth 이벤트
 document.getElementById('googleLoginBtn').addEventListener('click', () => signInWithPopup(auth, provider));
 document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
 document.getElementById('closePendingBtn').addEventListener('click', () => { pendingModal.classList.add('hidden'); signOut(auth); });
@@ -56,6 +77,7 @@ navItems.forEach(item => {
 
         statsContainer.classList.add('hidden');
         tasksContainer.classList.add('hidden');
+        clientsContainer.classList.add('hidden');
         approvalsContainer.classList.add('hidden');
 
         if (menu === 'dashboard') {
@@ -64,10 +86,15 @@ navItems.forEach(item => {
             pageTitle.innerText = 'ADplanters x Noah 파트너십 관리 보드';
             pageDesc.innerText = 'Firebase Firestore 기반 실시간 통합 고객 관리 시스템입니다.';
             fetchTasks();
+        } else if (menu === 'clients') {
+            clientsContainer.classList.remove('hidden');
+            pageTitle.innerText = '통합 클라이언트 DB 관리';
+            pageDesc.innerText = '전체 클라이언트의 핵심 정보와 광고 일정을 관리합니다.';
+            fetchClients(); // 클라이언트 DB 불러오기
         } else if (menu === 'inquiries') {
             tasksContainer.classList.remove('hidden');
-            pageTitle.innerText = '클라이언트 문의 및 요청 리스트';
-            pageDesc.innerText = '상세한 이슈 내역을 확인하고 관리합니다.';
+            pageTitle.innerText = '업무 이슈 및 요청 리스트';
+            pageDesc.innerText = '상세한 업무 내역을 확인하고 처리합니다.';
             fetchTasks();
         } else if (menu === 'approvals') {
             approvalsContainer.classList.remove('hidden');
@@ -83,16 +110,17 @@ onAuthStateChanged(auth, async (user) => {
     if (user) {
         const userRef = doc(db, "users", user.uid);
         const userSnap = await getDoc(userRef);
+        currentUserName = user.displayName || "담당자";
 
         if (ADMIN_EMAILS.includes(user.email)) {
-            await setDoc(userRef, { email: user.email, name: user.displayName || "대표", role: "admin", status: "approved" }, { merge: true });
+            await setDoc(userRef, { email: user.email, name: currentUserName, role: "admin", status: "approved" }, { merge: true });
             currentUserRole = 'admin';
             showDashboard(user);
             return;
         }
 
         if (!userSnap.exists()) {
-            await setDoc(userRef, { email: user.email, name: user.displayName || "일반 유저", role: "staff", status: "pending", createdAt: new Date().toISOString() });
+            await setDoc(userRef, { email: user.email, name: currentUserName, role: "staff", status: "pending", createdAt: new Date().toISOString() });
             showPendingPopup();
         } else {
             const userData = userSnap.data();
@@ -118,8 +146,16 @@ function showDashboard(user) {
     document.getElementById('currentUserName').innerText = user.displayName || '사용자';
     document.getElementById('currentUserEmail').innerText = user.email;
     
-    if(currentUserRole === 'admin') menuApprovals.classList.remove('hidden');
-    else menuApprovals.classList.add('hidden');
+    // 어드민 전용 스타일 제어
+    if(currentUserRole === 'admin') {
+        menuApprovals.classList.remove('hidden');
+    } else {
+        menuApprovals.classList.add('hidden');
+        // 어드민이 아닐경우 관리 컬럼 숨김 CSS 추가 주입
+        const style = document.createElement('style');
+        style.innerHTML = '.admin-only-col { display: none !important; }';
+        document.head.appendChild(style);
+    }
 
     fetchTasks();
 }
@@ -130,6 +166,169 @@ function showPendingPopup() {
     pendingModal.classList.remove('hidden');
 }
 
+// ============================================================================
+// ★ [핵심 신규 기능] 클라이언트 DB 관련 로직 (Create & Read)
+// ============================================================================
+
+// 1. 신규 클라이언트 저장 (Write)
+document.getElementById('clientForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const newClient = {
+        name: document.getElementById('c_name').value,
+        homeUrl: document.getElementById('c_homeUrl').value,
+        instaUrl: document.getElementById('c_instaUrl').value,
+        metaId: document.getElementById('c_metaId').value,
+        metaPw: document.getElementById('c_metaPw').value,
+        budget: document.getElementById('c_budget').value,
+        instaDate: document.getElementById('c_instaDate').value,
+        metaDate: document.getElementById('c_metaDate').value,
+        registeredBy: document.getElementById('c_registerName').value,
+        managers: [], // 초기 배정 담당자는 빈 배열 (Admin이 나중에 채움)
+        createdAt: new Date().toISOString()
+    };
+
+    try {
+        await addDoc(collection(db, "clients"), newClient);
+        clientModal.classList.add('hidden');
+        document.getElementById('clientForm').reset();
+        fetchClients();
+        alert("성공적으로 등록되었습니다.");
+    } catch (error) {
+        alert("등록 실패: " + error.message);
+    }
+});
+
+// 2. 클라이언트 목록 불러오기 (Read)
+async function fetchClients() {
+    const tbody = document.getElementById('clientsTable');
+    const emptyState = document.getElementById('emptyClients');
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin text-hermes mr-2"></i> 데이터 로딩중...</td></tr>';
+
+    try {
+        const querySnapshot = await getDocs(collection(db, "clients"));
+        tbody.innerHTML = '';
+
+        if (querySnapshot.empty) {
+            emptyState.style.display = 'flex';
+            return;
+        }
+
+        emptyState.style.display = 'none';
+        querySnapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            
+            // 배정된 담당자 뱃지 UI 생성
+            let managersHtml = '<span class="text-gray-400 text-xs">미배정</span>';
+            if (data.managers && data.managers.length > 0) {
+                managersHtml = data.managers.map(m => `<span class="inline-block bg-blue-50 text-noah text-[10px] px-2 py-1 rounded border border-blue-100 mr-1 mb-1 font-bold">${m}</span>`).join('');
+            }
+
+            // 어드민 전용 담당자 연결 버튼
+            const adminActions = currentUserRole === 'admin' ? 
+                `<td class="p-3 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col">
+                    <button class="open-assign-btn bg-gray-800 hover:bg-black text-white text-[11px] font-bold px-3 py-1.5 rounded transition shadow-sm" data-id="${docSnap.id}">
+                        담당자 연결
+                    </button>
+                </td>` 
+                : `<td class="admin-only-col hidden"></td>`;
+
+            const tr = `
+                <tr class="hover:bg-orange-50/30 transition border-b border-gray-100">
+                    <td class="p-3 font-black text-gray-900">${data.name}</td>
+                    <td class="p-3 text-xs text-gray-500">
+                        ${data.homeUrl ? `<a href="${data.homeUrl}" target="_blank" class="text-blue-500 hover:underline"><i class="fa-solid fa-link"></i> 홈페이지</a><br>` : ''}
+                        ${data.instaUrl ? `<a href="${data.instaUrl}" target="_blank" class="text-pink-500 hover:underline"><i class="fa-brands fa-instagram"></i> 인스타그램</a>` : ''}
+                    </td>
+                    <td class="p-3 text-xs">
+                        <div class="text-gray-700"><span class="font-bold">ID:</span> ${data.metaId || '-'}</div>
+                        <div class="text-gray-400"><span class="font-bold">PW:</span> ${data.metaPw ? '********' : '-'}</div>
+                    </td>
+                    <td class="p-3 font-bold text-hermes text-xs">${data.budget || '-'}</td>
+                    <td class="p-3 text-xs text-gray-600">
+                        <div>인스타: ${data.instaDate || '-'}</div>
+                        <div>메타: ${data.metaDate || '-'}</div>
+                    </td>
+                    <td class="p-3 text-xs font-bold text-gray-500">${data.registeredBy}</td>
+                    <td class="p-3 max-w-[120px] whitespace-normal">${managersHtml}</td>
+                    ${adminActions}
+                </tr>
+            `;
+            tbody.innerHTML += tr;
+        });
+
+        // '담당자 연결' 버튼 이벤트 바인딩 (어드민)
+        document.querySelectorAll('.open-assign-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                currentAssignClientId = e.currentTarget.getAttribute('data-id');
+                openAssignModal(currentAssignClientId);
+            });
+        });
+
+    } catch (e) { console.error("Client fetch error:", e); }
+}
+
+// 3. 담당자 다중 배정 모달 열기 (Admin 전용 로직)
+async function openAssignModal(clientId) {
+    const listContainer = document.getElementById('managerCheckboxList');
+    listContainer.innerHTML = '<div class="text-center text-xs text-gray-500"><i class="fa-solid fa-spinner animate-spin"></i> 유저 목록 불러오는 중...</div>';
+    assignModal.classList.remove('hidden');
+
+    try {
+        // 현재 승인(approved)된 전체 유저 가져오기
+        const q = query(collection(db, "users"), where("status", "==", "approved"));
+        const usersSnap = await getDocs(q);
+        
+        // 현재 클라이언트에 이미 배정된 담당자 목록 가져오기
+        const clientSnap = await getDoc(doc(db, "clients", clientId));
+        const currentManagers = clientSnap.data().managers || [];
+
+        listContainer.innerHTML = '';
+        usersSnap.forEach(userDoc => {
+            const uData = userDoc.data();
+            const isChecked = currentManagers.includes(uData.name) ? 'checked' : '';
+            
+            // 체크박스 UI 생성
+            const checkboxHtml = `
+                <label class="flex items-center gap-3 p-2 hover:bg-white rounded cursor-pointer transition border border-transparent hover:border-gray-200">
+                    <input type="checkbox" value="${uData.name}" class="assign-checkbox w-4 h-4 text-hermes focus:ring-hermes border-gray-300 rounded" ${isChecked}>
+                    <div>
+                        <p class="text-sm font-bold text-gray-800">${uData.name} <span class="text-[10px] font-normal text-gray-400 bg-gray-100 px-1 rounded">${uData.role}</span></p>
+                        <p class="text-xs text-gray-500">${uData.email}</p>
+                    </div>
+                </label>
+            `;
+            listContainer.innerHTML += checkboxHtml;
+        });
+    } catch (e) {
+        listContainer.innerHTML = '<div class="text-red-500 text-xs text-center">에러 발생</div>';
+    }
+}
+
+// 4. 다중 담당자 배정 저장 (Write)
+document.getElementById('saveAssignBtn').addEventListener('click', async () => {
+    if(!currentAssignClientId) return;
+
+    // 체크된 담당자명 배열로 수집
+    const checkboxes = document.querySelectorAll('.assign-checkbox:checked');
+    const selectedManagers = Array.from(checkboxes).map(cb => cb.value);
+
+    try {
+        await updateDoc(doc(db, "clients", currentAssignClientId), {
+            managers: selectedManagers
+        });
+        assignModal.classList.add('hidden');
+        alert("담당자 연결이 성공적으로 업데이트되었습니다.");
+        fetchClients(); // 리스트 갱신
+    } catch (error) {
+        alert("업데이트 실패: " + error.message);
+    }
+});
+
+
+// ============================================================================
+// 기존 기능: 이슈 게시판 및 권한 승인 관리
+// ============================================================================
+
 function getStatusBadge(status) {
     if (status === '대기중') return `<span class="bg-red-50 text-red-600 px-2.5 py-1 rounded-md text-xs font-bold border border-red-100">${status}</span>`;
     if (status === '진행중') return `<span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md text-xs font-bold border border-blue-100">${status}</span>`;
@@ -137,7 +336,6 @@ function getStatusBadge(status) {
     return `<span>${status}</span>`;
 }
 
-// [기능 3] 게시판 데이터 읽기
 async function fetchTasks() {
     const tbody = document.getElementById('boardTable');
     const emptyState = document.getElementById('emptyState');
@@ -168,7 +366,7 @@ async function fetchTasks() {
         fetchedData.forEach(item => {
             const adminActions = currentUserRole === 'admin' ? 
                 `<div class="flex justify-center gap-2"><button class="delete-btn text-gray-400 hover:text-red-500 transition" data-id="${item.id}"><i class="fa-solid fa-trash-can"></i></button></div>` 
-                : `<div class="text-center text-gray-300 text-xs">-</div>`;
+                : `<div class="text-center text-gray-300 text-xs admin-only-col hidden">-</div>`;
 
             const tr = `
                 <tr class="hover:bg-hermes-light/30 transition group border-b border-gray-100">
@@ -178,7 +376,7 @@ async function fetchTasks() {
                     <td class="p-4 text-gray-500 font-medium flex items-center gap-2"><div class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs"><i class="fa-solid fa-user"></i></div>${item.staff || '미지정'}</td>
                     <td class="p-4">${getStatusBadge(item.status)}</td>
                     <td class="p-4 text-gray-400 text-xs font-medium">${item.date || '-'}</td>
-                    <td class="p-4 border-l border-gray-100 bg-gray-50/50">${adminActions}</td>
+                    <td class="p-4 border-l border-gray-100 bg-gray-50/50 ${currentUserRole === 'admin' ? '' : 'hidden admin-only-col'}">${adminActions}</td>
                 </tr>
             `;
             tbody.innerHTML += tr;
@@ -202,10 +400,8 @@ function updateStats(data) {
     document.getElementById('statDone').innerText = data.filter(d => d.status === '완료').length;
 }
 
-// [기능 4] 권한 승인 관리 조회
 async function fetchApprovals() {
     if(currentUserRole !== 'admin') return;
-
     const tbody = document.getElementById('approvalsTable');
     const emptyState = document.getElementById('emptyApprovals');
     tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin text-hermes mr-2"></i> 유저 목록 불러오는 중...</td></tr>';
@@ -256,7 +452,6 @@ async function fetchApprovals() {
     } catch (error) { console.error("유저 로드 에러:", error); }
 }
 
-// [기능 5] 신규 이슈 DB 저장
 document.getElementById('taskForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const today = new Date();
@@ -276,9 +471,7 @@ document.getElementById('taskForm').addEventListener('submit', async (e) => {
         document.getElementById('createModal').classList.add('hidden');
         document.getElementById('taskForm').reset();
         fetchTasks();
-    } catch (error) {
-        alert("저장 실패: " + error.message);
-    }
+    } catch (error) { alert("저장 실패: " + error.message); }
 });
 
 // 동적 워터마크 생성 실행

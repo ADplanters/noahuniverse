@@ -33,7 +33,7 @@
     <!-- 폰트어썸 아이콘 CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- 커스텀 스타일: 모눈종이 배경 및 사선 워터마크 -->
+    <!-- 커스텀 스타일: 모눈종이 배경 및 작고 촘촘한 사선 워터마크 -->
     <style>
         /* 모눈종이 격자 배경 */
         .bg-grid-pattern {
@@ -44,28 +44,31 @@
             background-size: 24px 24px;
         }
 
-        /* 은은한 사선 워터마크 */
+        /* [요청 반영] 화면 전체를 촘촘하고 작게 채우는 사선 워터마크 레이어 */
         .watermark-container {
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
             z-index: 0;
             pointer-events: none;
             overflow: hidden;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0.04;
+            flex-direction: column;
+            gap: 36px; /* 행 간격 */
+            transform: rotate(-20deg); /* 사선 기울기 */
+            opacity: 0.04; /* 은은한 투명도 */
+            user-select: none;
         }
 
-        .watermark-text {
-            transform: rotate(-30deg);
-            white-space: nowrap;
-            font-size: 3.5rem;
-            font-weight: 900;
-            letter-spacing: 0.08em;
+        .watermark-row {
             display: flex;
-            gap: 2.5rem;
-            user-select: none;
+            white-space: nowrap;
+            gap: 40px; /* 열 간격 */
+            font-size: 0.7rem; /* 텍스트 크기 축소 */
+            font-weight: 800;
+            letter-spacing: 0.05em;
         }
 
         .wm-ad { color: #111827; }
@@ -81,18 +84,32 @@
         }
     </style>
 </head>
-<body class="bg-grid-pattern text-gray-800 font-sans min-h-screen relative flex flex-col justify-between">
+<body class="bg-grid-pattern text-gray-800 font-sans min-h-screen relative flex flex-col justify-between overflow-x-hidden">
 
-    <!-- 배경 사선 워터마크 (ADplanters x Noah Universe) -->
-    <div class="watermark-container">
-        <div class="watermark-text">
-            <span class="wm-ad">ADPLANTERS</span> 
-            <span class="wm-hermes">✕</span>
-            <span class="wm-noah">NOAH UNIVERSE COMPANY</span>
-            <span class="wm-ad">ADPLANTERS</span> 
-            <span class="wm-hermes">✕</span>
-            <span class="wm-noah">NOAH UNIVERSE COMPANY</span>
-        </div>
+    <!-- [요청 반영] 작고 촘촘한 패턴형 배경 사선 워터마크 (ADplanters x Noah Universe) -->
+    <div class="watermark-container" aria-hidden="true">
+        <!-- 촘촘한 워터마크 반복 행 (화면 가득 채움) -->
+        <script>
+            // 브라우저 로딩 시 촘촘한 워터마크 그리드를 동적으로 25줄 생성
+            document.addEventListener('DOMContentLoaded', () => {
+                const container = document.querySelector('.watermark-container');
+                const rowContent = `
+                    <div class="watermark-row">
+                        <span><span class="wm-ad">ADPLANTERS</span> <span class="wm-hermes">✕</span> <span class="wm-noah">NOAH UNIVERSE COMPANY</span></span>
+                        <span><span class="wm-ad">ADPLANTERS</span> <span class="wm-hermes">✕</span> <span class="wm-noah">NOAH UNIVERSE COMPANY</span></span>
+                        <span><span class="wm-ad">ADPLANTERS</span> <span class="wm-hermes">✕</span> <span class="wm-noah">NOAH UNIVERSE COMPANY</span></span>
+                        <span><span class="wm-ad">ADPLANTERS</span> <span class="wm-hermes">✕</span> <span class="wm-noah">NOAH UNIVERSE COMPANY</span></span>
+                        <span><span class="wm-ad">ADPLANTERS</span> <span class="wm-hermes">✕</span> <span class="wm-noah">NOAH UNIVERSE COMPANY</span></span>
+                        <span><span class="wm-ad">ADPLANTERS</span> <span class="wm-hermes">✕</span> <span class="wm-noah">NOAH UNIVERSE COMPANY</span></span>
+                    </div>
+                `;
+                let html = '';
+                for (let i = 0; i < 30; i++) {
+                    html += rowContent;
+                }
+                container.innerHTML = html;
+            });
+        </script>
     </div>
 
     <!-- ==================================================================== -->

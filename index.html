@@ -43,7 +43,7 @@
     <div class="watermark-container" aria-hidden="true" id="watermarkBox"></div>
 
     <!-- ==================================================================== -->
-    <!-- 1. 로그인 화면 (비인증 상태) -->
+    <!-- 1. 로그인 화면 -->
     <!-- ==================================================================== -->
     <div id="loginSection" class="relative z-10 flex-1 flex flex-col items-center justify-center p-4">
         <div class="text-center mb-8">
@@ -76,14 +76,14 @@
     </div>
 
     <!-- ==================================================================== -->
-    <!-- 2. 대시보드 화면 (반응형 지원) -->
+    <!-- 2. 대시보드 화면 -->
     <!-- ==================================================================== -->
     <div id="dashboardSection" class="hidden relative z-10 min-h-screen flex flex-col md:flex-row w-full">
         
-        <!-- 모달/드로어 닫기용 모바일 오버레이 -->
+        <!-- 모바일 오버레이 -->
         <div id="mobileOverlay" class="fixed inset-0 bg-black/50 z-30 hidden md:hidden backdrop-blur-sm transition-opacity"></div>
 
-        <!-- [모바일 상단 헤더] -->
+        <!-- 모바일 상단 헤더 -->
         <div class="md:hidden flex justify-between items-center bg-white/90 backdrop-blur-md px-4 py-3 border-b border-gray-200 sticky top-0 z-20">
             <div class="text-lg font-black tracking-tighter">
                 <span class="text-hermes">ADplanters</span>
@@ -95,7 +95,7 @@
             </button>
         </div>
 
-        <!-- [사이드바] 데스크톱: 좌측 고정 / 모바일: 슬라이드 드로어 -->
+        <!-- 사이드바 -->
         <aside id="sidebar" class="w-64 bg-white/95 backdrop-blur-md border-r border-gray-200 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 h-full z-40 shadow-xl md:shadow-sm transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
             <div class="p-5 md:p-6 flex items-center justify-between border-b border-gray-100">
                 <div class="text-xl font-black tracking-tighter">
@@ -103,7 +103,6 @@
                     <span class="text-gray-300 mx-1">✕</span>
                     <span class="text-noah text-sm">NOAH</span>
                 </div>
-                <!-- 모바일용 닫기 버튼 -->
                 <button id="closeSidebarBtn" class="md:hidden text-gray-400 hover:text-gray-600 p-1">
                     <i class="fa-solid fa-xmark text-xl"></i>
                 </button>
@@ -114,7 +113,7 @@
                     <i class="fa-solid fa-chart-pie w-5"></i> 파트너 통합 보드
                 </a>
                 <a href="#" data-menu="clients" class="nav-item flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition">
-                    <i class="fa-solid fa-address-book w-5"></i> 클라이언트 DB 관리
+                    <i class="fa-solid fa-address-book w-5"></i> 클라이언트 관리
                 </a>
                 <a href="#" data-menu="inquiries" class="nav-item flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition">
                     <i class="fa-solid fa-list-check w-5"></i> 업무 이슈/요청 리스트
@@ -140,16 +139,17 @@
             </div>
         </aside>
 
-        <!-- [메인 콘텐츠 영역] 모바일 패딩 및 반응형 마진 조절 -->
+        <!-- 메인 콘텐츠 영역 -->
         <main class="md:ml-64 flex-1 flex flex-col min-h-screen relative z-0 p-4 md:px-8 md:py-6 w-full">
             <header class="flex justify-between items-center mb-6 md:mb-8 bg-white/80 p-4 md:p-6 rounded-2xl border border-gray-200 shadow-sm backdrop-blur-sm">
                 <div>
                     <h1 class="text-xl md:text-2xl font-black text-gray-900" id="pageTitle">ADplanters x Noah 파트너십 관리 보드</h1>
-                    <p class="text-xs md:text-sm text-gray-500 mt-1" id="pageDesc">Firebase Firestore 기반 실시간 통합 고객 관리 시스템입니다.</p>
+                    <!-- ★ [수정됨] 협력 강조 메시지 적용 ★ -->
+                    <p class="text-xs md:text-sm text-gray-500 mt-1" id="pageDesc">양사의 성공적인 프로젝트와 동반 성장을 이끄는 통합 비즈니스 협업 공간입니다.</p>
                 </div>
             </header>
 
-            <!-- 뷰 1. 통계 (모바일 2열 / 데스크톱 4열) -->
+            <!-- 뷰 1. 통계 -->
             <div id="statsContainer" class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
                 <div class="bg-white p-4 md:p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
                     <div><p class="text-xs font-bold text-gray-500 mb-1">총 이슈 항목</p><p class="text-xl md:text-2xl font-black text-gray-900" id="statTotal">0<span class="text-xs font-medium text-gray-500 ml-1">개</span></p></div>
@@ -169,10 +169,10 @@
                 </div>
             </div>
 
-            <!-- 뷰 2. 클라이언트 DB 관리 리스트 -->
+            <!-- 뷰 2. 클라이언트 관리 리스트 -->
             <div id="clientsContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8">
                 <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-white">
-                    <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-address-book text-hermes mr-2"></i> 클라이언트 DB 리스트</h2>
+                    <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-address-book text-hermes mr-2"></i> 클라이언트 리스트</h2>
                     <button id="openClientModalBtn" class="bg-hermes hover:bg-hermes-hover text-white text-xs font-bold px-3 py-2 md:px-4 md:py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5">
                         <i class="fa-solid fa-plus"></i> <span class="hidden sm:inline">신규 클라이언트 </span>추가
                     </button>
@@ -200,7 +200,7 @@
                 </div>
             </div>
 
-            <!-- 뷰 3. 이슈 리스트 -->
+            <!-- 뷰 3. 이슈/요청 리스트 -->
             <div id="tasksContainer" class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8">
                 <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-white">
                     <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-table-list text-hermes mr-2"></i> 업무 이슈/요청 리스트</h2>
@@ -214,9 +214,9 @@
                             <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
                                 <th class="p-3 md:p-4 font-bold">클라이언트명</th>
                                 <th class="p-3 md:p-4 font-bold">분류</th>
-                                <th class="p-3 md:p-4 font-bold">요청사항</th>
+                                <th class="p-3 md:p-4 font-bold">제목 및 상세내용</th>
+                                <th class="p-3 md:p-4 font-bold">첨부파일</th>
                                 <th class="p-3 md:p-4 font-bold">작성자</th>
-                                <th class="p-3 md:p-4 font-bold">상태</th>
                                 <th class="p-3 md:p-4 font-bold">등록일</th>
                                 <th class="p-3 md:p-4 font-bold text-center">삭제</th>
                             </tr>
@@ -257,7 +257,7 @@
     </div>
 
     <!-- ==================================================================== -->
-    <!-- 모달 팝업 영역 (반응형 너비 및 패딩 적용) -->
+    <!-- 모달 팝업 영역 -->
     <!-- ==================================================================== -->
     
     <!-- 클라이언트 추가 모달 -->
@@ -309,25 +309,58 @@
 
     <!-- 신규 이슈 등록 모달 -->
     <div id="createModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl w-full max-w-lg p-5 md:p-6 shadow-2xl border border-gray-100">
+        <div class="bg-white rounded-2xl w-full max-w-lg p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-5 border-b pb-3">
-                <h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-pen-to-square text-hermes mr-2"></i> 신규 이슈 등록</h3>
+                <h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-pen-to-square text-hermes mr-2"></i> 신규 업무 이슈 / Q&A 등록</h3>
                 <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
             <form id="taskForm" class="space-y-4">
-                <div><label class="block text-xs font-bold text-gray-700 mb-1">클라이언트명</label><input type="text" id="inputClient" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                    <div><label class="block text-xs font-bold text-gray-700 mb-1">분류</label><select id="inputType" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"><option value="Q&A">Q&A</option><option value="보고서">보고서</option><option value="디자인">디자인</option><option value="시스템">시스템</option></select></div>
-                    <div><label class="block text-xs font-bold text-gray-700 mb-1">소속</label><select id="inputAgency" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"><option value="noah">노아유니버스</option><option value="adplanters">애드플랜터스</option></select></div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">클라이언트명</label>
+                    <input type="text" id="inputClient" required placeholder="예: 노아피부과" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none">
                 </div>
-                <div><label class="block text-xs font-bold text-gray-700 mb-1">제목</label><input type="text" id="inputTitle" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                    <div><label class="block text-xs font-bold text-gray-700 mb-1">작성자</label><input type="text" id="inputStaff" placeholder="예: 홍길동" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
-                    <div><label class="block text-xs font-bold text-gray-700 mb-1">상태</label><select id="inputStatus" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"><option value="대기중">대기중</option><option value="진행중">진행중</option><option value="완료">완료</option></select></div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">분류</label>
+                        <select id="inputType" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none">
+                            <option value="Q&A">Q&A</option>
+                            <option value="보고서">보고서</option>
+                            <option value="디자인">디자인</option>
+                            <option value="시스템">시스템</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">소속 구문</label>
+                        <select id="inputAgency" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none">
+                            <option value="noah">노아유니버스</option>
+                            <option value="adplanters">애드플랜터스</option>
+                        </select>
+                    </div>
                 </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">제목</label>
+                    <input type="text" id="inputTitle" required placeholder="문의 및 이슈 제목을 입력하세요" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none">
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">상세 내용</label>
+                    <textarea id="inputContent" rows="4" placeholder="상세 문의 및 요구사항을 작성해 주세요." class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none resize-none"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1"><i class="fa-solid fa-paperclip text-hermes mr-1"></i> 파일 첨부 (이미지/문서)</label>
+                    <input type="file" id="inputFile" class="w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-hermes-light file:text-hermes hover:file:bg-orange-200 cursor-pointer border border-gray-200 rounded-lg p-1.5">
+                    <p class="text-[10px] text-gray-400 mt-1">* 참고용 시안, 기획서 등의 파일(최대 5MB)을 첨부할 수 있습니다.</p>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">작성자 (자동입력)</label>
+                    <input type="text" id="inputStaff" readonly class="w-full text-sm bg-gray-50 border border-gray-200 text-gray-500 rounded-lg p-2.5 outline-none font-bold">
+                </div>
+
                 <div class="flex justify-end gap-2 pt-4 border-t">
                     <button type="button" id="cancelBtn" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-xs font-bold">취소</button>
-                    <button type="submit" class="px-5 py-2 bg-hermes hover:bg-hermes-hover text-white rounded-xl text-xs font-bold shadow-md">저장</button>
+                    <button type="submit" class="px-5 py-2 bg-hermes hover:bg-hermes-hover text-white rounded-xl text-xs font-bold shadow-md">이슈 등록</button>
                 </div>
             </form>
         </div>

@@ -3,6 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- ★ [업데이트] SNS 공유용 메타데이터 (Open Graph) ★ -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="ADplanters x NOAH UNIVERSE | 공식 파트너십">
+    <meta property="og:description" content="ADplanters와 NOAH UNIVERSE의 B2B 파트너십 통합 관리 및 문의 시스템입니다.">
+    <meta property="og:image" content="https://adplanters.github.io/noahuniverse/assets/og-image.png">
+    <meta property="og:url" content="https://adplanters.github.io/noahuniverse/">
+    <!-- ------------------------------------------------ -->
+
     <title>ADplanters x NOAH UNIVERSE | 공식 파트너십 관리 시스템</title>
 
     <!-- Tailwind CSS 연동 및 커스텀 컬러 설정 -->
@@ -24,15 +33,17 @@
     <!-- 폰트어썸 아이콘 CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- ★ [분리된 CSS 파일 연결] ★ -->
+    <!-- 분리된 CSS 파일 연결 -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="bg-grid-pattern text-gray-800 font-sans min-h-screen relative flex flex-col justify-between overflow-x-hidden">
 
-    <!-- 워터마크 컨테이너 -->
+    <!-- 워터마크 컨테이너 (JS에서 동적 생성) -->
     <div class="watermark-container" aria-hidden="true" id="watermarkBox"></div>
 
+    <!-- ==================================================================== -->
     <!-- 1. 로그인 화면 -->
+    <!-- ==================================================================== -->
     <div id="loginSection" class="relative z-10 flex-1 flex flex-col items-center justify-center p-4">
         <div class="text-center mb-8">
             <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-hermes-light text-hermes mb-4 shadow-sm">
@@ -63,7 +74,9 @@
         </div>
     </div>
 
+    <!-- ==================================================================== -->
     <!-- 2. 대시보드 화면 -->
+    <!-- ==================================================================== -->
     <div id="dashboardSection" class="hidden relative z-10 min-h-screen flex w-full">
         <!-- 사이드바 -->
         <aside class="w-64 bg-white/95 backdrop-blur-md border-r border-gray-200 flex-shrink-0 flex flex-col fixed h-full z-10 shadow-sm">
@@ -186,6 +199,10 @@
         </main>
     </div>
 
+    <!-- ==================================================================== -->
+    <!-- 3. 모달 팝업 영역 -->
+    <!-- ==================================================================== -->
+    
     <!-- 모달: 신규 등록 -->
     <div id="createModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center">
         <div class="bg-white rounded-2xl w-full max-w-lg p-6 shadow-2xl border border-gray-100">
@@ -222,7 +239,7 @@
         </div>
     </div>
 
-    <!-- ★ [분리된 JS 파일 연결] ★ -->
+    <!-- 분리된 JS 파일 연결 -->
     <script type="module" src="app.js"></script>
 </body>
 </html>

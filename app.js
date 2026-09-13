@@ -47,7 +47,7 @@ const createModal = document.getElementById('createModal');
 const clientModal = document.getElementById('clientModal');
 const assignModal = document.getElementById('assignModal');
 
-// ★ [모바일 전용] 드로어 메뉴 열기/닫기 제어 ★
+// 모바일 드로어 제어
 function openMobileSidebar() {
     sidebar.classList.remove('-translate-x-full');
     mobileOverlay.classList.remove('hidden');
@@ -62,7 +62,7 @@ if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', openMobileSidebar);
 if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', closeMobileSidebar);
 if (mobileOverlay) mobileOverlay.addEventListener('click', closeMobileSidebar);
 
-// 공통 모달 닫기
+// 모달 토글
 document.getElementById('openModalBtn').addEventListener('click', () => createModal.classList.remove('hidden'));
 document.getElementById('closeModalBtn').addEventListener('click', () => createModal.classList.add('hidden'));
 document.getElementById('cancelBtn').addEventListener('click', () => createModal.classList.add('hidden'));
@@ -82,7 +82,7 @@ document.getElementById('googleLoginBtn').addEventListener('click', () => signIn
 document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
 document.getElementById('closePendingBtn').addEventListener('click', () => { pendingModal.classList.add('hidden'); signOut(auth); });
 
-// [1] 라우터 (메뉴 이동 시 모바일 사이드바 자동 닫힘 처리 포함)
+// [1] 라우터
 navItems.forEach(item => {
     item.addEventListener('click', (e) => {
         e.preventDefault();
@@ -103,11 +103,12 @@ navItems.forEach(item => {
             statsContainer.classList.remove('hidden');
             tasksContainer.classList.remove('hidden');
             pageTitle.innerText = 'ADplanters x Noah 파트너십 관리 보드';
-            pageDesc.innerText = 'Firebase Firestore 기반 실시간 통합 고객 관리 시스템입니다.';
+            // ★ 문구 수정 반영 ★
+            pageDesc.innerText = '양사의 성공적인 프로젝트와 동반 성장을 이끄는 통합 비즈니스 협업 공간입니다.';
             fetchTasks();
         } else if (menu === 'clients') {
             clientsContainer.classList.remove('hidden');
-            pageTitle.innerText = '통합 클라이언트 DB 관리';
+            pageTitle.innerText = '통합 클라이언트 관리';
             pageDesc.innerText = '전체 클라이언트의 핵심 정보와 광고 일정을 관리합니다.';
             fetchClients();
         } else if (menu === 'inquiries') {
@@ -122,7 +123,6 @@ navItems.forEach(item => {
             fetchApprovals();
         }
 
-        // 모바일 화면일 경우 메뉴 선택 후 사이드바 닫기
         closeMobileSidebar();
     });
 });
@@ -198,7 +198,7 @@ function showPendingPopup() {
     pendingModal.classList.remove('hidden');
 }
 
-// [3] 클라이언트 DB 로직
+// [3] 클라이언트 DB 관리 로직
 document.getElementById('clientForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const newClient = {
@@ -331,7 +331,48 @@ document.getElementById('saveAssignBtn').addEventListener('click', async () => {
     } catch (error) { alert("업데이트 실패: " + error.message); }
 });
 
-// [4] 이슈 리스트 로직
+// [4] 이슈 등록 및 조회 로직
+document.getElementById('taskForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const today = new Date();
+    const dateStr = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')}`;
+
+    const fileInput = document.getElementById('inputFile');
+    let fileName = "";
+    let fileData = "";
+
+    if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        fileName = file.name;
+        fileData = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.readAsDataURL(file);
+        });
+    }
+
+    const newTask = {
+        client: document.getElementById('inputClient').value,
+        type: document.getElementById('inputType').value,
+        agency: document.getElementById('inputAgency').value,
+        title: document.getElementById('inputTitle').value,
+        content: document.getElementById('inputContent').value,
+        fileName: fileName,
+        fileData: fileData,
+        staff: document.getElementById('inputStaff').value,
+        status: "대기중", 
+        date: dateStr
+    };
+
+    try {
+        await addDoc(collection(db, "crm_tasks"), newTask);
+        createModal.classList.add('hidden');
+        document.getElementById('taskForm').reset();
+        fetchTasks();
+        alert("성공적으로 등록되었습니다.");
+    } catch (error) { alert("저장 실패: " + error.message); }
+});
+
 async function fetchTasks() {
     const tbody = document.getElementById('boardTable');
     const emptyState = document.getElementById('emptyState');
@@ -379,6 +420,11 @@ async function fetchTasks() {
                 `<div class="flex justify-center gap-2"><button class="delete-btn text-gray-400 hover:text-red-500 transition" data-id="${item.id}"><i class="fa-solid fa-trash-can"></i></button></div>` 
                 : `<div class="text-center text-gray-300 text-xs admin-only-col hidden">-</div>`;
 
+            const fileButton = item.fileData ? 
+                `<a href="${item.fileData}" download="${item.fileName}" class="inline-flex items-center gap-1.5 bg-gray-100 hover:bg-orange-100 text-gray-700 hover:text-hermes text-xs font-bold px-2.5 py-1.5 rounded-lg border border-gray-200 transition">
+                    <i class="fa-solid fa-download text-hermes"></i> ${item.fileName}
+                </a>` : `<span class="text-gray-300 text-xs">없음</span>`;
+
             function getBadge(status) {
                 if(status==='대기중') return `<span class="bg-red-50 text-red-600 px-2.5 py-1 rounded-md text-xs font-bold border border-red-100">대기중</span>`;
                 if(status==='진행중') return `<span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md text-xs font-bold border border-blue-100">진행중</span>`;
@@ -387,13 +433,17 @@ async function fetchTasks() {
 
             const tr = `
                 <tr class="hover:bg-hermes-light/30 transition group border-b border-gray-100">
-                    <td class="p-4 font-bold text-gray-900">${item.client || '-'}</td>
-                    <td class="p-4"><span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded font-bold">${item.type || '-'}</span></td>
-                    <td class="p-4 text-gray-700 font-medium group-hover:text-hermes transition">${item.title || '-'}</td>
-                    <td class="p-4 text-gray-500 font-medium flex items-center gap-2"><div class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs"><i class="fa-solid fa-user"></i></div>${item.staff || '미지정'}</td>
-                    <td class="p-4">${getBadge(item.status)}</td>
-                    <td class="p-4 text-gray-400 text-xs font-medium">${item.date || '-'}</td>
-                    <td class="p-4 border-l border-gray-100 bg-gray-50/50 ${currentUserRole === 'admin' ? '' : 'hidden admin-only-col'}">${adminActions}</td>
+                    <td class="p-3 md:p-4 font-bold text-gray-900">${item.client || '-'}</td>
+                    <td class="p-3 md:p-4"><span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded font-bold">${item.type || '-'}</span></td>
+                    <td class="p-3 md:p-4 max-w-xs md:max-w-md">
+                        <div class="font-bold text-gray-900 group-hover:text-hermes transition">${item.title || '-'}</div>
+                        ${item.content ? `<div class="text-xs text-gray-500 mt-1 whitespace-pre-line bg-gray-50/80 p-2 rounded border border-gray-100">${item.content}</div>` : ''}
+                    </td>
+                    <td class="p-3 md:p-4">${fileButton}</td>
+                    <td class="p-3 md:p-4 text-gray-500 font-medium text-xs flex items-center gap-1.5"><div class="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px]"><i class="fa-solid fa-user"></i></div>${item.staff || '미지정'}</td>
+                    <td class="p-3 md:p-4">${getBadge(item.status)}</td>
+                    <td class="p-3 md:p-4 text-gray-400 text-xs font-medium">${item.date || '-'}</td>
+                    <td class="p-3 md:p-4 border-l border-gray-100 bg-gray-50/50 ${currentUserRole === 'admin' ? '' : 'hidden admin-only-col'}">${adminActions}</td>
                 </tr>
             `;
             tbody.innerHTML += tr;
@@ -416,28 +466,6 @@ function updateStats(data) {
     document.getElementById('statIng').innerText = data.filter(d => d.status === '진행중').length;
     document.getElementById('statDone').innerText = data.filter(d => d.status === '완료').length;
 }
-
-document.getElementById('taskForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const today = new Date();
-    const dateStr = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')}`;
-    const newTask = {
-        client: document.getElementById('inputClient').value,
-        type: document.getElementById('inputType').value,
-        agency: document.getElementById('inputAgency').value,
-        title: document.getElementById('inputTitle').value,
-        staff: document.getElementById('inputStaff').value,
-        status: document.getElementById('inputStatus').value,
-        date: dateStr
-    };
-
-    try {
-        await addDoc(collection(db, "crm_tasks"), newTask);
-        document.getElementById('createModal').classList.add('hidden');
-        document.getElementById('taskForm').reset();
-        fetchTasks();
-    } catch (error) { alert("저장 실패: " + error.message); }
-});
 
 // [5] 유저 가입 승인 로직 (Admin 전용)
 async function fetchApprovals() {

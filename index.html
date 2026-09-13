@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>파트너 통합 관리 대시보드 | ADplanters x Noah Universe</title>
+
+    <!-- Tailwind CSS 연동 및 커스텀 컬러(에르메스 오렌지 & 노아 블루) 설정 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        hermes: {
+                            DEFAULT: '#F37021', // 에르메스 오렌지
+                            light: '#fde9db',
+                            hover: '#e05d0e'
+                        },
+                        noah: {
+                            DEFAULT: '#0047AB', // 노아 유니버스 딥블루
+                            light: '#e0ebf9'
+                        },
+                        adplanters: {
+                            DEFAULT: '#111827' // 애드플랜터스 다크 (블랙 계열)
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- 폰트어썸 아이콘 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- 커스텀 CSS: 모눈종이 배경 및 사선 워터마크 -->
+    <style>
+        /* 모눈종이 배경 패턴 */
+        .bg-grid-pattern {
+            background-color: #f9fafb; /* 아주 연한 회색 배경 */
+            background-image: 
+                linear-gradient(to right, rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+            background-size: 30px 30px; /* 격자 크기 */
+        }
+
+        /* 사선 워터마크 텍스트 컨테이너 */
+        .watermark-container {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: -1;
+            pointer-events: none; /* 클릭 방해 금지 */
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.04; /* 은은하게 보이도록 투명도 조절 */
+        }
+
+        .watermark-text {
+            transform: rotate(-30deg);
+            white-space: nowrap;
+            font-size: 4rem;
+            font-weight: 900;
+            letter-spacing: 0.1em;
+            display: flex;
+            gap: 2rem;
+            user-select: none;
+        }
+        
+        .wm-ad { color: #111827; } /* 애드플랜터스 블랙 */
+        .wm-noah { color: #0047AB; } /* 노아 유니버스 블루 */
+    </style>
+</head>
+<body class="bg-grid-pattern text-gray-800 font-sans min-h-screen relative flex">
+
+    <!-- [배경 요소] 사선 워터마크 -->
+    <div class="watermark-container">
+        <div class="watermark-text">
+            <span class="wm-ad">ADPLANTERS</span> 
+            <span class="wm-noah">NOAH UNIVERSE COMPANY</span>
+            <span class="wm-ad">ADPLANTERS</span> 
+            <span class="wm-noah">NOAH UNIVERSE COMPANY</span>
+            <span class="wm-ad">ADPLANTERS</span> 
+            <span class="wm-noah">NOAH UNIVERSE COMPANY</span>
+        </div>
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- 1. 좌측 사이드바 (내비게이션) -->
+    <!-- ==================================================================== -->
+    <aside class="w-64 bg-white/90 backdrop-blur-md border-r border-gray-200 flex-shrink-0 flex flex-col fixed h-full z-10 shadow-sm">
+        <div class="p-6 flex items-center justify-center border-b border-gray-100">
+            <!-- 로고 영역 -->
+            <div class="text-xl font-black tracking-tighter">
+                <span class="text-adplanters">AD</span><span class="text-hermes">planters</span>
+                <span class="text-gray-300 mx-1">x</span>
+                <span class="text-noah text-sm">NOAH</span>
+            </div>
+        </div>
+        
+        <nav class="flex-1 p-4 space-y-1">
+            <a href="#" class="flex items-center gap-3 bg-hermes text-white px-4 py-3 rounded-lg font-bold shadow-md shadow-orange-200/50">
+                <i class="fa-solid fa-chart-pie w-5"></i> 통합 대시보드
+            </a>
+            <a href="#" class="flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition">
+                <i class="fa-solid fa-list-check w-5"></i> 클라이언트 관리 보드
+            </a>
+            <a href="#" class="flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition">
+                <i class="fa-solid fa-file-contract w-5"></i> 월간 보고서 (Q&A)
+            </a>
+            <a href="#" class="flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition">
+                <i class="fa-solid fa-users-gear w-5"></i> 권한 및 계정 세팅
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-gray-100">
+            <div class="flex items-center gap-3 px-2">
+                <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
+                    <i class="fa-solid fa-user-tie"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-bold text-gray-800" id="currentUserName">마스터 관리자</p>
+                    <p class="text-xs text-hermes font-medium" id="currentUserRole">ADplanters 대표</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ==================================================================== -->
+    <!-- 2. 메인 콘텐츠 영역 -->
+    <!-- ==================================================================== -->
+    <main class="ml-64 flex-1 flex flex-col min-h-screen relative z-0 pl-8 pr-8 pb-12 pt-6">
+        
+        <!-- 상단 헤더 및 권한 시뮬레이션 토글 -->
+        <header class="flex justify-between items-end mb-8 bg-white/80 p-6 rounded-2xl border border-gray-200 shadow-sm backdrop-blur-sm">
+            <div>
+                <h1 class="text-2xl font-black text-gray-900">클라이언트 통합 관리 보드</h1>
+                <p class="text-sm text-gray-500 mt-1">한 곳에서 모든 클라이언트의 요청과 진행 상태를 모니터링합니다.</p>
+            </div>
+            
+            <!-- [★컨설팅 구현★] 권한에 따른 View 변경 테스트 셀렉트박스 -->
+            <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 flex items-center gap-3">
+                <span class="text-xs font-bold text-gray-500"><i class="fa-solid fa-eye text-hermes"></i> 권한 View 시뮬레이션:</span>
+                <select id="roleSelector" class="text-sm border-gray-300 rounded-lg bg-white px-3 py-1.5 focus:ring-hermes focus:border-hermes outline-none font-bold text-gray-700">
+                    <option value="admin">1. 핵심 대표 어드민 (애드플랜터스)</option>
+                    <option value="subadmin">2. 서브 관리자 (노아유니버스 대표)</option>
+                    <option value="staffA">3. 담당 직원 (노아유니버스 직원 A)</option>
+                    <option value="staffB">3. 담당 직원 (노아유니버스 직원 B)</option>
+                </select>
+            </div>
+        </header>
+
+        <!-- 핵심 지표 요약 카드 -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-gray-500 mb-1">총 관리 클라이언트</p>
+                    <p class="text-2xl font-black text-gray-900" id="statTotal">45<span class="text-sm font-medium text-gray-500 ml-1">개</span></p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-hermes-light text-hermes flex items-center justify-center text-xl"><i class="fa-solid fa-building"></i></div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-gray-500 mb-1">답변 대기 Q&A</p>
+                    <p class="text-2xl font-black text-red-500" id="statWait">5<span class="text-sm font-medium text-gray-500 ml-1">건</span></p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-red-50 text-red-500 flex items-center justify-center text-xl"><i class="fa-solid fa-circle-question"></i></div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-gray-500 mb-1">진행중인 업무</p>
+                    <p class="text-2xl font-black text-noah" id="statIng">12<span class="text-sm font-medium text-gray-500 ml-1">건</span></p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-noah-light text-noah flex items-center justify-center text-xl"><i class="fa-solid fa-spinner"></i></div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-gray-500 mb-1">신규 가입 대기</p>
+                    <p class="text-2xl font-black text-gray-900" id="statNew">2<span class="text-sm font-medium text-gray-500 ml-1">건</span></p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-gray-100 text-gray-600 flex items-center justify-center text-xl"><i class="fa-solid fa-user-plus"></i></div>
+            </div>
+        </div>
+
+        <!-- ==================================================================== -->
+        <!-- 3. 통합 클라이언트 보드 (게시판) -->
+        <!-- ==================================================================== -->
+        <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1">
+            <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-white">
+                <h2 class="font-bold text-gray-800"><i class="fa-solid fa-table-list text-hermes mr-2"></i> 진행 상황 리스트</h2>
+                <button class="bg-gray-900 hover:bg-black text-white text-xs font-bold px-4 py-2 rounded-lg transition">
+                    + 신규 이슈 등록
+                </button>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
+                            <th class="p-4 font-bold">클라이언트명</th>
+                            <th class="p-4 font-bold">분류</th>
+                            <th class="p-4 font-bold">이슈 / 요청사항</th>
+                            <th class="p-4 font-bold">담당자(노아)</th>
+                            <th class="p-4 font-bold">상태</th>
+                            <th class="p-4 font-bold">업데이트</th>
+                            <th class="p-4 font-bold text-center">관리(Master)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="boardTable" class="text-sm divide-y divide-gray-100">
+                        <!-- JS로 데이터가 권한에 맞게 필터링되어 이곳에 그려집니다. -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- 데이터가 없을 때 표시될 화면 -->
+            <div id="emptyState" class="hidden py-12 text-center flex-col items-center justify-center">
+                <i class="fa-solid fa-folder-open text-4xl text-gray-300 mb-3"></i>
+                <p class="text-gray-500 font-medium">현재 담당하고 있는 클라이언트 이슈가 없습니다.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- ==================================================================== -->
+    <!-- 4. 자바스크립트 (단일 게시판 + 권한별 뷰 필터링 로직 구현) -->
+    <!-- ==================================================================== -->
+    <script>
+        // 1. 전체 데이터베이스 (가상)
+        // 실제로는 Firebase Firestore나 다른 백엔드 서버에서 불러오게 됩니다.
+        const database = [
+            { id: 1, client: "A 피부과", type: "Q&A", title: "네이버 플레이스 순위 하락 문의", staff: "직원 A", status: "대기중", date: "2026.09.13", agency: "noah" },
+            { id: 2, client: "B 헬스장", type: "보고서", title: "8월 퍼포먼스 마케팅 결과 보고서", staff: "직원 B", status: "완료", date: "2026.09.12", agency: "noah" },
+            { id: 3, client: "C 한의원", type: "디자인", title: "블로그 스킨 변경 요청 건", staff: "직원 A", status: "진행중", date: "2026.09.10", agency: "noah" },
+            { id: 4, client: "D 법률사무소", type: "가입", title: "신규 클라이언트 등록 승인 요청", staff: "미배정", status: "승인대기", date: "2026.09.13", agency: "noah" },
+            { id: 5, client: "자체(Adplanters)", type: "시스템", title: "서버 점검 및 UI 업데이트 안내", staff: "마스터", status: "완료", date: "2026.09.01", agency: "adplanters" }
+        ];
+
+        // 2. 상태 뱃지 색상 매핑 함수
+        function getStatusBadge(status) {
+            if (status === '대기중' || status === '승인대기') return `<span class="bg-red-50 text-red-600 px-2.5 py-1 rounded-md text-xs font-bold border border-red-100">${status}</span>`;
+            if (status === '진행중') return `<span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md text-xs font-bold border border-blue-100">${status}</span>`;
+            if (status === '완료') return `<span class="bg-gray-100 text-gray-600 px-2.5 py-1 rounded-md text-xs font-bold border border-gray-200">${status}</span>`;
+            return `<span>${status}</span>`;
+        }
+
+        // 3. 테이블 렌더링 (그리기) 함수
+        function renderTable(role) {
+            const tbody = document.getElementById('boardTable');
+            const emptyState = document.getElementById('emptyState');
+            tbody.innerHTML = ''; // 기존 내용 초기화
+
+            // 권한에 따른 필터링 로직 (★ 핵심 ★)
+            let filteredData = [];
+            
+            if (role === 'admin') {
+                // 1. 애드플랜터스: 필터 없이 모든 데이터 열람
+                filteredData = database;
+            } else if (role === 'subadmin') {
+                // 2. 노아 대표: agency가 'noah'인 모든 데이터 열람
+                filteredData = database.filter(item => item.agency === 'noah');
+            } else if (role === 'staffA') {
+                // 3. 직원 A: 담당자가 '직원 A'인 데이터만 열람
+                filteredData = database.filter(item => item.staff === '직원 A');
+            } else if (role === 'staffB') {
+                // 4. 직원 B: 담당자가 '직원 B'인 데이터만 열람
+                filteredData = database.filter(item => item.staff === '직원 B');
+            }
+
+            // 필터링된 데이터가 없을 경우 처리
+            if(filteredData.length === 0) {
+                emptyState.style.display = 'flex';
+            } else {
+                emptyState.style.display = 'none';
+                // 테이블 행(tr) 생성
+                filteredData.forEach(item => {
+                    // 마스터 권한(admin)일 때만 수정/삭제(내보내기) 버튼 노출
+                    const adminActions = role === 'admin' ? 
+                        `<div class="flex justify-center gap-2">
+                            <button class="text-gray-400 hover:text-hermes transition"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button class="text-gray-400 hover:text-red-500 transition"><i class="fa-solid fa-trash-can"></i></button>
+                        </div>` 
+                        : `<div class="text-center text-gray-300 text-xs">-</div>`;
+
+                    const tr = `
+                        <tr class="hover:bg-hermes-light/30 transition group">
+                            <td class="p-4 font-bold text-gray-900">${item.client}</td>
+                            <td class="p-4"><span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded font-bold">${item.type}</span></td>
+                            <td class="p-4 text-gray-700 font-medium group-hover:text-hermes cursor-pointer transition">${item.title}</td>
+                            <td class="p-4 text-gray-500 font-medium flex items-center gap-2">
+                                <div class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs"><i class="fa-solid fa-user"></i></div>
+                                ${item.staff}
+                            </td>
+                            <td class="p-4">${getStatusBadge(item.status)}</td>
+                            <td class="p-4 text-gray-400 text-xs font-medium">${item.date}</td>
+                            <td class="p-4 border-l border-gray-100 bg-gray-50/50">${adminActions}</td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += tr;
+                });
+            }
+
+            // 상단 요약 카드 숫자 업데이트 시뮬레이션
+            document.getElementById('statTotal').innerHTML = `${filteredData.length}<span class="text-sm font-medium text-gray-500 ml-1">개</span>`;
+        }
+
+        // 4. 셀렉트 박스(권한 변경) 이벤트 리스너
+        document.getElementById('roleSelector').addEventListener('change', function(e) {
+            const role = e.target.value;
+            renderTable(role);
+
+            // 좌측 프로필 변경 시뮬레이션
+            const userName = document.getElementById('currentUserName');
+            const userRole = document.getElementById('currentUserRole');
+            
+            if(role === 'admin') { userName.innerText = '마스터 관리자'; userRole.innerText = 'ADplanters 대표'; }
+            if(role === 'subadmin') { userName.innerText = '서브 관리자'; userRole.innerText = 'Noah Universe 대표'; }
+            if(role === 'staffA') { userName.innerText = '김노아 매니저'; userRole.innerText = '직원 A 담당'; }
+            if(role === 'staffB') { userName.innerText = '이우주 매니저'; userRole.innerText = '직원 B 담당'; }
+        });
+
+        // 초기 로딩 시 마스터 권한으로 렌더링
+        renderTable('admin');
+
+    </script>
+</body>
+</html>

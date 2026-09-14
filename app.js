@@ -21,10 +21,10 @@ let currentUserRole = '';
 let currentUserName = ''; 
 let currentAssignClientId = null; 
 let currentEditClientId = null;
-let currentDetailTaskId = null; // ★ 상세조회 중인 게시판 이슈 ID
+let currentDetailTaskId = null; // 상세조회 중인 게시판 이슈 ID
 let currentReplyTaskId = null;
 let isInitialLoginLogged = false;
-let tasksMap = {}; // ★ 이슈 데이터 맵핑
+let tasksMap = {}; // 이슈 데이터 맵핑 저장소
 
 // DOM 맵핑
 const loginSection = document.getElementById('loginSection');
@@ -43,14 +43,14 @@ const sidebar = document.getElementById('sidebar');
 const mobileOverlay = document.getElementById('mobileOverlay');
 
 const createModal = document.getElementById('createModal');
-const editTaskModal = document.getElementById('editTaskModal'); // ★
+const editTaskModal = document.getElementById('editTaskModal');
 const clientModal = document.getElementById('clientModal');
 const editClientModal = document.getElementById('editClientModal');
 const assignModal = document.getElementById('assignModal');
 const replyModal = document.getElementById('replyModal');
-const detailModal = document.getElementById('detailModal'); // ★
+const detailModal = document.getElementById('detailModal');
 
-// ★ [신규 헬퍼] 이미지 파일 자동 압축 함수 (Canvas 기반) ★
+// 이미지 파일 자동 압축 함수
 function compressImage(file, maxWidth = 1200, quality = 0.7) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -129,7 +129,6 @@ document.getElementById('cancelAssignBtn').addEventListener('click', () => assig
 document.getElementById('closeReplyModalBtn').addEventListener('click', () => replyModal.classList.add('hidden'));
 document.getElementById('cancelReplyBtn').addEventListener('click', () => replyModal.classList.add('hidden'));
 
-// ★ 상세 뷰 및 게시글 수정 모달 제어 ★
 document.getElementById('closeDetailModalBtn').addEventListener('click', () => detailModal.classList.add('hidden'));
 document.getElementById('closeDetailBtn').addEventListener('click', () => detailModal.classList.add('hidden'));
 document.getElementById('closeEditTaskModalBtn').addEventListener('click', () => editTaskModal.classList.add('hidden'));
@@ -248,7 +247,7 @@ function showDashboard(user) {
     document.getElementById('currentUserName').innerText = user.displayName || '사용자';
     document.getElementById('currentUserRoleName').innerText = getRoleDisplayName(currentUserRole);
     
-    // ★ Player 접속 시 어드민 전용 기능 CSS 통제 ★
+    // Player 접속 시 어드민 전용 열/메뉴 완전 숨김 처리
     if(currentUserRole === 'admin') {
         document.getElementById('adminMenuSection').classList.remove('hidden');
         const oldStyle = document.getElementById('adminStyle');
@@ -272,7 +271,7 @@ function showPendingPopup() {
 }
 
 // ============================================================================
-// 클라이언트 DB 로직
+// 클라이언트 DB 등록/수정/삭제/조회
 // ============================================================================
 document.getElementById('clientForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -296,7 +295,7 @@ document.getElementById('clientForm').addEventListener('submit', async (e) => {
         await addDoc(collection(db, "clients"), newClient);
         clientModal.classList.add('hidden');
         document.getElementById('clientForm').reset();
-        await logActivity("클라이언트 등록", `신규 클라이언트 [${cName}] 데이터 추가`);
+        await logActivity("클라이언트 등록", `신규 클라이언트 [${cName}] 데이터 생성`);
         fetchClients();
         alert("성공적으로 등록되었습니다.");
     } catch (error) { alert("등록 실패: " + error.message); }
@@ -467,10 +466,10 @@ document.getElementById('saveAssignBtn').addEventListener('click', async () => {
 });
 
 // ============================================================================
-// ★ [대규모 고도화] 업무 이슈/Q&A 게시판 및 댓글 로직 ★
+// ★ [업무 이슈 / Q&A 게시판 및 상세 모달, 댓글 구현] ★
 // ============================================================================
 
-// 1. 신규 이슈 등록
+// 1. 신규 등록
 document.getElementById('taskForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const today = new Date();
@@ -513,7 +512,7 @@ document.getElementById('taskForm').addEventListener('submit', async (e) => {
         staff: document.getElementById('inputStaff').value,
         status: "답변대기", 
         date: dateStr,
-        comments: [] // 빈 댓글 배열 초기화
+        comments: []
     };
 
     try {
@@ -535,7 +534,7 @@ async function fetchTasks() {
     try {
         let fetchedData = [];
         const querySnapshot = await getDocs(collection(db, "crm_tasks"));
-        tasksMap = {}; // 맵 초기화
+        tasksMap = {};
         
         if (currentUserRole === 'player') {
             const cQ = query(collection(db, "clients"), where("managers", "array-contains", currentUserName));
@@ -546,9 +545,9 @@ async function fetchTasks() {
             querySnapshot.forEach((docSnap) => {
                 const data = docSnap.data();
                 if (myClients.includes(data.client) || data.staff === currentUserName) {
-                    const taskItem = { id: docSnap.id, ...data };
-                    fetchedData.push(taskItem);
-                    tasksMap[docSnap.id] = taskItem;
+                    const tItem = { id: docSnap.id, ...data };
+                    fetchedData.push(tItem);
+                    tasksMap[docSnap.id] = tItem;
                 }
             });
         } 
@@ -556,22 +555,26 @@ async function fetchTasks() {
             querySnapshot.forEach((docSnap) => {
                 const data = docSnap.data();
                 if (data.agency === "noah") {
-                    const taskItem = { id: docSnap.id, ...data };
-                    fetchedData.push(taskItem);
-                    tasksMap[docSnap.id] = taskItem;
+                    const tItem = { id: docSnap.id, ...data };
+                    fetchedData.push(tItem);
+                    tasksMap[docSnap.id] = tItem;
                 }
             });
         } 
         else {
             querySnapshot.forEach((docSnap) => { 
-                const taskItem = { id: docSnap.id, ...docSnap.data() };
-                fetchedData.push(taskItem);
-                tasksMap[docSnap.id] = taskItem;
+                const tItem = { id: docSnap.id, ...docSnap.data() };
+                fetchedData.push(tItem);
+                tasksMap[docSnap.id] = tItem;
             });
         }
 
-        // 최신순 정렬
-        fetchedData.sort((a, b) => new Date(b.date.replace(/\./g, '-')) - new Date(a.date.replace(/\./g, '-')));
+        // 안전한 날짜 정렬
+        fetchedData.sort((a, b) => {
+            const dateA = a.date ? new Date(a.date.replace(/\./g, '-')) : 0;
+            const dateB = b.date ? new Date(b.date.replace(/\./g, '-')) : 0;
+            return dateB - dateA;
+        });
 
         tbody.innerHTML = '';
         if (fetchedData.length === 0) {
@@ -583,15 +586,15 @@ async function fetchTasks() {
         emptyState.style.display = 'none';
         updateStats(fetchedData);
 
+        let rowsHtml = '';
         fetchedData.forEach(item => {
-            // 삭제 열은 Admin에게만 노출
             const adminActions = currentUserRole === 'admin' ? 
                 `<td class="p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col align-middle">
-                    <button class="delete-task-btn bg-red-50 text-red-500 hover:bg-red-500 hover:text-white px-2.5 py-1.5 rounded transition shadow-sm" data-id="${item.id}" data-t="${item.title}"><i class="fa-solid fa-trash-can"></i> 삭제</button>
+                    <button class="delete-task-btn bg-red-50 text-red-500 hover:bg-red-500 hover:text-white px-2.5 py-1.5 rounded transition shadow-sm text-xs font-bold" data-id="${item.id}" data-t="${item.title}"><i class="fa-solid fa-trash-can"></i> 삭제</button>
                 </td>` : `<td class="admin-only-col hidden"></td>`;
 
             const fileButton = item.fileData ? 
-                `<a href="${item.fileData}" download="${item.fileName}" class="inline-flex items-center gap-1.5 bg-gray-100 hover:bg-orange-100 text-gray-700 hover:text-hermes text-[10px] font-bold px-2 py-1.5 rounded-lg border border-gray-200 transition" onclick="event.stopPropagation();"><i class="fa-solid fa-download text-hermes"></i> 첨부파일</a>` : `<span class="text-gray-300 text-[10px]">없음</span>`;
+                `<a href="${item.fileData}" download="${item.fileName}" class="download-link inline-flex items-center gap-1 bg-gray-100 hover:bg-orange-100 text-gray-700 hover:text-hermes text-[10px] font-bold px-2 py-1.5 rounded-lg border border-gray-200 transition"><i class="fa-solid fa-download text-hermes"></i> 첨부파일</a>` : `<span class="text-gray-300 text-[10px]">없음</span>`;
 
             function getBadge(status) {
                 if(status === '답변대기' || status === '대기중') return `<span class="text-red-500 font-bold border border-red-200 bg-red-50 px-2 py-0.5 rounded text-[11px]">답변대기</span>`;
@@ -601,7 +604,8 @@ async function fetchTasks() {
 
             const commentCount = item.comments ? item.comments.length : 0;
 
-            const tr = `
+            // ★ 작성자 td에서 flex 제거 및 align-middle 수직 중앙 정렬 완벽 반영 ★
+            rowsHtml += `
                 <tr class="hover:bg-hermes-light/30 transition group border-b border-gray-100 cursor-pointer task-detail-trigger" data-id="${item.id}">
                     <td class="p-3 md:p-4 font-bold text-gray-900 align-middle text-xs">${item.client || '-'}</td>
                     <td class="p-3 md:p-4 align-middle"><span class="bg-gray-100 text-gray-600 text-[10px] px-1.5 py-0.5 rounded font-bold">${item.type || '-'}</span></td>
@@ -612,40 +616,58 @@ async function fetchTasks() {
                         </div>
                     </td>
                     <td class="p-3 md:p-4 align-middle">${fileButton}</td>
-                    <td class="p-3 md:p-4 align-middle text-gray-600 font-medium text-[11px] flex items-center gap-1.5 mt-2 sm:mt-0">
-                        <div class="w-4 h-4 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[8px] flex-shrink-0"><i class="fa-solid fa-user"></i></div>
-                        <span>${item.staff || '미지정'}</span>
+                    <td class="p-3 md:p-4 align-middle whitespace-nowrap">
+                        <div class="flex items-center gap-1.5">
+                            <div class="w-4 h-4 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[8px] flex-shrink-0"><i class="fa-solid fa-user"></i></div>
+                            <span class="text-gray-600 font-medium text-[11px]">${item.staff || '미지정'}</span>
+                        </div>
                     </td>
                     <td class="p-3 md:p-4 align-middle text-center">${getBadge(item.status)}</td>
                     <td class="p-3 md:p-4 align-middle text-gray-400 text-[11px] font-medium">${item.date || '-'}</td>
                     ${adminActions}
                 </tr>
             `;
-            tbody.innerHTML += tr;
         });
+        tbody.innerHTML = rowsHtml;
 
-        // 리스트 행 클릭 시 팝업 열기
-        document.querySelectorAll('.task-detail-trigger').forEach(el => {
-            el.addEventListener('click', (e) => {
-                const taskId = e.currentTarget.getAttribute('data-id');
-                openDetailModal(taskId);
-            });
-        });
+    } catch (e) { console.error("Firestore error:", e); }
+}
 
-        // 리스트 내 삭제 버튼
-        document.querySelectorAll('.delete-task-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                e.stopPropagation(); // 팝업 열림 차단
-                const docId = e.currentTarget.getAttribute('data-id');
-                const tTitle = e.currentTarget.getAttribute('data-t');
-                if (confirm('게시글을 완전히 삭제하시겠습니까?')) {
+// ★ [안전장치] 이벤트 위임(Event Delegation)을 통한 리스트 클릭 관리 ★
+const boardTableEl = document.getElementById('boardTable');
+if (boardTableEl) {
+    boardTableEl.addEventListener('click', async (e) => {
+        // 1. 삭제 버튼 클릭 시
+        const deleteBtn = e.target.closest('.delete-task-btn');
+        if (deleteBtn) {
+            e.stopPropagation();
+            const docId = deleteBtn.getAttribute('data-id');
+            const tTitle = deleteBtn.getAttribute('data-t');
+            if (confirm('게시글을 완전히 삭제하시겠습니까?')) {
+                try {
                     await deleteDoc(doc(db, "crm_tasks", docId));
                     await logActivity("게시글 삭제", `[${tTitle}] 게시글 영구 삭제`);
                     fetchTasks();
-                }
-            });
-        });
-    } catch (e) { console.error("Firestore error:", e); }
+                } catch(err) { alert('삭제 실패: ' + err.message); }
+            }
+            return;
+        }
+
+        // 2. 다운로드 링크 클릭 시 팝업 열림 차단
+        if (e.target.closest('.download-link')) {
+            e.stopPropagation();
+            return;
+        }
+
+        // 3. 게시글 행 클릭 시 상세 모달 오픈
+        const row = e.target.closest('.task-detail-trigger');
+        if (row) {
+            const taskId = row.getAttribute('data-id');
+            if (taskId) {
+                openDetailModal(taskId);
+            }
+        }
+    });
 }
 
 function updateStats(data) {
@@ -684,13 +706,12 @@ function openDetailModal(taskId) {
         fileBtnArea.innerHTML = `<span class="text-gray-400 text-xs">첨부파일이 없습니다.</span>`;
     }
 
-    // 작성자(본인) 수정/삭제 권한 노출 여부
+    // 작성자(본인) 수정 / 어드민 전용 삭제
     const actionArea = document.getElementById('authorActionArea');
     const editBtn = document.getElementById('detailEditBtn');
     const deleteBtn = document.getElementById('detailDeleteBtn');
     let canShowAction = false;
     
-    // 수정: 작성자 본인만
     if(currentUserName === task.staff) {
         editBtn.classList.remove('hidden');
         canShowAction = true;
@@ -698,7 +719,6 @@ function openDetailModal(taskId) {
         editBtn.classList.add('hidden');
     }
 
-    // 삭제: 어드민만
     if(currentUserRole === 'admin') {
         deleteBtn.classList.remove('hidden');
         canShowAction = true;
@@ -706,7 +726,7 @@ function openDetailModal(taskId) {
         let selStatus = task.status;
         if(selStatus==='대기중') selStatus='답변대기';
         if(selStatus==='완료') selStatus='답변완료';
-        document.getElementById('adminStatusSelect').value = selStatus || '답변완료';
+        document.getElementById('adminStatusSelect').value = selStatus || '답변대기';
     } else {
         deleteBtn.classList.add('hidden');
         document.getElementById('adminStatusChangeArea').classList.add('hidden');
@@ -788,7 +808,7 @@ document.getElementById('submitCommentBtn').addEventListener('click', async () =
     } catch (e) { alert("댓글 등록 실패: " + e.message); }
 });
 
-// 6. 게시글 삭제 (상세 뷰 내부)
+// 6. 게시글 삭제 (상세 뷰 내)
 document.getElementById('detailDeleteBtn').addEventListener('click', async () => {
     if(!currentDetailTaskId) return;
     const task = tasksMap[currentDetailTaskId];
@@ -803,7 +823,7 @@ document.getElementById('detailDeleteBtn').addEventListener('click', async () =>
     }
 });
 
-// 7. 게시글 수정 모달 띄우기
+// 7. 게시글 수정 모달 열기
 document.getElementById('detailEditBtn').addEventListener('click', () => {
     if(!currentDetailTaskId) return;
     const task = tasksMap[currentDetailTaskId];
@@ -831,9 +851,7 @@ document.getElementById('editTaskForm').addEventListener('submit', async (e) => 
 
     if (fileInput.files.length > 0) {
         const file = fileInput.files[0];
-        if (file.size >= 1048576) {
-            alert("파일 용량이 1MB를 초과합니다."); return;
-        }
+        if (file.size >= 1048576) { alert("파일 용량이 1MB를 초과합니다."); return; }
         finalFileName = file.name;
         if (file.type.startsWith('image/')) {
             try { finalFileData = await compressImage(file, 1200, 0.7); } 
@@ -937,9 +955,7 @@ async function fetchMembers() {
     } catch (error) { console.error("멤버 로드 에러:", error); }
 }
 
-// ============================================================================
-// [6] 권한 승인 관리 (Admin 전용)
-// ============================================================================
+// 승인 로직
 async function fetchApprovals() {
     if(currentUserRole !== 'admin') return;
     const tbody = document.getElementById('approvalsTable');
@@ -994,9 +1010,7 @@ async function fetchApprovals() {
     } catch (error) { console.error("유저 로드 에러:", error); }
 }
 
-// ============================================================================
-// [7] 접속 및 작업 이력 모니터링 (Admin 전용)
-// ============================================================================
+// 접속 및 작업 이력 모니터링
 async function fetchLogs() {
     if(currentUserRole !== 'admin') return;
     const tbody = document.getElementById('logsTable');

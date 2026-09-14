@@ -20,15 +20,14 @@ const ADMIN_EMAILS = ["hhjhhj422@gmail.com", "adp@adplanters.com"];
 let currentUserRole = ''; 
 let currentUserName = ''; 
 let currentAssignClientId = null; 
-let currentEditClientId = null; // 수정 중인 클라이언트 ID
+let currentEditClientId = null;
 let isInitialLoginLogged = false;
 
-// DOM 매핑
+// DOM 맵핑
 const loginSection = document.getElementById('loginSection');
 const dashboardSection = document.getElementById('dashboardSection');
 const pendingModal = document.getElementById('pendingModal');
 
-// 뷰 매핑
 const statsContainer = document.getElementById('statsContainer');
 const tasksContainer = document.getElementById('tasksContainer');
 const clientsContainer = document.getElementById('clientsContainer');
@@ -42,10 +41,45 @@ const mobileOverlay = document.getElementById('mobileOverlay');
 
 const createModal = document.getElementById('createModal');
 const clientModal = document.getElementById('clientModal');
-const editClientModal = document.getElementById('editClientModal'); // 수정 모달
+const editClientModal = document.getElementById('editClientModal');
 const assignModal = document.getElementById('assignModal');
 
-// ★ [핵심] 활동 로그 기록 함수 ★
+// ★ [신규 헬퍼] 이미지 파일 자동 압축 함수 (Canvas 기반) ★
+function compressImage(file, maxWidth = 1200, quality = 0.7) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+
+                // 해상도 조절 (가로 최대 1200px 제한)
+                if (width > maxWidth) {
+                    height = Math.round((height * maxWidth) / width);
+                    width = maxWidth;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // JPEG 포맷으로 압축하여 Base64 도출 (용량 80~90% 절감)
+                const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                resolve(dataUrl);
+            };
+            img.onerror = (error) => reject(error);
+        };
+        reader.onerror = (error) => reject(error);
+    });
+}
+
+// 활동 로그 기록 헬퍼 함수
 async function logActivity(action, details = "") {
     if (!auth.currentUser) return;
     try {
@@ -99,9 +133,7 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
 });
 document.getElementById('closePendingBtn').addEventListener('click', () => { pendingModal.classList.add('hidden'); signOut(auth); });
 
-// ============================================================================
-// [1] 라우터 및 네비게이션 제어
-// ============================================================================
+// 라우터
 navItems.forEach(item => {
     item.addEventListener('click', async (e) => {
         e.preventDefault();
@@ -120,9 +152,8 @@ navItems.forEach(item => {
         approvalsContainer.classList.add('hidden');
         logsContainer.classList.add('hidden');
 
-        // ★ [로깅] 유저 메뉴 이동 추적 ★
         if(menu !== 'logout') {
-            logActivity("메뉴 이동", `[${menuTitle}] 탭 화면을 조회했습니다.`);
+            logActivity("메뉴 이동", `[${menuTitle}] 탭에 접속했습니다.`);
         }
 
         if (menu === 'dashboard') {
@@ -150,9 +181,7 @@ navItems.forEach(item => {
     });
 });
 
-// ============================================================================
-// [2] 로그인 검증 및 대시보드 출력
-// ============================================================================
+// 로그인 상태 모니터링
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         const userRef = doc(db, "users", user.uid);
@@ -235,7 +264,7 @@ function showPendingPopup() {
 }
 
 // ============================================================================
-// [3] 클라이언트 DB 등록/수정/삭제/조회
+// 클라이언트 DB 등록/수정/삭제/조회
 // ============================================================================
 document.getElementById('clientForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -344,7 +373,6 @@ async function fetchClients() {
             tbody.innerHTML += tr;
         });
 
-        // 배정 버튼 이벤트
         document.querySelectorAll('.open-assign-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 currentAssignClientId = e.currentTarget.getAttribute('data-id');
@@ -352,7 +380,6 @@ async function fetchClients() {
             });
         });
 
-        // 수정 팝업 띄우기
         document.querySelectorAll('.edit-client-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 currentEditClientId = e.currentTarget.getAttribute('data-id');
@@ -370,15 +397,13 @@ async function fetchClients() {
             });
         });
 
-        // 삭제 처리
         document.querySelectorAll('.delete-client-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 const clientId = e.currentTarget.getAttribute('data-id');
                 const clientName = e.currentTarget.getAttribute('data-name');
                 if (confirm(`정말 클라이언트 [${clientName}] 데이터를 삭제하시겠습니까?`)) {
                     await deleteDoc(doc(db, "clients", clientId));
-                    await logActivity("클라이언트 삭제", `클라이언트 [${clientName}] 영구 삭제 처리`);
-                    alert("클라이언트가 삭제되었습니다.");
+                    await logActivity("클라이언트 삭제", `[${clientName}] 데이터 영구 삭제 처리`);
                     fetchClients();
                 }
             });
@@ -434,7 +459,7 @@ document.getElementById('saveAssignBtn').addEventListener('click', async () => {
 });
 
 // ============================================================================
-// [4] 업무 이슈 및 Q&A 로직
+// ★ [수정됨] 신규 이슈 및 Q&A 등록 (이미지 자동 압축 적용) ★
 // ============================================================================
 document.getElementById('taskForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -446,11 +471,33 @@ document.getElementById('taskForm').addEventListener('submit', async (e) => {
     if (fileInput.files.length > 0) {
         const file = fileInput.files[0];
         fileName = file.name;
-        fileData = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target.result);
-            reader.readAsDataURL(file);
-        });
+
+        // 이미지 파일인 경우 브라우저 내 자동 압축 수행
+        if (file.type.startsWith('image/')) {
+            try {
+                fileData = await compressImage(file, 1200, 0.7);
+            } catch (err) {
+                alert("이미지 압축 처리 실패: " + err.message);
+                return;
+            }
+        } else {
+            // 일반 문서의 경우 700KB 제한 검증
+            if (file.size > 700 * 1024) {
+                alert("일반 문서 파일은 최대 700KB 이하만 첨부할 수 있습니다.");
+                return;
+            }
+            fileData = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Firestore 1MB 단일 문서 한도 사전 체크
+        if (fileData.length > 900000) {
+            alert("파일 용량이 데이터베이스 저장 한도를 초과합니다. 더 작은 용량의 파일을 선택해 주세요.");
+            return;
+        }
     }
 
     const tTitle = document.getElementById('inputTitle').value;
@@ -569,9 +616,7 @@ function updateStats(data) {
     document.getElementById('statDone').innerText = data.filter(d => d.status === '완료').length;
 }
 
-// ============================================================================
-// [5] 멤버 관리 (Admin 전용)
-// ============================================================================
+// 멤버 관리
 async function fetchMembers() {
     if(currentUserRole !== 'admin') return;
     const tbody = document.getElementById('membersTable');
@@ -639,9 +684,7 @@ async function fetchMembers() {
     } catch (error) { console.error("멤버 로드 에러:", error); }
 }
 
-// ============================================================================
-// [6] 신규 가입 승인 관리 (Admin 전용)
-// ============================================================================
+// 승인 로직
 async function fetchApprovals() {
     if(currentUserRole !== 'admin') return;
     const tbody = document.getElementById('approvalsTable');
@@ -688,17 +731,15 @@ async function fetchApprovals() {
                 if (confirm('선택하신 권한으로 승인하시겠습니까?')) {
                     await updateDoc(doc(db, "users", uid), { status: 'approved', role: selectEl.value });
                     await logActivity("가입 승인", `[${uName}] 유저를 신규 승인(${selectEl.value}) 처리했습니다.`);
-                    alert('승인 완료되었습니다.');
                     fetchApprovals();
+                    alert('승인 완료되었습니다.');
                 }
             });
         });
     } catch (error) { console.error("유저 로드 에러:", error); }
 }
 
-// ============================================================================
-// [7] 작업 로그 데이터 모니터링 (Admin 전용)
-// ============================================================================
+// 접속 및 작업 이력 모니터링
 async function fetchLogs() {
     if(currentUserRole !== 'admin') return;
     const tbody = document.getElementById('logsTable');

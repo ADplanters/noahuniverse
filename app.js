@@ -20,6 +20,7 @@ const ADMIN_EMAILS = ["hhjhhj422@gmail.com", "adp@adplanters.com"];
 let currentUserRole = ''; 
 let currentUserName = ''; 
 let currentAssignClientId = null; 
+let isInitialLoginLogged = false; // 로그인 중복 기록 방지용
 
 const loginSection = document.getElementById('loginSection');
 const dashboardSection = document.getElementById('dashboardSection');
@@ -29,7 +30,8 @@ const statsContainer = document.getElementById('statsContainer');
 const tasksContainer = document.getElementById('tasksContainer');
 const clientsContainer = document.getElementById('clientsContainer');
 const approvalsContainer = document.getElementById('approvalsContainer');
-const logsContainer = document.getElementById('logsContainer'); // 추가된 로그 컨테이너
+const logsContainer = document.getElementById('logsContainer'); // 로그 컨테이너
+const membersContainer = document.getElementById('membersContainer'); // 멤버 관리 컨테이너
 const navItems = document.querySelectorAll('.nav-item');
 
 const sidebar = document.getElementById('sidebar');
@@ -41,7 +43,7 @@ const createModal = document.getElementById('createModal');
 const clientModal = document.getElementById('clientModal');
 const assignModal = document.getElementById('assignModal');
 
-// ★ [신규 추가] 활동 로그 기록 헬퍼 함수 ★
+// ★ [로그 기록 헬퍼 함수] 어떤 탭, 무슨 행동을 했는지 상세히 기록 ★
 async function logActivity(action, details = "") {
     if (!auth.currentUser) return;
     try {
@@ -58,20 +60,16 @@ async function logActivity(action, details = "") {
     }
 }
 
-function openMobileSidebar() {
-    sidebar.classList.remove('-translate-x-full');
-    mobileOverlay.classList.remove('hidden');
-}
-
 function closeMobileSidebar() {
     sidebar.classList.add('-translate-x-full');
     mobileOverlay.classList.add('hidden');
 }
 
-if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', openMobileSidebar);
+if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', () => { sidebar.classList.remove('-translate-x-full'); mobileOverlay.classList.remove('hidden'); });
 if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', closeMobileSidebar);
 if (mobileOverlay) mobileOverlay.addEventListener('click', closeMobileSidebar);
 
+// 모달 조작
 document.getElementById('openModalBtn').addEventListener('click', () => createModal.classList.remove('hidden'));
 document.getElementById('closeModalBtn').addEventListener('click', () => createModal.classList.add('hidden'));
 document.getElementById('cancelBtn').addEventListener('click', () => createModal.classList.add('hidden'));
@@ -86,30 +84,28 @@ document.getElementById('cancelClientBtn').addEventListener('click', () => clien
 document.getElementById('closeAssignModalBtn').addEventListener('click', () => assignModal.classList.add('hidden'));
 document.getElementById('cancelAssignBtn').addEventListener('click', () => assignModal.classList.add('hidden'));
 
-// Auth 제어 (로그인/로그아웃 이력 기록)
+// Auth 제어
 document.getElementById('googleLoginBtn').addEventListener('click', () => {
     signInWithPopup(auth, provider).then(() => {
-        logActivity("로그인", "시스템 접속");
+        logActivity("로그인", "시스템에 접속했습니다.");
     }).catch(e => console.error(e));
 });
 
 document.getElementById('logoutBtn').addEventListener('click', async () => {
-    await logActivity("로그아웃", "시스템 종료");
+    await logActivity("로그아웃", "시스템을 정상 종료했습니다.");
     signOut(auth);
 });
-
 document.getElementById('closePendingBtn').addEventListener('click', () => { pendingModal.classList.add('hidden'); signOut(auth); });
 
-// 라우터
+// [1] 라우터 및 탭 이동 기록
 navItems.forEach(item => {
-    item.addEventListener('click', (e) => {
+    item.addEventListener('click', async (e) => {
         e.preventDefault();
         const menu = e.currentTarget.getAttribute('data-menu');
+        const menuTitle = e.currentTarget.getAttribute('data-title');
         
         navItems.forEach(n => {
             n.className = "nav-item flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition";
-            if(n.id === 'menuApprovals' && currentUserRole !== 'admin') n.classList.add('hidden');
-            if(n.id === 'menuLogs' && currentUserRole !== 'admin') n.classList.add('hidden'); // 추가
         });
         e.currentTarget.className = "nav-item flex items-center gap-3 bg-hermes text-white px-4 py-3 rounded-lg font-bold shadow-md shadow-orange-200/50 transition";
 
@@ -117,33 +113,32 @@ navItems.forEach(item => {
         tasksContainer.classList.add('hidden');
         clientsContainer.classList.add('hidden');
         approvalsContainer.classList.add('hidden');
-        logsContainer.classList.add('hidden'); // 추가
+        logsContainer.classList.add('hidden');
+        membersContainer.classList.add('hidden');
+
+        // ★ [로깅] 유저가 어떤 메뉴를 클릭했는지 추적 ★
+        if(menu !== 'logout') {
+            logActivity("메뉴 이동", `[${menuTitle}] 화면을 조회했습니다.`);
+        }
 
         if (menu === 'dashboard') {
             statsContainer.classList.remove('hidden');
             tasksContainer.classList.remove('hidden');
-            document.getElementById('pageTitle').innerText = 'ADplanters x Noah 파트너십 관리 보드';
-            document.getElementById('pageDesc').innerText = '양사의 성공적인 프로젝트와 동반 성장을 이끄는 통합 비즈니스 협업 공간입니다.';
             fetchTasks();
         } else if (menu === 'clients') {
             clientsContainer.classList.remove('hidden');
-            document.getElementById('pageTitle').innerText = '통합 클라이언트 관리';
-            document.getElementById('pageDesc').innerText = '전체 클라이언트의 핵심 정보와 광고 일정을 관리합니다.';
             fetchClients();
         } else if (menu === 'inquiries') {
             tasksContainer.classList.remove('hidden');
-            document.getElementById('pageTitle').innerText = '업무 이슈 및 요청 리스트';
-            document.getElementById('pageDesc').innerText = '상세한 업무 내역을 확인하고 처리합니다.';
             fetchTasks();
+        } else if (menu === 'members') {
+            membersContainer.classList.remove('hidden');
+            fetchMembers();
         } else if (menu === 'approvals') {
             approvalsContainer.classList.remove('hidden');
-            document.getElementById('pageTitle').innerText = '권한 승인 관리';
-            document.getElementById('pageDesc').innerText = '신규 가입 유저의 역할을 지정하고 접속 권한을 승인합니다.';
             fetchApprovals();
-        } else if (menu === 'logs') { // ★ 로그 탭 라우팅 추가
+        } else if (menu === 'logs') {
             logsContainer.classList.remove('hidden');
-            document.getElementById('pageTitle').innerText = '접속 및 작업 이력 모니터링';
-            document.getElementById('pageDesc').innerText = '전체 유저의 시스템 접속 및 작업 활동을 실시간으로 확인합니다.';
             fetchLogs();
         }
 
@@ -151,12 +146,18 @@ navItems.forEach(item => {
     });
 });
 
+// 로그인 검증 로직
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         const userRef = doc(db, "users", user.uid);
         const userSnap = await getDoc(userRef);
         currentUserName = user.displayName || "담당자";
         document.getElementById('inputStaff').value = currentUserName;
+
+        if(!isInitialLoginLogged) {
+            logActivity("로그인", "시스템에 접속했습니다.");
+            isInitialLoginLogged = true;
+        }
 
         if (ADMIN_EMAILS.includes(user.email)) {
             await setDoc(userRef, { email: user.email, name: currentUserName, role: "admin", status: "approved" }, { merge: true });
@@ -178,6 +179,7 @@ onAuthStateChanged(auth, async (user) => {
             }
         }
     } else {
+        isInitialLoginLogged = false;
         loginSection.classList.remove('hidden');
         dashboardSection.classList.add('hidden');
         pendingModal.classList.add('hidden');
@@ -196,17 +198,14 @@ function showDashboard(user) {
     dashboardSection.classList.remove('hidden');
 
     document.getElementById('currentUserName').innerText = user.displayName || '사용자';
-    document.getElementById('currentUserEmail').innerText = user.email;
     document.getElementById('currentUserRoleName').innerText = getRoleDisplayName(currentUserRole);
     
     if(currentUserRole === 'admin') {
-        document.getElementById('menuApprovals').classList.remove('hidden');
-        document.getElementById('menuLogs').classList.remove('hidden'); // 추가
+        document.getElementById('adminMenuSection').classList.remove('hidden');
         const oldStyle = document.getElementById('adminStyle');
         if(oldStyle) oldStyle.remove();
     } else {
-        document.getElementById('menuApprovals').classList.add('hidden');
-        document.getElementById('menuLogs').classList.add('hidden'); // 추가
+        document.getElementById('adminMenuSection').classList.add('hidden');
         if(!document.getElementById('adminStyle')) {
             const style = document.createElement('style');
             style.id = 'adminStyle';
@@ -223,7 +222,84 @@ function showPendingPopup() {
     pendingModal.classList.remove('hidden');
 }
 
-// 클라이언트 DB 로직
+
+// ============================================================================
+// ★ [신규] 전체 멤버 및 권한 관리 (Admin) ★
+// ============================================================================
+async function fetchMembers() {
+    if(currentUserRole !== 'admin') return;
+    const tbody = document.getElementById('membersTable');
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin text-hermes mr-2"></i> 로딩 중...</td></tr>';
+
+    try {
+        const querySnapshot = await getDocs(collection(db, "users"));
+        tbody.innerHTML = '';
+
+        querySnapshot.forEach((docSnap) => {
+            const user = docSnap.data();
+            const statusBadge = user.status === 'approved' 
+                ? '<span class="bg-blue-50 text-blue-600 px-2 py-1 rounded text-[10px] font-bold border border-blue-100">승인완료</span>'
+                : '<span class="bg-red-50 text-red-500 px-2 py-1 rounded text-[10px] font-bold border border-red-100">대기중</span>';
+
+            const tr = `
+                <tr class="hover:bg-gray-50 transition border-b border-gray-100">
+                    <td class="p-3 md:p-4 font-bold text-gray-900">${user.name}</td>
+                    <td class="p-3 md:p-4 text-gray-500 text-xs">${user.email}</td>
+                    <td class="p-3 md:p-4">${statusBadge}</td>
+                    <td class="p-3 md:p-4">
+                        <select class="role-update-select text-xs font-bold border border-gray-300 rounded p-1.5 focus:border-hermes outline-none" data-uid="${docSnap.id}">
+                            <option value="player" ${user.role==='player'?'selected':''}>Player (담당 직원)</option>
+                            <option value="leader" ${user.role==='leader'?'selected':''}>리더 (노아 대표)</option>
+                            <option value="admin" ${user.role==='admin'?'selected':''}>최상위 관리자 (Admin)</option>
+                        </select>
+                    </td>
+                    <td class="p-3 md:p-4 text-center">
+                        <button class="update-member-btn bg-gray-800 hover:bg-black text-white text-[11px] font-bold px-3 py-1.5 rounded transition shadow-sm" data-uid="${docSnap.id}" data-name="${user.name}">권한수정</button>
+                    </td>
+                    <td class="p-3 md:p-4 text-center">
+                        <button class="delete-member-btn bg-red-50 hover:bg-red-500 text-red-500 hover:text-white border border-red-100 hover:border-red-500 text-[11px] font-bold px-3 py-1.5 rounded transition shadow-sm" data-uid="${docSnap.id}" data-name="${user.name}">강제탈퇴</button>
+                    </td>
+                </tr>
+            `;
+            tbody.innerHTML += tr;
+        });
+
+        // 권한 수정 버튼
+        document.querySelectorAll('.update-member-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const uid = e.currentTarget.getAttribute('data-uid');
+                const uName = e.currentTarget.getAttribute('data-name');
+                const newRole = document.querySelector(`.role-update-select[data-uid="${uid}"]`).value;
+                
+                if(confirm(`${uName}님의 권한을 수정하시겠습니까?`)) {
+                    await updateDoc(doc(db, "users", uid), { role: newRole, status: 'approved' });
+                    await logActivity("권한 변경", `[${uName}] 유저의 권한을 '${newRole}'(으)로 변경했습니다.`);
+                    alert('권한이 수정되었습니다.');
+                    fetchMembers();
+                }
+            });
+        });
+
+        // 탈퇴 처리 버튼
+        document.querySelectorAll('.delete-member-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const uid = e.currentTarget.getAttribute('data-uid');
+                const uName = e.currentTarget.getAttribute('data-name');
+                
+                if(confirm(`경고: ${uName}님의 계정을 영구 삭제하시겠습니까?`)) {
+                    await deleteDoc(doc(db, "users", uid));
+                    await logActivity("계정 삭제", `[${uName}] 유저의 계정을 강제 탈퇴 처리했습니다.`);
+                    alert('해당 계정이 삭제되었습니다.');
+                    fetchMembers();
+                }
+            });
+        });
+    } catch (error) { console.error("멤버 로드 에러:", error); }
+}
+
+// ============================================================================
+// 기존 기능들 (+ 로그 추가)
+// ============================================================================
 document.getElementById('clientForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const cName = document.getElementById('c_name').value;
@@ -244,22 +320,18 @@ document.getElementById('clientForm').addEventListener('submit', async (e) => {
 
     try {
         await addDoc(collection(db, "clients"), newClient);
-        clientModal.classList.add('hidden');
+        document.getElementById('clientModal').classList.add('hidden');
         document.getElementById('clientForm').reset();
-        
-        await logActivity("클라이언트 등록", cName); // 이력 저장
-        
+        await logActivity("클라이언트 등록", `신규 클라이언트 [${cName}] 데이터 추가`);
         fetchClients();
         alert("성공적으로 등록되었습니다.");
-    } catch (error) {
-        alert("등록 실패: " + error.message);
-    }
+    } catch (error) { alert("등록 실패: " + error.message); }
 });
 
 async function fetchClients() {
     const tbody = document.getElementById('clientsTable');
     const emptyState = document.getElementById('emptyClients');
-    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin text-hermes mr-2"></i> 데이터 로딩중...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 로딩중...</td></tr>';
 
     try {
         let q = collection(db, "clients");
@@ -290,16 +362,16 @@ async function fetchClients() {
 
             const tr = `
                 <tr class="hover:bg-orange-50/30 transition border-b border-gray-100">
-                    <td class="p-3 font-black text-gray-900">${data.name}</td>
-                    <td class="p-3 text-xs text-gray-500">
+                    <td class="p-3 md:p-4 font-bold text-gray-900">${data.name}</td>
+                    <td class="p-3 md:p-4 text-xs text-gray-500">
                         ${data.homeUrl ? `<a href="${data.homeUrl}" target="_blank" class="text-blue-500 hover:underline"><i class="fa-solid fa-link"></i> 웹</a> ` : ''}
                         ${data.instaUrl ? `<a href="${data.instaUrl}" target="_blank" class="text-pink-500 hover:underline"><i class="fa-brands fa-instagram"></i> 인스타</a>` : ''}
                     </td>
-                    <td class="p-3 text-xs"><div class="text-gray-700 font-medium">ID: ${data.metaId || '-'}</div><div class="text-gray-400">PW: ${data.metaPw ? '********' : '-'}</div></td>
-                    <td class="p-3 font-bold text-hermes text-xs">${data.budget || '-'}</td>
-                    <td class="p-3 text-xs text-gray-600"><div>인스타: ${data.instaDate || '-'}</div><div>메타: ${data.metaDate || '-'}</div></td>
-                    <td class="p-3 text-xs font-bold text-gray-500">${data.registeredBy || '-'}</td>
-                    <td class="p-3 max-w-[120px] whitespace-normal">${managersHtml}</td>
+                    <td class="p-3 md:p-4 text-xs"><div class="text-gray-700 font-medium">ID: ${data.metaId || '-'}</div><div class="text-gray-400">PW: ${data.metaPw ? '********' : '-'}</div></td>
+                    <td class="p-3 md:p-4 font-bold text-hermes text-xs">${data.budget || '-'}</td>
+                    <td class="p-3 md:p-4 text-xs text-gray-600"><div>인스타: ${data.instaDate || '-'}</div><div>메타: ${data.metaDate || '-'}</div></td>
+                    <td class="p-3 md:p-4 text-xs font-bold text-gray-500">${data.registeredBy || '-'}</td>
+                    <td class="p-3 md:p-4 max-w-[120px] whitespace-normal">${managersHtml}</td>
                     ${adminActions}
                 </tr>
             `;
@@ -355,23 +427,19 @@ document.getElementById('saveAssignBtn').addEventListener('click', async () => {
     try {
         await updateDoc(doc(db, "clients", currentAssignClientId), { managers: selectedManagers });
         assignModal.classList.add('hidden');
-        
-        await logActivity("담당자 배정", `배정인원: ${selectedManagers.join(", ")}`); // 이력 저장
-        
+        await logActivity("담당자 배정", `해당 클라이언트에 [${selectedManagers.join(", ")}] 담당자 배정`);
         alert("성공적으로 담당자가 배정되었습니다.");
         fetchClients(); 
     } catch (error) { alert("업데이트 실패: " + error.message); }
 });
 
-// 이슈 등록 로직
+// 이슈/Q&A 저장 로직
 document.getElementById('taskForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const today = new Date();
     const dateStr = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')}`;
-
     const fileInput = document.getElementById('inputFile');
-    let fileName = "";
-    let fileData = "";
+    let fileName = "", fileData = "";
 
     if (fileInput.files.length > 0) {
         const file = fileInput.files[0];
@@ -401,9 +469,7 @@ document.getElementById('taskForm').addEventListener('submit', async (e) => {
         await addDoc(collection(db, "crm_tasks"), newTask);
         document.getElementById('createModal').classList.add('hidden');
         document.getElementById('taskForm').reset();
-        
-        await logActivity("이슈 등록", tTitle); // 이력 저장
-        
+        await logActivity("이슈 등록", `[${newTask.client}] 신규 이슈 작성: ${tTitle}`);
         fetchTasks();
         alert("성공적으로 등록되었습니다.");
     } catch (error) { alert("저장 실패: " + error.message); }
@@ -412,7 +478,7 @@ document.getElementById('taskForm').addEventListener('submit', async (e) => {
 async function fetchTasks() {
     const tbody = document.getElementById('boardTable');
     const emptyState = document.getElementById('emptyState');
-    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin text-hermes mr-2"></i> 로딩중...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 로딩중...</td></tr>';
 
     try {
         let fetchedData = [];
@@ -453,13 +519,11 @@ async function fetchTasks() {
 
         fetchedData.forEach(item => {
             const adminActions = currentUserRole === 'admin' ? 
-                `<div class="flex justify-center gap-2"><button class="delete-btn text-gray-400 hover:text-red-500 transition" data-id="${item.id}" data-title="${item.title}"><i class="fa-solid fa-trash-can"></i></button></div>` 
-                : `<div class="text-center text-gray-300 text-xs admin-only-col hidden">-</div>`;
+                `<td class="p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col"><button class="delete-btn text-gray-400 hover:text-red-500 transition" data-id="${item.id}" data-t="${item.title}"><i class="fa-solid fa-trash-can"></i></button></td>` 
+                : `<td class="admin-only-col hidden"></td>`;
 
             const fileButton = item.fileData ? 
-                `<a href="${item.fileData}" download="${item.fileName}" class="inline-flex items-center gap-1.5 bg-gray-100 hover:bg-orange-100 text-gray-700 hover:text-hermes text-xs font-bold px-2.5 py-1.5 rounded-lg border border-gray-200 transition">
-                    <i class="fa-solid fa-download text-hermes"></i> ${item.fileName}
-                </a>` : `<span class="text-gray-300 text-xs">없음</span>`;
+                `<a href="${item.fileData}" download="${item.fileName}" class="inline-flex items-center gap-1.5 bg-gray-100 hover:bg-orange-100 text-gray-700 hover:text-hermes text-xs font-bold px-2.5 py-1.5 rounded-lg border border-gray-200 transition"><i class="fa-solid fa-download text-hermes"></i> ${item.fileName}</a>` : `<span class="text-gray-300 text-xs">없음</span>`;
 
             function getBadge(status) {
                 if(status==='대기중') return `<span class="bg-red-50 text-red-600 px-2.5 py-1 rounded-md text-xs font-bold border border-red-100">대기중</span>`;
@@ -471,15 +535,12 @@ async function fetchTasks() {
                 <tr class="hover:bg-hermes-light/30 transition group border-b border-gray-100">
                     <td class="p-3 md:p-4 font-bold text-gray-900">${item.client || '-'}</td>
                     <td class="p-3 md:p-4"><span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded font-bold">${item.type || '-'}</span></td>
-                    <td class="p-3 md:p-4 max-w-xs md:max-w-md">
-                        <div class="font-bold text-gray-900 group-hover:text-hermes transition">${item.title || '-'}</div>
-                        ${item.content ? `<div class="text-xs text-gray-500 mt-1 whitespace-pre-line bg-gray-50/80 p-2 rounded border border-gray-100">${item.content}</div>` : ''}
-                    </td>
+                    <td class="p-3 md:p-4 max-w-xs md:max-w-md"><div class="font-bold text-gray-900 group-hover:text-hermes transition">${item.title || '-'}</div>${item.content ? `<div class="text-xs text-gray-500 mt-1 whitespace-pre-line bg-gray-50/80 p-2 rounded border border-gray-100">${item.content}</div>` : ''}</td>
                     <td class="p-3 md:p-4">${fileButton}</td>
                     <td class="p-3 md:p-4 text-gray-500 font-medium text-xs flex items-center gap-1.5"><div class="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px]"><i class="fa-solid fa-user"></i></div>${item.staff || '미지정'}</td>
                     <td class="p-3 md:p-4">${getBadge(item.status)}</td>
                     <td class="p-3 md:p-4 text-gray-400 text-xs font-medium">${item.date || '-'}</td>
-                    <td class="p-3 md:p-4 border-l border-gray-100 bg-gray-50/50 ${currentUserRole === 'admin' ? '' : 'hidden admin-only-col'}">${adminActions}</td>
+                    ${adminActions}
                 </tr>
             `;
             tbody.innerHTML += tr;
@@ -488,10 +549,10 @@ async function fetchTasks() {
         document.querySelectorAll('.delete-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 const docId = e.currentTarget.getAttribute('data-id');
-                const tTitle = e.currentTarget.getAttribute('data-title');
+                const tTitle = e.currentTarget.getAttribute('data-t');
                 if (confirm('삭제하시겠습니까?')) {
                     await deleteDoc(doc(db, "crm_tasks", docId));
-                    await logActivity("이슈 삭제", tTitle); // 이력 저장
+                    await logActivity("이슈 삭제", `[${tTitle}] 항목을 삭제했습니다.`);
                     fetchTasks();
                 }
             });
@@ -511,7 +572,7 @@ async function fetchApprovals() {
     if(currentUserRole !== 'admin') return;
     const tbody = document.getElementById('approvalsTable');
     const emptyState = document.getElementById('emptyApprovals');
-    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin text-hermes mr-2"></i> 로딩 중...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 로딩 중...</td></tr>';
 
     try {
         const q = query(collection(db, "users"), where("status", "==", "pending"));
@@ -528,16 +589,16 @@ async function fetchApprovals() {
             const user = docSnap.data();
             const tr = `
                 <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
-                    <td class="p-4 font-bold text-gray-900">${user.name}</td>
-                    <td class="p-4 text-gray-500 font-medium">${user.email}</td>
-                    <td class="p-4">
+                    <td class="p-3 md:p-4 font-bold text-gray-900">${user.name}</td>
+                    <td class="p-3 md:p-4 text-gray-500 font-medium">${user.email}</td>
+                    <td class="p-3 md:p-4">
                         <select class="role-select text-xs font-bold border border-gray-300 rounded p-1.5 focus:border-hermes outline-none" data-uid="${docSnap.id}">
                             <option value="player">Player (담당 직원)</option>
                             <option value="leader">리더 (노아 대표)</option>
                             <option value="admin">최상위 관리자 (Admin)</option>
                         </select>
                     </td>
-                    <td class="p-4 text-center">
+                    <td class="p-3 md:p-4 text-center">
                         <button class="approve-btn bg-hermes hover:bg-hermes-hover text-white text-xs font-bold px-3 py-1.5 rounded-lg transition shadow-sm" data-uid="${docSnap.id}" data-name="${user.name}">승인</button>
                     </td>
                 </tr>
@@ -552,9 +613,7 @@ async function fetchApprovals() {
                 const selectEl = document.querySelector(`.role-select[data-uid="${uid}"]`);
                 if (confirm('선택하신 권한으로 승인하시겠습니까?')) {
                     await updateDoc(doc(db, "users", uid), { status: 'approved', role: selectEl.value });
-                    
-                    await logActivity("권한 승인", `대상: ${uName} (${selectEl.value})`); // 이력 저장
-                    
+                    await logActivity("가입 승인", `[${uName}] 유저를 신규 승인(${selectEl.value}) 처리했습니다.`);
                     alert('승인 완료되었습니다.');
                     fetchApprovals();
                 }
@@ -563,15 +622,14 @@ async function fetchApprovals() {
     } catch (error) { console.error("유저 로드 에러:", error); }
 }
 
-// ★ [신규 추가] 접속 및 작업 이력 모니터링 로직 ★
+// ★ 접속 및 작업 이력 로그 모니터링 로직 ★
 async function fetchLogs() {
     if(currentUserRole !== 'admin') return;
     const tbody = document.getElementById('logsTable');
     const emptyState = document.getElementById('emptyLogs');
-    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin text-hermes mr-2"></i> 로딩 중...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 로그 데이터 수집 중...</td></tr>';
 
     try {
-        // 필터 드롭다운 옵션 세팅 (최초 1회)
         const filterSelect = document.getElementById('logUserFilter');
         if (filterSelect.options.length <= 1) {
             const usersSnap = await getDocs(collection(db, "users"));
@@ -586,7 +644,6 @@ async function fetchLogs() {
             });
         }
 
-        // 전체 로그 가져오기
         const logsSnap = await getDocs(collection(db, "activity_logs"));
         let logs = [];
         logsSnap.forEach(docSnap => logs.push({ id: docSnap.id, ...docSnap.data() }));
@@ -594,7 +651,7 @@ async function fetchLogs() {
         // 최신순 정렬
         logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-        // 필터 적용
+        // 필터링 적용
         const selectedEmail = filterSelect.value;
         if (selectedEmail !== "all") {
             logs = logs.filter(log => log.email === selectedEmail);
@@ -611,19 +668,18 @@ async function fetchLogs() {
             const dateObj = new Date(log.timestamp);
             const dateStr = dateObj.toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false });
             
-            // 활동 구분에 따른 뱃지 색상 자동 변환
-            let badgeHtml = `<span class="bg-gray-100 text-gray-600 px-2 py-1 rounded font-bold text-xs">${log.action}</span>`;
+            let badgeHtml = `<span class="bg-gray-100 text-gray-600 px-2 py-1 rounded font-bold text-[11px]">${log.action}</span>`;
             if(log.action.includes('로그인')) badgeHtml = `<span class="bg-blue-50 text-blue-500 border border-blue-100 px-2 py-1 rounded font-bold text-[11px]">${log.action}</span>`;
             else if(log.action.includes('로그아웃')) badgeHtml = `<span class="bg-gray-50 text-gray-400 border border-gray-200 px-2 py-1 rounded font-bold text-[11px]">${log.action}</span>`;
-            else if(log.action.includes('삭제')) badgeHtml = `<span class="bg-red-50 text-red-500 border border-red-100 px-2 py-1 rounded font-bold text-[11px]">${log.action}</span>`;
-            else if(log.action.includes('등록') || log.action.includes('승인') || log.action.includes('배정')) badgeHtml = `<span class="bg-hermes-light text-hermes border border-orange-200 px-2 py-1 rounded font-bold text-[11px]">${log.action}</span>`;
+            else if(log.action.includes('삭제') || log.action.includes('탈퇴')) badgeHtml = `<span class="bg-red-50 text-red-500 border border-red-100 px-2 py-1 rounded font-bold text-[11px]">${log.action}</span>`;
+            else if(log.action.includes('등록') || log.action.includes('승인') || log.action.includes('배정') || log.action.includes('이동')) badgeHtml = `<span class="bg-hermes-light text-hermes border border-orange-200 px-2 py-1 rounded font-bold text-[11px]">${log.action}</span>`;
 
             const tr = `
                 <tr class="hover:bg-gray-50 transition border-b border-gray-100">
-                    <td class="p-3 md:p-4 text-xs font-medium text-gray-500">${dateStr}</td>
-                    <td class="p-3 md:p-4 text-xs font-bold text-gray-800">${log.name} <span class="font-normal text-gray-400">(${log.email})</span></td>
-                    <td class="p-3 md:p-4">${badgeHtml}</td>
-                    <td class="p-3 md:p-4 text-xs text-gray-600 font-medium truncate max-w-[200px]">${log.details || '-'}</td>
+                    <td class="p-3 md:p-4 text-xs font-medium text-gray-500 w-1/5">${dateStr}</td>
+                    <td class="p-3 md:p-4 text-xs font-bold text-gray-800 w-1/5">${log.name} <span class="font-normal text-gray-400 block sm:inline mt-1 sm:mt-0">(${log.email})</span></td>
+                    <td class="p-3 md:p-4 w-1/6">${badgeHtml}</td>
+                    <td class="p-3 md:p-4 text-xs text-gray-600 font-medium whitespace-normal w-[40%]">${log.details || '-'}</td>
                 </tr>
             `;
             tbody.innerHTML += tr;
@@ -633,6 +689,4 @@ async function fetchLogs() {
         tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-red-500">데이터를 불러오지 못했습니다.</td></tr>';
     }
 }
-
-// 필터 변경 시 로그 재조회 이벤트 바인딩
 document.getElementById('logUserFilter').addEventListener('change', fetchLogs);

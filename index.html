@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <!-- ★ [업데이트] 파비콘: AP 크기 확대(36) 및 완벽 중앙 정렬 ★ -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='16' fill='%23F37021'/><text x='50%' y='51%' font-family='system-ui, -apple-system, sans-serif' font-weight='900' font-size='36' fill='%23FFFFFF' text-anchor='middle' dominant-baseline='central'>AP</text></svg>">
+    <!-- ★ 파비콘: AP 크기 확대(40) 및 완벽 중앙 정렬 ★ -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='16' fill='%23F37021'/><text x='50%' y='50%' font-family='system-ui, -apple-system, sans-serif' font-weight='900' font-size='40' fill='%23FFFFFF' text-anchor='middle' dominant-baseline='central' dy='-2px'>AP</text></svg>">
     
     <!-- SNS 공유용 메타데이터 (Open Graph) -->
     <meta property="og:type" content="website">
@@ -39,10 +39,11 @@
 </head>
 <body class="bg-grid-pattern text-gray-800 font-sans min-h-screen relative flex flex-col justify-between overflow-x-hidden">
 
-    <!-- ★ [개선됨] 해상도 무관 화면을 꽉 채우는 선명한 워터마크 컨테이너 ★ -->
-    <div id="watermarkGrid" class="fixed z-0 pointer-events-none flex flex-col opacity-[0.08]" 
-         style="width: 300vw; height: 300vh; top: -100vh; left: -100vw; transform: rotate(-20deg); gap: 2.5rem;" 
-         aria-hidden="true"></div>
+    <!-- ★ [완벽해결] 화면 사이즈 조절에도 흔들림 없는 중앙 고정 워터마크 래퍼 ★ -->
+    <div class="fixed inset-0 z-0 pointer-events-none overflow-hidden flex items-center justify-center" aria-hidden="true">
+        <div id="watermarkGrid" class="flex flex-col opacity-[0.08]" 
+             style="width: 400vw; height: 400vh; transform: rotate(-20deg); gap: 2.5rem; justify-content: center; align-items: center;"></div>
+    </div>
 
     <!-- ==================================================================== -->
     <!-- 1. 로그인 화면 -->
@@ -378,20 +379,20 @@
         </div>
     </div>
 
-    <!-- ★ [개선됨] 화면을 빈틈없이 채우는 워터마크 생성 스크립트 ★ -->
+    <!-- ★ [강력한 생성 로직] 화면 크기와 무관하게 촘촘히 꽉 채워주는 워터마크 JS ★ -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const container = document.getElementById('watermarkGrid');
             if(container) {
                 let spans = '';
-                // 가로로 길게 25번 반복
-                for(let j=0; j<25; j++) {
-                    spans += `<span class="mx-8 text-[0.85rem] font-extrabold tracking-widest"><span class="text-gray-900">ADPLANTERS</span> <span class="text-hermes">✕</span> <span class="text-noah">NOAH UNIVERSE COMPANY</span></span>`;
+                // 가로로 무한히 길게 40번 반복
+                for(let j=0; j<40; j++) {
+                    spans += `<span class="mx-8 text-[0.85rem] font-extrabold tracking-widest text-gray-900">ADPLANTERS <span class="text-hermes">✕</span> <span class="text-noah">NOAH UNIVERSE COMPANY</span></span>`;
                 }
                 let html = '';
-                // 세로로 길게 70번 반복
-                for (let i = 0; i < 70; i++) {
-                    html += `<div class="flex whitespace-nowrap">${spans}</div>`;
+                // 세로로 무한히 길게 80번 반복
+                for (let i = 0; i < 80; i++) {
+                    html += `<div class="flex whitespace-nowrap justify-center">${spans}</div>`;
                 }
                 container.innerHTML = html;
             }

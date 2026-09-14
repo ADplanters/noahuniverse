@@ -21,10 +21,10 @@ let currentUserRole = '';
 let currentUserName = ''; 
 let currentAssignClientId = null; 
 let currentEditClientId = null;
-let currentDetailTaskId = null; // 상세조회 중인 게시판 이슈 ID
+let currentDetailTaskId = null; // ★ 현재 열려있는 이슈 게시글 ID
 let currentReplyTaskId = null;
 let isInitialLoginLogged = false;
-let tasksMap = {}; // 이슈 데이터 맵핑 저장소
+let tasksMap = {}; // 이슈 데이터 로컬 캐싱
 
 // DOM 맵핑
 const loginSection = document.getElementById('loginSection');
@@ -43,14 +43,14 @@ const sidebar = document.getElementById('sidebar');
 const mobileOverlay = document.getElementById('mobileOverlay');
 
 const createModal = document.getElementById('createModal');
-const editTaskModal = document.getElementById('editTaskModal');
+const editTaskModal = document.getElementById('editTaskModal'); // ★ 게시글 수정 모달
 const clientModal = document.getElementById('clientModal');
 const editClientModal = document.getElementById('editClientModal');
 const assignModal = document.getElementById('assignModal');
 const replyModal = document.getElementById('replyModal');
-const detailModal = document.getElementById('detailModal');
+const detailModal = document.getElementById('detailModal'); // ★ 상세 뷰 모달
 
-// 이미지 파일 자동 압축 함수
+// ★ [신규 헬퍼] 이미지 파일 자동 압축 함수 (Canvas 기반) ★
 function compressImage(file, maxWidth = 1200, quality = 0.7) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -113,6 +113,14 @@ document.getElementById('openModalBtn').addEventListener('click', () => createMo
 document.getElementById('closeModalBtn').addEventListener('click', () => createModal.classList.add('hidden'));
 document.getElementById('cancelBtn').addEventListener('click', () => createModal.classList.add('hidden'));
 
+// ★ 이슈 수정 모달 닫기
+document.getElementById('closeEditTaskModalBtn').addEventListener('click', () => editTaskModal.classList.add('hidden'));
+document.getElementById('cancelEditTaskBtn').addEventListener('click', () => editTaskModal.classList.add('hidden'));
+
+// 상세 뷰 닫기
+document.getElementById('closeDetailModalBtn').addEventListener('click', () => detailModal.classList.add('hidden'));
+document.getElementById('closeDetailBtn').addEventListener('click', () => detailModal.classList.add('hidden'));
+
 document.getElementById('openClientModalBtn').addEventListener('click', () => {
     document.getElementById('c_registerName').value = currentUserName;
     clientModal.classList.remove('hidden');
@@ -129,14 +137,18 @@ document.getElementById('cancelAssignBtn').addEventListener('click', () => assig
 document.getElementById('closeReplyModalBtn').addEventListener('click', () => replyModal.classList.add('hidden'));
 document.getElementById('cancelReplyBtn').addEventListener('click', () => replyModal.classList.add('hidden'));
 
-document.getElementById('closeDetailModalBtn').addEventListener('click', () => detailModal.classList.add('hidden'));
-document.getElementById('closeDetailBtn').addEventListener('click', () => detailModal.classList.add('hidden'));
-document.getElementById('closeEditTaskModalBtn').addEventListener('click', () => editTaskModal.classList.add('hidden'));
-document.getElementById('cancelEditTaskBtn').addEventListener('click', () => editTaskModal.classList.add('hidden'));
-
 // Auth 제어
 document.getElementById('googleLoginBtn').addEventListener('click', () => {
-    signInWithPopup(auth, provider).catch(e => console.error(e));
+    signInWithPopup(auth, provider).catch(e => {
+        console.error(e);
+        if (e.code === 'auth/popup-blocked') {
+            alert("팝업창이 차단되어 있습니다. 브라우저의 팝업 차단을 해제해 주세요.");
+        } else if (e.code === 'auth/unauthorized-domain') {
+            alert("Firebase 콘솔에 승인되지 않은 도메인입니다. Firebase 설정에서 'adplanters.github.io' 도메인을 추가해 주세요.");
+        } else {
+            alert("로그인 중 오류가 발생했습니다: " + e.message);
+        }
+    });
 });
 
 document.getElementById('logoutBtn').addEventListener('click', async () => {
@@ -247,7 +259,7 @@ function showDashboard(user) {
     document.getElementById('currentUserName').innerText = user.displayName || '사용자';
     document.getElementById('currentUserRoleName').innerText = getRoleDisplayName(currentUserRole);
     
-    // Player 접속 시 어드민 전용 열/메뉴 완전 숨김 처리
+    // 권한에 따른 관리자용 CSS 열 숨김 처리
     if(currentUserRole === 'admin') {
         document.getElementById('adminMenuSection').classList.remove('hidden');
         const oldStyle = document.getElementById('adminStyle');
@@ -512,7 +524,7 @@ document.getElementById('taskForm').addEventListener('submit', async (e) => {
         staff: document.getElementById('inputStaff').value,
         status: "답변대기", 
         date: dateStr,
-        comments: []
+        comments: [] // 빈 댓글 배열 초기화
     };
 
     try {
@@ -534,7 +546,7 @@ async function fetchTasks() {
     try {
         let fetchedData = [];
         const querySnapshot = await getDocs(collection(db, "crm_tasks"));
-        tasksMap = {};
+        tasksMap = {}; // 맵 초기화
         
         if (currentUserRole === 'player') {
             const cQ = query(collection(db, "clients"), where("managers", "array-contains", currentUserName));
@@ -569,12 +581,8 @@ async function fetchTasks() {
             });
         }
 
-        // 안전한 날짜 정렬
-        fetchedData.sort((a, b) => {
-            const dateA = a.date ? new Date(a.date.replace(/\./g, '-')) : 0;
-            const dateB = b.date ? new Date(b.date.replace(/\./g, '-')) : 0;
-            return dateB - dateA;
-        });
+        // 최신순 정렬
+        fetchedData.sort((a, b) => new Date(b.date.replace(/\./g, '-')) - new Date(a.date.replace(/\./g, '-')));
 
         tbody.innerHTML = '';
         if (fetchedData.length === 0) {
@@ -604,7 +612,6 @@ async function fetchTasks() {
 
             const commentCount = item.comments ? item.comments.length : 0;
 
-            // ★ 작성자 td에서 flex 제거 및 align-middle 수직 중앙 정렬 완벽 반영 ★
             rowsHtml += `
                 <tr class="hover:bg-hermes-light/30 transition group border-b border-gray-100 cursor-pointer task-detail-trigger" data-id="${item.id}">
                     <td class="p-3 md:p-4 font-bold text-gray-900 align-middle text-xs">${item.client || '-'}</td>
@@ -633,7 +640,7 @@ async function fetchTasks() {
     } catch (e) { console.error("Firestore error:", e); }
 }
 
-// ★ [안전장치] 이벤트 위임(Event Delegation)을 통한 리스트 클릭 관리 ★
+// ★ [완벽한 클릭 처리] 이벤트 위임을 사용하여 행 클릭 시 상세 모달 오픈 ★
 const boardTableEl = document.getElementById('boardTable');
 if (boardTableEl) {
     boardTableEl.addEventListener('click', async (e) => {

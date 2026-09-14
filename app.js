@@ -21,9 +21,10 @@ let currentUserRole = '';
 let currentUserName = ''; 
 let currentAssignClientId = null; 
 let currentEditClientId = null;
-let currentDetailTaskId = null; // ★ 현재 열려있는 이슈 게시글 ID
+let currentDetailTaskId = null; // ★ 상세조회 중인 게시판 이슈 ID
+let currentReplyTaskId = null;
 let isInitialLoginLogged = false;
-let tasksMap = {}; // 이슈 데이터 로컬 캐싱
+let tasksMap = {}; // ★ 이슈 데이터 맵핑
 
 // DOM 맵핑
 const loginSection = document.getElementById('loginSection');
@@ -42,11 +43,12 @@ const sidebar = document.getElementById('sidebar');
 const mobileOverlay = document.getElementById('mobileOverlay');
 
 const createModal = document.getElementById('createModal');
-const editTaskModal = document.getElementById('editTaskModal'); // ★ 게시글 수정 모달
+const editTaskModal = document.getElementById('editTaskModal'); // ★
 const clientModal = document.getElementById('clientModal');
 const editClientModal = document.getElementById('editClientModal');
 const assignModal = document.getElementById('assignModal');
-const detailModal = document.getElementById('detailModal'); // ★ 상세 뷰 모달
+const replyModal = document.getElementById('replyModal');
+const detailModal = document.getElementById('detailModal'); // ★
 
 // ★ [신규 헬퍼] 이미지 파일 자동 압축 함수 (Canvas 기반) ★
 function compressImage(file, maxWidth = 1200, quality = 0.7) {
@@ -111,14 +113,6 @@ document.getElementById('openModalBtn').addEventListener('click', () => createMo
 document.getElementById('closeModalBtn').addEventListener('click', () => createModal.classList.add('hidden'));
 document.getElementById('cancelBtn').addEventListener('click', () => createModal.classList.add('hidden'));
 
-// ★ 이슈 수정 모달 닫기
-document.getElementById('closeEditTaskModalBtn').addEventListener('click', () => editTaskModal.classList.add('hidden'));
-document.getElementById('cancelEditTaskBtn').addEventListener('click', () => editTaskModal.classList.add('hidden'));
-
-// 상세 뷰 닫기
-document.getElementById('closeDetailModalBtn').addEventListener('click', () => detailModal.classList.add('hidden'));
-document.getElementById('closeDetailBtn').addEventListener('click', () => detailModal.classList.add('hidden'));
-
 document.getElementById('openClientModalBtn').addEventListener('click', () => {
     document.getElementById('c_registerName').value = currentUserName;
     clientModal.classList.remove('hidden');
@@ -131,6 +125,15 @@ document.getElementById('cancelEditClientBtn').addEventListener('click', () => e
 
 document.getElementById('closeAssignModalBtn').addEventListener('click', () => assignModal.classList.add('hidden'));
 document.getElementById('cancelAssignBtn').addEventListener('click', () => assignModal.classList.add('hidden'));
+
+document.getElementById('closeReplyModalBtn').addEventListener('click', () => replyModal.classList.add('hidden'));
+document.getElementById('cancelReplyBtn').addEventListener('click', () => replyModal.classList.add('hidden'));
+
+// ★ 상세 뷰 및 게시글 수정 모달 제어 ★
+document.getElementById('closeDetailModalBtn').addEventListener('click', () => detailModal.classList.add('hidden'));
+document.getElementById('closeDetailBtn').addEventListener('click', () => detailModal.classList.add('hidden'));
+document.getElementById('closeEditTaskModalBtn').addEventListener('click', () => editTaskModal.classList.add('hidden'));
+document.getElementById('cancelEditTaskBtn').addEventListener('click', () => editTaskModal.classList.add('hidden'));
 
 // Auth 제어
 document.getElementById('googleLoginBtn').addEventListener('click', () => {
@@ -245,7 +248,7 @@ function showDashboard(user) {
     document.getElementById('currentUserName').innerText = user.displayName || '사용자';
     document.getElementById('currentUserRoleName').innerText = getRoleDisplayName(currentUserRole);
     
-    // 권한에 따른 관리자용 CSS 열 숨김 처리
+    // ★ Player 접속 시 어드민 전용 기능 CSS 통제 ★
     if(currentUserRole === 'admin') {
         document.getElementById('adminMenuSection').classList.remove('hidden');
         const oldStyle = document.getElementById('adminStyle');
@@ -269,7 +272,7 @@ function showPendingPopup() {
 }
 
 // ============================================================================
-// 클라이언트 DB 로직 (등록, 수정, 삭제)
+// 클라이언트 DB 로직
 // ============================================================================
 document.getElementById('clientForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -293,7 +296,7 @@ document.getElementById('clientForm').addEventListener('submit', async (e) => {
         await addDoc(collection(db, "clients"), newClient);
         clientModal.classList.add('hidden');
         document.getElementById('clientForm').reset();
-        await logActivity("클라이언트 등록", `신규 클라이언트 [${cName}] 데이터 생성`);
+        await logActivity("클라이언트 등록", `신규 클라이언트 [${cName}] 데이터 추가`);
         fetchClients();
         alert("성공적으로 등록되었습니다.");
     } catch (error) { alert("등록 실패: " + error.message); }
@@ -463,12 +466,11 @@ document.getElementById('saveAssignBtn').addEventListener('click', async () => {
     } catch (error) { alert("업데이트 실패: " + error.message); }
 });
 
-
 // ============================================================================
-// ★ [대규모 고도화] 업무 이슈/Q&A - 게시판 및 댓글 로직 연동 ★
+// ★ [대규모 고도화] 업무 이슈/Q&A 게시판 및 댓글 로직 ★
 // ============================================================================
 
-// 신규 이슈 등록 (Comments 배열 추가)
+// 1. 신규 이슈 등록
 document.getElementById('taskForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const today = new Date();
@@ -511,7 +513,7 @@ document.getElementById('taskForm').addEventListener('submit', async (e) => {
         staff: document.getElementById('inputStaff').value,
         status: "답변대기", 
         date: dateStr,
-        comments: [] // ★ 댓글을 담을 빈 배열 생성
+        comments: [] // 빈 댓글 배열 초기화
     };
 
     try {
@@ -524,7 +526,7 @@ document.getElementById('taskForm').addEventListener('submit', async (e) => {
     } catch (error) { alert("저장 실패: " + error.message); }
 });
 
-// 게시글 렌더링
+// 2. 게시글 렌더링
 async function fetchTasks() {
     const tbody = document.getElementById('boardTable');
     const emptyState = document.getElementById('emptyState');
@@ -533,7 +535,7 @@ async function fetchTasks() {
     try {
         let fetchedData = [];
         const querySnapshot = await getDocs(collection(db, "crm_tasks"));
-        tasksMap = {}; // 리스트를 그릴 때마다 메모리(맵) 초기화 및 저장
+        tasksMap = {}; // 맵 초기화
         
         if (currentUserRole === 'player') {
             const cQ = query(collection(db, "clients"), where("managers", "array-contains", currentUserName));
@@ -582,14 +584,14 @@ async function fetchTasks() {
         updateStats(fetchedData);
 
         fetchedData.forEach(item => {
-            // 삭제 열은 Admin에게만
+            // 삭제 열은 Admin에게만 노출
             const adminActions = currentUserRole === 'admin' ? 
                 `<td class="p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col align-middle">
-                    <button class="delete-task-btn bg-red-50 text-red-500 hover:bg-red-500 hover:text-white px-2.5 py-1.5 rounded transition shadow-sm" data-id="${item.id}" data-t="${item.title}"><i class="fa-solid fa-trash-can"></i></button>
+                    <button class="delete-task-btn bg-red-50 text-red-500 hover:bg-red-500 hover:text-white px-2.5 py-1.5 rounded transition shadow-sm" data-id="${item.id}" data-t="${item.title}"><i class="fa-solid fa-trash-can"></i> 삭제</button>
                 </td>` : `<td class="admin-only-col hidden"></td>`;
 
             const fileButton = item.fileData ? 
-                `<a href="${item.fileData}" download="${item.fileName}" class="inline-flex items-center gap-1.5 bg-gray-100 hover:bg-orange-100 text-gray-700 hover:text-hermes text-xs font-bold px-2.5 py-1.5 rounded-lg border border-gray-200 transition" onclick="event.stopPropagation();"><i class="fa-solid fa-download text-hermes"></i> 다운로드</a>` : `<span class="text-gray-300 text-[10px]">없음</span>`;
+                `<a href="${item.fileData}" download="${item.fileName}" class="inline-flex items-center gap-1.5 bg-gray-100 hover:bg-orange-100 text-gray-700 hover:text-hermes text-[10px] font-bold px-2 py-1.5 rounded-lg border border-gray-200 transition" onclick="event.stopPropagation();"><i class="fa-solid fa-download text-hermes"></i> 첨부파일</a>` : `<span class="text-gray-300 text-[10px]">없음</span>`;
 
             function getBadge(status) {
                 if(status === '답변대기' || status === '대기중') return `<span class="text-red-500 font-bold border border-red-200 bg-red-50 px-2 py-0.5 rounded text-[11px]">답변대기</span>`;
@@ -605,17 +607,17 @@ async function fetchTasks() {
                     <td class="p-3 md:p-4 align-middle"><span class="bg-gray-100 text-gray-600 text-[10px] px-1.5 py-0.5 rounded font-bold">${item.type || '-'}</span></td>
                     <td class="p-3 md:p-4 align-middle">
                         <div class="font-bold text-gray-900 group-hover:text-hermes transition flex items-center gap-1">
-                            <span class="truncate max-w-[200px] sm:max-w-md">${item.title || '-'}</span> 
+                            <span class="truncate max-w-[150px] sm:max-w-xs">${item.title || '-'}</span> 
                             ${commentCount > 0 ? `<span class="text-hermes text-[10px] font-black">[${commentCount}]</span>` : ''}
                         </div>
                     </td>
                     <td class="p-3 md:p-4 align-middle">${fileButton}</td>
-                    <td class="p-3 md:p-4 align-middle text-gray-600 font-medium text-xs flex items-center gap-1.5 mt-2 sm:mt-0">
-                        <div class="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] flex-shrink-0"><i class="fa-solid fa-user"></i></div>
+                    <td class="p-3 md:p-4 align-middle text-gray-600 font-medium text-[11px] flex items-center gap-1.5 mt-2 sm:mt-0">
+                        <div class="w-4 h-4 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[8px] flex-shrink-0"><i class="fa-solid fa-user"></i></div>
                         <span>${item.staff || '미지정'}</span>
                     </td>
                     <td class="p-3 md:p-4 align-middle text-center">${getBadge(item.status)}</td>
-                    <td class="p-3 md:p-4 align-middle text-gray-400 text-xs font-medium">${item.date || '-'}</td>
+                    <td class="p-3 md:p-4 align-middle text-gray-400 text-[11px] font-medium">${item.date || '-'}</td>
                     ${adminActions}
                 </tr>
             `;
@@ -630,15 +632,15 @@ async function fetchTasks() {
             });
         });
 
-        // 리스트 내 삭제 버튼 이벤트 (버블링 방지)
+        // 리스트 내 삭제 버튼
         document.querySelectorAll('.delete-task-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
-                e.stopPropagation(); // 팝업 안 열리게 차단
+                e.stopPropagation(); // 팝업 열림 차단
                 const docId = e.currentTarget.getAttribute('data-id');
                 const tTitle = e.currentTarget.getAttribute('data-t');
                 if (confirm('게시글을 완전히 삭제하시겠습니까?')) {
                     await deleteDoc(doc(db, "crm_tasks", docId));
-                    await logActivity("이슈 삭제", `[${tTitle}] 게시글 삭제`);
+                    await logActivity("게시글 삭제", `[${tTitle}] 게시글 영구 삭제`);
                     fetchTasks();
                 }
             });
@@ -653,16 +655,12 @@ function updateStats(data) {
     document.getElementById('statDone').innerText = data.filter(d => d.status === '답변완료' || d.status === '완료').length;
 }
 
-// ============================================================================
-// ★ [게시판 기능] 상세 모달, 댓글 등록, 게시글 수정 로직 ★
-// ============================================================================
-
-// 1. 상세 모달 열기 및 그리기
+// 3. 상세 뷰 모달 오픈
 function openDetailModal(taskId) {
     const task = tasksMap[taskId];
     if(!task) return;
     
-    currentDetailTaskId = taskId; // 전역 세팅
+    currentDetailTaskId = taskId;
     
     document.getElementById('detailTitle').innerText = task.title || '제목 없음';
     document.getElementById('detailType').innerText = task.type || 'Q&A';
@@ -686,14 +684,13 @@ function openDetailModal(taskId) {
         fileBtnArea.innerHTML = `<span class="text-gray-400 text-xs">첨부파일이 없습니다.</span>`;
     }
 
-    // 작성자(본인) 수정/삭제 권한 통제
+    // 작성자(본인) 수정/삭제 권한 노출 여부
     const actionArea = document.getElementById('authorActionArea');
     const editBtn = document.getElementById('detailEditBtn');
     const deleteBtn = document.getElementById('detailDeleteBtn');
-    
     let canShowAction = false;
     
-    // 수정: 작성자 본인만 (또는 어드민도 허용 원하면 || currentUserRole === 'admin' 추가)
+    // 수정: 작성자 본인만
     if(currentUserName === task.staff) {
         editBtn.classList.remove('hidden');
         canShowAction = true;
@@ -701,7 +698,7 @@ function openDetailModal(taskId) {
         editBtn.classList.add('hidden');
     }
 
-    // 삭제: 어드민 전용
+    // 삭제: 어드민만
     if(currentUserRole === 'admin') {
         deleteBtn.classList.remove('hidden');
         canShowAction = true;
@@ -721,11 +718,11 @@ function openDetailModal(taskId) {
     // 댓글 렌더링
     renderComments(task.comments || []);
 
-    document.getElementById('detailModal').classList.remove('hidden');
+    detailModal.classList.remove('hidden');
     logActivity("게시글 조회", `[${task.title}] 상세 내용을 조회했습니다.`);
 }
 
-// 2. 댓글 렌더링
+// 4. 댓글 렌더링
 function renderComments(commentsArr) {
     const list = document.getElementById('commentList');
     document.getElementById('commentCount').innerText = commentsArr.length;
@@ -752,11 +749,10 @@ function renderComments(commentsArr) {
             </div>
         `;
     });
-    // 스크롤 맨 아래로
     list.scrollTop = list.scrollHeight;
 }
 
-// 3. 댓글 등록 이벤트
+// 5. 댓글 및 상태 등록
 document.getElementById('submitCommentBtn').addEventListener('click', async () => {
     if(!currentDetailTaskId) return;
     const task = tasksMap[currentDetailTaskId];
@@ -775,8 +771,6 @@ document.getElementById('submitCommentBtn').addEventListener('click', async () =
     };
 
     const updatedComments = [...(task.comments || []), newComment];
-    
-    // 어드민일 경우 상태 변경 옵션 함께 저장
     let updatePayload = { comments: updatedComments };
     if(currentUserRole === 'admin') {
         updatePayload.status = document.getElementById('adminStatusSelect').value;
@@ -785,17 +779,16 @@ document.getElementById('submitCommentBtn').addEventListener('click', async () =
     try {
         await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), updatePayload);
         textInput.value = '';
-        await logActivity("댓글 등록", `[${task.title}] 게시글에 댓글을 남겼습니다.`);
+        await logActivity("댓글 등록", `[${task.title}] 게시글에 댓글 작성`);
         
-        // 로컬 맵 및 뷰 즉시 업데이트
         task.comments = updatedComments;
         if(currentUserRole === 'admin') task.status = updatePayload.status;
         openDetailModal(currentDetailTaskId);
-        fetchTasks(); // 백그라운드 리스트 갱신
+        fetchTasks(); 
     } catch (e) { alert("댓글 등록 실패: " + e.message); }
 });
 
-// 4. 상세 모달 내 삭제 버튼 기능
+// 6. 게시글 삭제 (상세 뷰 내부)
 document.getElementById('detailDeleteBtn').addEventListener('click', async () => {
     if(!currentDetailTaskId) return;
     const task = tasksMap[currentDetailTaskId];
@@ -803,14 +796,14 @@ document.getElementById('detailDeleteBtn').addEventListener('click', async () =>
         try {
             await deleteDoc(doc(db, "crm_tasks", currentDetailTaskId));
             document.getElementById('detailModal').classList.add('hidden');
-            await logActivity("게시글 삭제", `[${task.title}] 글 삭제됨`);
+            await logActivity("게시글 삭제", `[${task.title}] 영구 삭제 완료`);
             alert('삭제되었습니다.');
             fetchTasks();
         } catch(e) { alert('삭제 실패: '+e.message); }
     }
 });
 
-// 5. 상세 모달 내 수정 버튼 클릭 시 수정 모달 띄우기
+// 7. 게시글 수정 모달 띄우기
 document.getElementById('detailEditBtn').addEventListener('click', () => {
     if(!currentDetailTaskId) return;
     const task = tasksMap[currentDetailTaskId];
@@ -826,7 +819,7 @@ document.getElementById('detailEditBtn').addEventListener('click', () => {
     editTaskModal.classList.remove('hidden');
 });
 
-// 6. 게시글 수정 데이터 제출
+// 8. 게시글 수정 저장
 document.getElementById('editTaskForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     if(!currentDetailTaskId) return;
@@ -868,15 +861,14 @@ document.getElementById('editTaskForm').addEventListener('submit', async (e) => 
     try {
         await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), updatedTask);
         editTaskModal.classList.add('hidden');
-        await logActivity("게시글 수정", `[${updatedTask.title}] 수정 완료`);
+        await logActivity("게시글 수정", `[${updatedTask.title}] 내용 수정`);
         alert("수정되었습니다.");
         fetchTasks();
     } catch(e) { alert("수정 실패: " + e.message); }
 });
 
-
 // ============================================================================
-// 멤버 권한 관리 (Admin)
+// [5] 멤버 관리 (Admin 전용)
 // ============================================================================
 async function fetchMembers() {
     if(currentUserRole !== 'admin') return;
@@ -895,20 +887,20 @@ async function fetchMembers() {
 
             const tr = `
                 <tr class="hover:bg-gray-50 transition border-b border-gray-100">
-                    <td class="p-3 md:p-4 font-bold text-gray-900">${user.name}</td>
-                    <td class="p-3 md:p-4 text-gray-500 text-xs">${user.email}</td>
-                    <td class="p-3 md:p-4">${statusBadge}</td>
-                    <td class="p-3 md:p-4">
+                    <td class="p-3 md:p-4 font-bold text-gray-900 align-middle">${user.name}</td>
+                    <td class="p-3 md:p-4 text-gray-500 text-xs align-middle">${user.email}</td>
+                    <td class="p-3 md:p-4 align-middle">${statusBadge}</td>
+                    <td class="p-3 md:p-4 align-middle">
                         <select class="role-update-select text-xs font-bold border border-gray-300 rounded p-1.5 focus:border-hermes outline-none" data-uid="${docSnap.id}">
                             <option value="player" ${user.role==='player'?'selected':''}>Player (담당 직원)</option>
                             <option value="leader" ${user.role==='leader'?'selected':''}>리더 (노아 대표)</option>
                             <option value="admin" ${user.role==='admin'?'selected':''}>최상위 관리자 (Admin)</option>
                         </select>
                     </td>
-                    <td class="p-3 md:p-4 text-center">
+                    <td class="p-3 md:p-4 text-center align-middle">
                         <button class="update-member-btn bg-gray-800 hover:bg-black text-white text-[11px] font-bold px-3 py-1.5 rounded transition shadow-sm" data-uid="${docSnap.id}" data-name="${user.name}">권한수정</button>
                     </td>
-                    <td class="p-3 md:p-4 text-center">
+                    <td class="p-3 md:p-4 text-center align-middle">
                         <button class="delete-member-btn bg-red-50 hover:bg-red-500 text-red-500 hover:text-white border border-red-100 hover:border-red-500 text-[11px] font-bold px-3 py-1.5 rounded transition shadow-sm" data-uid="${docSnap.id}" data-name="${user.name}">강제탈퇴</button>
                     </td>
                 </tr>
@@ -945,7 +937,9 @@ async function fetchMembers() {
     } catch (error) { console.error("멤버 로드 에러:", error); }
 }
 
-// 승인 로직
+// ============================================================================
+// [6] 권한 승인 관리 (Admin 전용)
+// ============================================================================
 async function fetchApprovals() {
     if(currentUserRole !== 'admin') return;
     const tbody = document.getElementById('approvalsTable');
@@ -967,16 +961,16 @@ async function fetchApprovals() {
             const user = docSnap.data();
             const tr = `
                 <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
-                    <td class="p-3 md:p-4 font-bold text-gray-900">${user.name}</td>
-                    <td class="p-3 md:p-4 text-gray-500 font-medium">${user.email}</td>
-                    <td class="p-3 md:p-4">
+                    <td class="p-3 md:p-4 font-bold text-gray-900 align-middle">${user.name}</td>
+                    <td class="p-3 md:p-4 text-gray-500 font-medium align-middle">${user.email}</td>
+                    <td class="p-3 md:p-4 align-middle">
                         <select class="role-select text-xs font-bold border border-gray-300 rounded p-1.5 focus:border-hermes outline-none" data-uid="${docSnap.id}">
                             <option value="player">Player (담당 직원)</option>
                             <option value="leader">리더 (노아 대표)</option>
                             <option value="admin">최상위 관리자 (Admin)</option>
                         </select>
                     </td>
-                    <td class="p-3 md:p-4 text-center">
+                    <td class="p-3 md:p-4 text-center align-middle">
                         <button class="approve-btn bg-hermes hover:bg-hermes-hover text-white text-xs font-bold px-3 py-1.5 rounded-lg transition shadow-sm" data-uid="${docSnap.id}" data-name="${user.name}">승인</button>
                     </td>
                 </tr>
@@ -1000,7 +994,9 @@ async function fetchApprovals() {
     } catch (error) { console.error("유저 로드 에러:", error); }
 }
 
-// 접속 및 작업 이력 모니터링
+// ============================================================================
+// [7] 접속 및 작업 이력 모니터링 (Admin 전용)
+// ============================================================================
 async function fetchLogs() {
     if(currentUserRole !== 'admin') return;
     const tbody = document.getElementById('logsTable');
@@ -1048,14 +1044,14 @@ async function fetchLogs() {
             if(log.action.includes('로그인')) badgeHtml = `<span class="bg-blue-50 text-blue-500 border border-blue-100 px-2 py-1 rounded font-bold text-[11px]">${log.action}</span>`;
             else if(log.action.includes('로그아웃')) badgeHtml = `<span class="bg-gray-50 text-gray-400 border border-gray-200 px-2 py-1 rounded font-bold text-[11px]">${log.action}</span>`;
             else if(log.action.includes('삭제') || log.action.includes('탈퇴')) badgeHtml = `<span class="bg-red-50 text-red-500 border border-red-100 px-2 py-1 rounded font-bold text-[11px]">${log.action}</span>`;
-            else if(log.action.includes('등록') || log.action.includes('승인') || log.action.includes('배정') || log.action.includes('이동') || log.action.includes('수정') || log.action.includes('댓글') || log.action.includes('조회')) badgeHtml = `<span class="bg-hermes-light text-hermes border border-orange-200 px-2 py-1 rounded font-bold text-[11px]">${log.action}</span>`;
+            else if(log.action.includes('등록') || log.action.includes('승인') || log.action.includes('배정') || log.action.includes('이동') || log.action.includes('수정') || log.action.includes('조회') || log.action.includes('댓글')) badgeHtml = `<span class="bg-hermes-light text-hermes border border-orange-200 px-2 py-1 rounded font-bold text-[11px]">${log.action}</span>`;
 
             const tr = `
                 <tr class="hover:bg-gray-50 transition border-b border-gray-100">
-                    <td class="p-3 md:p-4 text-xs font-medium text-gray-500 w-1/5">${dateStr}</td>
-                    <td class="p-3 md:p-4 text-xs font-bold text-gray-800 w-1/5">${log.name} <span class="font-normal text-gray-400 block sm:inline mt-1 sm:mt-0">(${log.email})</span></td>
-                    <td class="p-3 md:p-4 w-1/6">${badgeHtml}</td>
-                    <td class="p-3 md:p-4 text-xs text-gray-600 font-medium whitespace-normal w-[40%]">${log.details || '-'}</td>
+                    <td class="p-3 md:p-4 text-xs font-medium text-gray-500 w-1/5 align-middle">${dateStr}</td>
+                    <td class="p-3 md:p-4 text-xs font-bold text-gray-800 w-1/5 align-middle">${log.name} <span class="font-normal text-gray-400 block sm:inline mt-1 sm:mt-0">(${log.email})</span></td>
+                    <td class="p-3 md:p-4 w-1/6 align-middle">${badgeHtml}</td>
+                    <td class="p-3 md:p-4 text-xs text-gray-600 font-medium whitespace-normal w-[40%] align-middle">${log.details || '-'}</td>
                 </tr>
             `;
             tbody.innerHTML += tr;

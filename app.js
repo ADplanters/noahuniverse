@@ -57,7 +57,6 @@ function compressImage(file, maxWidth = 1200, quality = 0.7) {
                 let width = img.width;
                 let height = img.height;
 
-                // 해상도 조절 (가로 최대 1200px 제한)
                 if (width > maxWidth) {
                     height = Math.round((height * maxWidth) / width);
                     width = maxWidth;
@@ -69,7 +68,6 @@ function compressImage(file, maxWidth = 1200, quality = 0.7) {
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
 
-                // JPEG 포맷으로 압축하여 Base64 도출 (용량 80~90% 절감)
                 const dataUrl = canvas.toDataURL('image/jpeg', quality);
                 resolve(dataUrl);
             };
@@ -153,7 +151,7 @@ navItems.forEach(item => {
         logsContainer.classList.add('hidden');
 
         if(menu !== 'logout') {
-            logActivity("메뉴 이동", `[${menuTitle}] 탭에 접속했습니다.`);
+            logActivity("메뉴 이동", `[${menuTitle}] 화면을 조회했습니다.`);
         }
 
         if (menu === 'dashboard') {
@@ -237,16 +235,10 @@ function showDashboard(user) {
     
     if(currentUserRole === 'admin') {
         document.getElementById('adminMenuSection').classList.remove('hidden');
-        document.getElementById('menuMembers').classList.remove('hidden');
-        document.getElementById('menuApprovals').classList.remove('hidden');
-        document.getElementById('menuLogs').classList.remove('hidden');
         const oldStyle = document.getElementById('adminStyle');
         if(oldStyle) oldStyle.remove();
     } else {
         document.getElementById('adminMenuSection').classList.add('hidden');
-        document.getElementById('menuMembers').classList.add('hidden');
-        document.getElementById('menuApprovals').classList.add('hidden');
-        document.getElementById('menuLogs').classList.add('hidden');
         if(!document.getElementById('adminStyle')) {
             const style = document.createElement('style');
             style.id = 'adminStyle';
@@ -403,7 +395,7 @@ async function fetchClients() {
                 const clientName = e.currentTarget.getAttribute('data-name');
                 if (confirm(`정말 클라이언트 [${clientName}] 데이터를 삭제하시겠습니까?`)) {
                     await deleteDoc(doc(db, "clients", clientId));
-                    await logActivity("클라이언트 삭제", `[${clientName}] 데이터 영구 삭제 처리`);
+                    await logActivity("클라이언트 삭제", `클라이언트 [${clientName}] 영구 삭제 처리`);
                     fetchClients();
                 }
             });
@@ -459,7 +451,7 @@ document.getElementById('saveAssignBtn').addEventListener('click', async () => {
 });
 
 // ============================================================================
-// ★ [수정됨] 신규 이슈 및 Q&A 등록 (이미지 자동 압축 적용) ★
+// ★ [업데이트 반영] 신규 이슈/Q&A 등록 로직 (1MB 제한 및 압축 기능) ★
 // ============================================================================
 document.getElementById('taskForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -470,9 +462,16 @@ document.getElementById('taskForm').addEventListener('submit', async (e) => {
 
     if (fileInput.files.length > 0) {
         const file = fileInput.files[0];
+        
+        // ★ [추가] 1MB(1048576 byte) 이상 파일 첨부 시 원천 차단
+        if (file.size >= 1048576) {
+            alert("파일 용량이 1MB를 초과합니다. 1MB 미만의 파일만 업로드 가능합니다.");
+            return;
+        }
+
         fileName = file.name;
 
-        // 이미지 파일인 경우 브라우저 내 자동 압축 수행
+        // ★ [추가] 이미지 파일인 경우 브라우저 내 자동 압축 수행
         if (file.type.startsWith('image/')) {
             try {
                 fileData = await compressImage(file, 1200, 0.7);
@@ -481,11 +480,7 @@ document.getElementById('taskForm').addEventListener('submit', async (e) => {
                 return;
             }
         } else {
-            // 일반 문서의 경우 700KB 제한 검증
-            if (file.size > 700 * 1024) {
-                alert("일반 문서 파일은 최대 700KB 이하만 첨부할 수 있습니다.");
-                return;
-            }
+            // 일반 문서
             fileData = await new Promise((resolve) => {
                 const reader = new FileReader();
                 reader.onload = (e) => resolve(e.target.result);
@@ -493,7 +488,7 @@ document.getElementById('taskForm').addEventListener('submit', async (e) => {
             });
         }
 
-        // Firestore 1MB 단일 문서 한도 사전 체크
+        // 압축 후에도 Base64 용량이 1MB 초과 시 차단
         if (fileData.length > 900000) {
             alert("파일 용량이 데이터베이스 저장 한도를 초과합니다. 더 작은 용량의 파일을 선택해 주세요.");
             return;

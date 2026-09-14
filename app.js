@@ -23,7 +23,7 @@ let currentAssignClientId = null;
 let currentEditClientId = null;
 let currentReplyTaskId = null;
 let isInitialLoginLogged = false;
-let tasksMap = {}; // 이슈 데이터 맵핑 저장소
+let tasksMap = {};
 
 // DOM 맵핑
 const loginSection = document.getElementById('loginSection');
@@ -46,7 +46,7 @@ const clientModal = document.getElementById('clientModal');
 const editClientModal = document.getElementById('editClientModal');
 const assignModal = document.getElementById('assignModal');
 const replyModal = document.getElementById('replyModal');
-const detailModal = document.getElementById('detailModal'); // ★ 상세 보기 모달 ★
+const detailModal = document.getElementById('detailModal');
 
 // 이미지 파일 자동 압축 함수
 function compressImage(file, maxWidth = 1200, quality = 0.7) {
@@ -127,7 +127,6 @@ document.getElementById('cancelAssignBtn').addEventListener('click', () => assig
 document.getElementById('closeReplyModalBtn').addEventListener('click', () => replyModal.classList.add('hidden'));
 document.getElementById('cancelReplyBtn').addEventListener('click', () => replyModal.classList.add('hidden'));
 
-// ★ 상세 보기 모달 닫기 이벤트 ★
 document.getElementById('closeDetailModalBtn').addEventListener('click', () => detailModal.classList.add('hidden'));
 document.getElementById('closeDetailBtn').addEventListener('click', () => detailModal.classList.add('hidden'));
 
@@ -244,7 +243,7 @@ function showDashboard(user) {
     document.getElementById('currentUserName').innerText = user.displayName || '사용자';
     document.getElementById('currentUserRoleName').innerText = getRoleDisplayName(currentUserRole);
     
-    // Player 접속 시 우측 관리열 완전 숨김 처리
+    // ★ Player 접속 시 관리 열 완전히 숨기는 CSS 제어 ★
     if(currentUserRole === 'admin') {
         document.getElementById('adminMenuSection').classList.remove('hidden');
         const oldStyle = document.getElementById('adminStyle');
@@ -351,7 +350,7 @@ async function fetchClients() {
             }
 
             const adminActions = currentUserRole === 'admin' ? 
-                `<td class="p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col">
+                `<td class="p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col align-middle">
                     <div class="flex items-center justify-center gap-1.5">
                         <button class="open-assign-btn bg-gray-800 hover:bg-black text-white text-[11px] font-bold px-2.5 py-1.5 rounded transition shadow-sm" data-id="${docSnap.id}">배정</button>
                         <button class="edit-client-btn bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-2.5 py-1.5 rounded transition shadow-sm" data-id="${docSnap.id}">수정</button>
@@ -361,16 +360,16 @@ async function fetchClients() {
 
             const tr = `
                 <tr class="hover:bg-orange-50/30 transition border-b border-gray-100">
-                    <td class="p-3 md:p-4 font-black text-gray-900">${data.name}</td>
-                    <td class="p-3 md:p-4 text-xs text-gray-500">
+                    <td class="p-3 md:p-4 font-black text-gray-900 align-middle">${data.name}</td>
+                    <td class="p-3 md:p-4 text-xs text-gray-500 align-middle">
                         ${data.homeUrl ? `<a href="${data.homeUrl}" target="_blank" class="text-blue-500 hover:underline"><i class="fa-solid fa-link"></i> 웹</a> ` : ''}
                         ${data.instaUrl ? `<a href="${data.instaUrl}" target="_blank" class="text-pink-500 hover:underline"><i class="fa-brands fa-instagram"></i> 인스타</a>` : ''}
                     </td>
-                    <td class="p-3 md:p-4 text-xs"><div class="text-gray-700 font-medium">ID: ${data.metaId || '-'}</div><div class="text-gray-400">PW: ${data.metaPw ? '********' : '-'}</div></td>
-                    <td class="p-3 md:p-4 font-bold text-hermes text-xs">${data.budget || '-'}</td>
-                    <td class="p-3 md:p-4 text-xs text-gray-600"><div>인스타: ${data.instaDate || '-'}</div><div>메타: ${data.metaDate || '-'}</div></td>
-                    <td class="p-3 md:p-4 text-xs font-bold text-gray-500">${data.registeredBy || '-'}</td>
-                    <td class="p-3 md:p-4 max-w-[120px] whitespace-normal">${managersHtml}</td>
+                    <td class="p-3 md:p-4 text-xs align-middle"><div class="text-gray-700 font-medium">ID: ${data.metaId || '-'}</div><div class="text-gray-400">PW: ${data.metaPw ? '********' : '-'}</div></td>
+                    <td class="p-3 md:p-4 font-bold text-hermes text-xs align-middle">${data.budget || '-'}</td>
+                    <td class="p-3 md:p-4 text-xs text-gray-600 align-middle"><div>인스타: ${data.instaDate || '-'}</div><div>메타: ${data.metaDate || '-'}</div></td>
+                    <td class="p-3 md:p-4 text-xs font-bold text-gray-500 align-middle">${data.registeredBy || '-'}</td>
+                    <td class="p-3 md:p-4 max-w-[120px] whitespace-normal align-middle">${managersHtml}</td>
                     ${adminActions}
                 </tr>
             `;
@@ -501,7 +500,6 @@ document.getElementById('taskForm').addEventListener('submit', async (e) => {
             alert("파일 용량이 1MB를 초과합니다. 1MB 미만의 파일만 업로드 가능합니다.");
             return;
         }
-
         fileName = file.name;
 
         if (file.type.startsWith('image/')) {
@@ -545,47 +543,47 @@ document.getElementById('taskForm').addEventListener('submit', async (e) => {
     } catch (error) { alert("저장 실패: " + error.message); }
 });
 
-// ★ [신규] 이슈 상세 보기 모달 오픈 함수 ★
-function openDetailModal(item) {
-    document.getElementById('detailTitle').innerText = item.title || '제목 없음';
-    document.getElementById('detailType').innerText = item.type || 'Q&A';
-    document.getElementById('detailClient').innerText = item.client || '-';
-    document.getElementById('detailStaff').innerText = item.staff || '미지정';
-    document.getElementById('detailDate').innerText = item.date || '-';
-    document.getElementById('detailAgency').innerText = item.agency === 'noah' ? '노아유니버스' : '애드플랜터스';
-    document.getElementById('detailContent').innerText = item.content || '등록된 상세 내용이 없습니다.';
-    
-    // 상태 배지
-    const statusEl = document.getElementById('detailStatus');
-    if(item.status === '답변대기' || item.status === '대기중') {
-        statusEl.innerHTML = `<span class="bg-red-50 text-red-600 px-2.5 py-1 rounded-md text-xs font-bold border border-red-100">답변대기</span>`;
-    } else if(item.status === '진행중') {
-        statusEl.innerHTML = `<span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md text-xs font-bold border border-blue-100">진행중</span>`;
-    } else {
-        statusEl.innerHTML = `<span class="bg-gray-100 text-gray-600 px-2.5 py-1 rounded-md text-xs font-bold border border-gray-200">답변완료</span>`;
-    }
+// ★ 이슈 상세 보기 모달 오픈 함수 ★
+window.openDetailModalById = function(taskId) {
+    if (tasksMap[taskId]) {
+        const item = tasksMap[taskId];
+        document.getElementById('detailTitle').innerText = item.title || '제목 없음';
+        document.getElementById('detailType').innerText = item.type || 'Q&A';
+        document.getElementById('detailClient').innerText = item.client || '-';
+        document.getElementById('detailStaff').innerText = item.staff || '미지정';
+        document.getElementById('detailDate').innerText = item.date || '-';
+        document.getElementById('detailAgency').innerText = item.agency === 'noah' ? '노아유니버스' : '애드플랜터스';
+        document.getElementById('detailContent').innerText = item.content || '등록된 상세 내용이 없습니다.';
+        
+        const statusEl = document.getElementById('detailStatus');
+        if(item.status === '답변대기' || item.status === '대기중') {
+            statusEl.innerHTML = `<span class="bg-red-50 text-red-600 px-2.5 py-1 rounded-md text-xs font-bold border border-red-100">답변대기</span>`;
+        } else if(item.status === '진행중') {
+            statusEl.innerHTML = `<span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md text-xs font-bold border border-blue-100">진행중</span>`;
+        } else {
+            statusEl.innerHTML = `<span class="bg-gray-100 text-gray-600 px-2.5 py-1 rounded-md text-xs font-bold border border-gray-200">답변완료</span>`;
+        }
 
-    // 파일 영역
-    const fileBtnArea = document.getElementById('detailFileBtn');
-    if(item.fileData) {
-        fileBtnArea.innerHTML = `<a href="${item.fileData}" download="${item.fileName}" class="inline-flex items-center gap-1.5 bg-gray-100 hover:bg-orange-100 text-gray-700 hover:text-hermes text-xs font-bold px-3 py-2 rounded-lg border border-gray-200 transition"><i class="fa-solid fa-download text-hermes"></i> ${item.fileName} 다운로드</a>`;
-    } else {
-        fileBtnArea.innerHTML = `<span class="text-gray-400 text-xs">첨부파일이 없습니다.</span>`;
-    }
+        const fileBtnArea = document.getElementById('detailFileBtn');
+        if(item.fileData) {
+            fileBtnArea.innerHTML = `<a href="${item.fileData}" download="${item.fileName}" class="inline-flex items-center gap-1.5 bg-gray-100 hover:bg-orange-100 text-gray-700 hover:text-hermes text-xs font-bold px-3 py-2 rounded-lg border border-gray-200 transition"><i class="fa-solid fa-download text-hermes"></i> ${item.fileName} 다운로드</a>`;
+        } else {
+            fileBtnArea.innerHTML = `<span class="text-gray-400 text-xs">첨부파일이 없습니다.</span>`;
+        }
 
-    // 관리자 답변 영역
-    const replyArea = document.getElementById('detailAdminReply');
-    if(item.adminReply) {
-        replyArea.innerHTML = `<span class="text-gray-800 whitespace-pre-line">${item.adminReply}</span>`;
-        replyArea.className = "bg-blue-50/80 p-3.5 rounded-xl border border-blue-100 text-gray-800 text-xs md:text-sm";
-    } else {
-        replyArea.innerHTML = `<span class="text-gray-400 italic">아직 등록된 관리자 답변이 없습니다.</span>`;
-        replyArea.className = "bg-gray-50 p-3.5 rounded-xl border border-gray-100 text-gray-400 text-xs md:text-sm";
-    }
+        const replyArea = document.getElementById('detailAdminReply');
+        if(item.adminReply) {
+            replyArea.innerHTML = `<span class="text-gray-800 whitespace-pre-line">${item.adminReply}</span>`;
+            replyArea.className = "bg-blue-50/80 p-3.5 rounded-xl border border-blue-100 text-gray-800 text-xs md:text-sm font-medium";
+        } else {
+            replyArea.innerHTML = `<span class="text-gray-400 italic">아직 등록된 관리자 답변이 없습니다.</span>`;
+            replyArea.className = "bg-gray-50 p-3.5 rounded-xl border border-gray-100 text-gray-400 text-xs md:text-sm";
+        }
 
-    detailModal.classList.remove('hidden');
-    logActivity("상세 조회", `[${item.client}] 이슈 상세 보기 (${item.title})`);
-}
+        document.getElementById('detailModal').classList.remove('hidden');
+        logActivity("상세 조회", `[${item.client}] 이슈 상세 보기 (${item.title})`);
+    }
+};
 
 async function fetchTasks() {
     const tbody = document.getElementById('boardTable');
@@ -595,7 +593,7 @@ async function fetchTasks() {
     try {
         let fetchedData = [];
         const querySnapshot = await getDocs(collection(db, "crm_tasks"));
-        tasksMap = {}; // 초기화
+        tasksMap = {};
         
         if (currentUserRole === 'player') {
             const cQ = query(collection(db, "clients"), where("managers", "array-contains", currentUserName));
@@ -642,19 +640,19 @@ async function fetchTasks() {
 
         fetchedData.forEach(item => {
             const adminActions = currentUserRole === 'admin' ? 
-                `<td class="p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col">
+                `<td class="p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col align-middle">
                     <div class="flex items-center justify-center gap-1.5">
-                        <button class="reply-btn bg-gray-800 hover:bg-black text-white text-[11px] font-bold px-2 py-1.5 rounded transition shadow-sm" data-id="${item.id}">답변</button>
-                        <button class="delete-task-btn bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold px-2 py-1.5 rounded transition shadow-sm" data-id="${item.id}" data-t="${item.title}">삭제</button>
+                        <button class="reply-btn bg-gray-800 hover:bg-black text-white text-[11px] font-bold px-2.5 py-1.5 rounded transition shadow-sm" data-id="${item.id}">답변</button>
+                        <button class="delete-task-btn bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold px-2.5 py-1.5 rounded transition shadow-sm" data-id="${item.id}" data-t="${item.title}">삭제</button>
                     </div>
                 </td>` : `<td class="admin-only-col hidden"></td>`;
 
             const fileButton = item.fileData ? 
                 `<a href="${item.fileData}" download="${item.fileName}" class="inline-flex items-center gap-1.5 bg-gray-100 hover:bg-orange-100 text-gray-700 hover:text-hermes text-xs font-bold px-2.5 py-1.5 rounded-lg border border-gray-200 transition"><i class="fa-solid fa-download text-hermes"></i> ${item.fileName}</a>` : `<span class="text-gray-300 text-xs">없음</span>`;
 
-            // 관리자 답변 시 시각적 표시
+            // 관리자 답변이 있을 때 인라인 표시
             const replyBlock = item.adminReply 
-                ? `<div class="mt-2 bg-blue-50/70 p-2 rounded-lg border border-blue-100 text-xs text-gray-700 font-medium">
+                ? `<div class="mt-2 bg-blue-50/90 p-2.5 rounded-lg border border-blue-100 text-xs text-gray-800 font-medium">
                     <span class="font-black text-noah block mb-0.5"><i class="fa-solid fa-reply fa-rotate-180 mr-1"></i> 관리자 답변</span>
                     <span class="line-clamp-2">${item.adminReply}</span>
                    </div>` 
@@ -666,34 +664,38 @@ async function fetchTasks() {
                 return `<span class="bg-gray-100 text-gray-600 px-2.5 py-1 rounded-md text-xs font-bold border border-gray-200">답변완료</span>`;
             }
 
+            // ★ 모든 td에 align-middle 적용하여 수직 중앙 정렬 완벽 해결 ★
             const tr = `
                 <tr class="hover:bg-hermes-light/30 transition group border-b border-gray-100">
-                    <td class="p-3 md:p-4 font-bold text-gray-900">${item.client || '-'}</td>
-                    <td class="p-3 md:p-4"><span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded font-bold">${item.type || '-'}</span></td>
-                    <td class="p-3 md:p-4 max-w-xs md:max-w-md cursor-pointer task-detail-trigger" data-id="${item.id}">
+                    <td class="p-3 md:p-4 align-middle font-bold text-gray-900">${item.client || '-'}</td>
+                    <td class="p-3 md:p-4 align-middle"><span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded font-bold">${item.type || '-'}</span></td>
+                    <td class="p-3 md:p-4 align-middle max-w-xs md:max-w-md cursor-pointer task-detail-trigger" data-id="${item.id}">
                         <div class="font-bold text-gray-900 group-hover:text-hermes transition flex items-center gap-1">
                             ${item.title || '-'} <i class="fa-solid fa-magnifying-glass text-[10px] text-gray-400 ml-1"></i>
                         </div>
                         ${item.content ? `<div class="text-xs text-gray-500 mt-1 line-clamp-2">${item.content}</div>` : ''}
                         ${replyBlock}
                     </td>
-                    <td class="p-3 md:p-4">${fileButton}</td>
-                    <td class="p-3 md:p-4 text-gray-500 font-medium text-xs flex items-center gap-1.5"><div class="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px]"><i class="fa-solid fa-user"></i></div>${item.staff || '미지정'}</td>
-                    <td class="p-3 md:p-4 text-center">${getBadge(item.status)}</td>
-                    <td class="p-3 md:p-4 text-gray-400 text-xs font-medium">${item.date || '-'}</td>
+                    <td class="p-3 md:p-4 align-middle">${fileButton}</td>
+                    <td class="p-3 md:p-4 align-middle text-gray-500 font-medium text-xs">
+                        <div class="flex items-center gap-1.5">
+                            <div class="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] flex-shrink-0"><i class="fa-solid fa-user"></i></div>
+                            <span>${item.staff || '미지정'}</span>
+                        </div>
+                    </td>
+                    <td class="p-3 md:p-4 align-middle text-center">${getBadge(item.status)}</td>
+                    <td class="p-3 md:p-4 align-middle text-gray-400 text-xs font-medium">${item.date || '-'}</td>
                     ${adminActions}
                 </tr>
             `;
             tbody.innerHTML += tr;
         });
 
-        // ★ [이벤트] 제목/내용 클릭 시 상세 보기 모달 팝업 열기 ★
+        // 상세 보기 이벤트
         document.querySelectorAll('.task-detail-trigger').forEach(el => {
             el.addEventListener('click', (e) => {
                 const taskId = e.currentTarget.getAttribute('data-id');
-                if (tasksMap[taskId]) {
-                    openDetailModal(tasksMap[taskId]);
-                }
+                window.openDetailModalById(taskId);
             });
         });
 
@@ -718,7 +720,7 @@ async function fetchTasks() {
             btn.addEventListener('click', async (e) => {
                 const docId = e.currentTarget.getAttribute('data-id');
                 const tTitle = e.currentTarget.getAttribute('data-t');
-                if (confirm('이슈를 삭제하시겠습니까?')) {
+                if (confirm('삭제하시겠습니까?')) {
                     await deleteDoc(doc(db, "crm_tasks", docId));
                     await logActivity("이슈 삭제", `[${tTitle}] 항목을 삭제했습니다.`);
                     fetchTasks();
@@ -755,20 +757,20 @@ async function fetchMembers() {
 
             const tr = `
                 <tr class="hover:bg-gray-50 transition border-b border-gray-100">
-                    <td class="p-3 md:p-4 font-bold text-gray-900">${user.name}</td>
-                    <td class="p-3 md:p-4 text-gray-500 text-xs">${user.email}</td>
-                    <td class="p-3 md:p-4">${statusBadge}</td>
-                    <td class="p-3 md:p-4">
+                    <td class="p-3 md:p-4 font-bold text-gray-900 align-middle">${user.name}</td>
+                    <td class="p-3 md:p-4 text-gray-500 text-xs align-middle">${user.email}</td>
+                    <td class="p-3 md:p-4 align-middle">${statusBadge}</td>
+                    <td class="p-3 md:p-4 align-middle">
                         <select class="role-update-select text-xs font-bold border border-gray-300 rounded p-1.5 focus:border-hermes outline-none" data-uid="${docSnap.id}">
                             <option value="player" ${user.role==='player'?'selected':''}>Player (담당 직원)</option>
                             <option value="leader" ${user.role==='leader'?'selected':''}>리더 (노아 대표)</option>
                             <option value="admin" ${user.role==='admin'?'selected':''}>최상위 관리자 (Admin)</option>
                         </select>
                     </td>
-                    <td class="p-3 md:p-4 text-center">
+                    <td class="p-3 md:p-4 text-center align-middle">
                         <button class="update-member-btn bg-gray-800 hover:bg-black text-white text-[11px] font-bold px-3 py-1.5 rounded transition shadow-sm" data-uid="${docSnap.id}" data-name="${user.name}">권한수정</button>
                     </td>
-                    <td class="p-3 md:p-4 text-center">
+                    <td class="p-3 md:p-4 text-center align-middle">
                         <button class="delete-member-btn bg-red-50 hover:bg-red-500 text-red-500 hover:text-white border border-red-100 hover:border-red-500 text-[11px] font-bold px-3 py-1.5 rounded transition shadow-sm" data-uid="${docSnap.id}" data-name="${user.name}">강제탈퇴</button>
                     </td>
                 </tr>
@@ -827,16 +829,16 @@ async function fetchApprovals() {
             const user = docSnap.data();
             const tr = `
                 <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
-                    <td class="p-3 md:p-4 font-bold text-gray-900">${user.name}</td>
-                    <td class="p-3 md:p-4 text-gray-500 font-medium">${user.email}</td>
-                    <td class="p-3 md:p-4">
+                    <td class="p-3 md:p-4 font-bold text-gray-900 align-middle">${user.name}</td>
+                    <td class="p-3 md:p-4 text-gray-500 font-medium align-middle">${user.email}</td>
+                    <td class="p-3 md:p-4 align-middle">
                         <select class="role-select text-xs font-bold border border-gray-300 rounded p-1.5 focus:border-hermes outline-none" data-uid="${docSnap.id}">
                             <option value="player">Player (담당 직원)</option>
                             <option value="leader">리더 (노아 대표)</option>
                             <option value="admin">최상위 관리자 (Admin)</option>
                         </select>
                     </td>
-                    <td class="p-3 md:p-4 text-center">
+                    <td class="p-3 md:p-4 text-center align-middle">
                         <button class="approve-btn bg-hermes hover:bg-hermes-hover text-white text-xs font-bold px-3 py-1.5 rounded-lg transition shadow-sm" data-uid="${docSnap.id}" data-name="${user.name}">승인</button>
                     </td>
                 </tr>
@@ -912,10 +914,10 @@ async function fetchLogs() {
 
             const tr = `
                 <tr class="hover:bg-gray-50 transition border-b border-gray-100">
-                    <td class="p-3 md:p-4 text-xs font-medium text-gray-500 w-1/5">${dateStr}</td>
-                    <td class="p-3 md:p-4 text-xs font-bold text-gray-800 w-1/5">${log.name} <span class="font-normal text-gray-400 block sm:inline mt-1 sm:mt-0">(${log.email})</span></td>
-                    <td class="p-3 md:p-4 w-1/6">${badgeHtml}</td>
-                    <td class="p-3 md:p-4 text-xs text-gray-600 font-medium whitespace-normal w-[40%]">${log.details || '-'}</td>
+                    <td class="p-3 md:p-4 text-xs font-medium text-gray-500 w-1/5 align-middle">${dateStr}</td>
+                    <td class="p-3 md:p-4 text-xs font-bold text-gray-800 w-1/5 align-middle">${log.name} <span class="font-normal text-gray-400 block sm:inline mt-1 sm:mt-0">(${log.email})</span></td>
+                    <td class="p-3 md:p-4 w-1/6 align-middle">${badgeHtml}</td>
+                    <td class="p-3 md:p-4 text-xs text-gray-600 font-medium whitespace-normal w-[40%] align-middle">${log.details || '-'}</td>
                 </tr>
             `;
             tbody.innerHTML += tr;

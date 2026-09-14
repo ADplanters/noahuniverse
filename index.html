@@ -79,7 +79,7 @@
     </div>
 
     <!-- ==================================================================== -->
-    <!-- 2. 대시보드 화면 -->
+    <!-- 2. 대시보드 화면 (반응형 지원) -->
     <!-- ==================================================================== -->
     <div id="dashboardSection" class="hidden relative z-10 min-h-screen flex flex-col md:flex-row w-full">
         
@@ -126,7 +126,7 @@
                         <i class="fa-solid fa-users-gear w-5"></i> 멤버 관리 (권한/탈퇴)
                     </a>
                     <a href="#" data-menu="approvals" id="menuApprovals" data-title="권한 승인 관리" class="nav-item flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition">
-                        <i class="fa-solid fa-user-shield w-5"></i> 신규 가입 승인
+                        <i class="fa-solid fa-user-shield w-5"></i> 권한 승인 관리
                     </a>
                     <a href="#" data-menu="logs" id="menuLogs" data-title="접속 및 작업 이력" class="nav-item flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition">
                         <i class="fa-solid fa-clock-rotate-left w-5"></i> 접속 및 작업 이력
@@ -210,7 +210,7 @@
                                 <th class="p-3 md:p-4 font-bold">작성자</th>
                                 <th class="p-3 md:p-4 font-bold text-center">상태</th>
                                 <th class="p-3 md:p-4 font-bold">등록일</th>
-                                <!-- Player 접속 시 어드민 열 완전 숨김 (admin-only-col) -->
+                                <!-- Player 접속 시 어드민 전용 관리열 완전 숨김 -->
                                 <th class="p-3 md:p-4 font-bold text-center admin-only-col">관리(ADMIN)</th>
                             </tr>
                         </thead>
@@ -417,7 +417,7 @@
 
                 <div>
                     <label class="block text-xs font-bold text-gray-700 mb-1">
-                        <i class="fa-solid fa-paperclip text-hermes mr-1"></i> 파일 첨부 (이미지/문서 - 1MB 미만)
+                        <i class="fa-solid fa-paperclip text-hermes mr-1"></i> 파일 첨부 (1MB 미만)
                     </label>
                     <input type="file" id="inputFile" class="w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-hermes-light file:text-hermes hover:file:bg-orange-200 cursor-pointer border border-gray-200 rounded-lg p-1.5">
                     <p class="text-[10px] text-gray-400 mt-1">* 참고용 시안, 기획서 등 1MB 미만 파일만 첨부 가능합니다.</p>
@@ -472,7 +472,7 @@
         </div>
     </div>
 
-    <!-- ★ [신규 추가] 이슈 상세 보기 모달 (공통: Player/Leader/Admin 모두 조회 가능) ★ -->
+    <!-- 이슈 상세 보기 모달 (공통: Player/Leader/Admin 모두 조회) -->
     <div id="detailModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-lg p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-start mb-4 border-b pb-3">

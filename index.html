@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <!-- ★ 파비콘: AP 크기 확대(36) 및 완벽 중앙 정렬 ★ -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='16' fill='%23F37021'/><text x='50%' y='51%' font-family='system-ui, -apple-system, sans-serif' font-weight='900' font-size='36' fill='%23FFFFFF' text-anchor='middle' dominant-baseline='central'>AP</text></svg>">
+    <!-- 파비콘 -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='16' fill='%23F37021'/><text x='50%' y='50%' font-family='system-ui, -apple-system, sans-serif' font-weight='900' font-size='40' fill='%23FFFFFF' text-anchor='middle' dominant-baseline='central' dy='-2px'>AP</text></svg>">
     
     <!-- SNS 공유용 메타데이터 (Open Graph) -->
     <meta property="og:type" content="website">
@@ -79,7 +79,7 @@
     </div>
 
     <!-- ==================================================================== -->
-    <!-- 2. 대시보드 화면 (반응형 지원) -->
+    <!-- 2. 대시보드 화면 -->
     <!-- ==================================================================== -->
     <div id="dashboardSection" class="hidden relative z-10 min-h-screen flex flex-col md:flex-row w-full">
         
@@ -122,13 +122,13 @@
                 <!-- 어드민 전용 메뉴 -->
                 <div id="adminMenuSection" class="hidden mt-4 pt-4 border-t border-gray-100">
                     <div class="text-[10px] font-black text-gray-400 mb-2 px-4 uppercase tracking-wider">Admin Only</div>
-                    <a href="#" data-menu="members" data-title="멤버 관리" class="nav-item flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition">
+                    <a href="#" data-menu="members" id="menuMembers" data-title="멤버 관리" class="nav-item flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition">
                         <i class="fa-solid fa-users-gear w-5"></i> 멤버 관리 (권한/탈퇴)
                     </a>
-                    <a href="#" data-menu="approvals" data-title="권한 승인 관리" class="nav-item flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition">
+                    <a href="#" data-menu="approvals" id="menuApprovals" data-title="권한 승인 관리" class="nav-item flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition">
                         <i class="fa-solid fa-user-shield w-5"></i> 신규 가입 승인
                     </a>
-                    <a href="#" data-menu="logs" data-title="접속 및 작업 이력" class="nav-item flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition">
+                    <a href="#" data-menu="logs" id="menuLogs" data-title="접속 및 작업 이력" class="nav-item flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition">
                         <i class="fa-solid fa-clock-rotate-left w-5"></i> 접속 및 작업 이력
                     </a>
                 </div>
@@ -181,10 +181,9 @@
                                 <th class="p-3 md:p-4 font-bold">URL (홈/인스타)</th>
                                 <th class="p-3 md:p-4 font-bold">메타광고 계정 (ID/PW)</th>
                                 <th class="p-3 md:p-4 font-bold">월 예산</th>
-                                <th class="p-3 md:p-4 font-bold">작업 시작일</th>
+                                <th class="p-3 md:p-4 font-bold">작업/광고 시작일</th>
                                 <th class="p-3 md:p-4 font-bold">등록자</th>
                                 <th class="p-3 md:p-4 font-bold">연결된 담당자</th>
-                                <!-- ★ 관리 컬럼 admin-only-col 적용 확인 ★ -->
                                 <th class="p-3 md:p-4 font-bold text-center admin-only-col">관리(ADMIN)</th>
                             </tr>
                         </thead>
@@ -206,12 +205,12 @@
                             <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
                                 <th class="p-3 md:p-4 font-bold">클라이언트</th>
                                 <th class="p-3 md:p-4 font-bold">분류</th>
-                                <th class="p-3 md:p-4 font-bold">제목/내용</th>
+                                <th class="p-3 md:p-4 font-bold">제목/내용 (클릭 시 상세 보기)</th>
                                 <th class="p-3 md:p-4 font-bold">첨부파일</th>
                                 <th class="p-3 md:p-4 font-bold">작성자</th>
                                 <th class="p-3 md:p-4 font-bold text-center">상태</th>
                                 <th class="p-3 md:p-4 font-bold">등록일</th>
-                                <!-- ★ 관리 및 삭제 열 완벽 통제 (admin-only-col) ★ -->
+                                <!-- Player 접속 시 어드민 열 완전 숨김 (admin-only-col) -->
                                 <th class="p-3 md:p-4 font-bold text-center admin-only-col">관리(ADMIN)</th>
                             </tr>
                         </thead>
@@ -418,13 +417,12 @@
 
                 <div>
                     <label class="block text-xs font-bold text-gray-700 mb-1">
-                        <i class="fa-solid fa-paperclip text-hermes mr-1"></i> 파일 첨부 (1MB 미만)
+                        <i class="fa-solid fa-paperclip text-hermes mr-1"></i> 파일 첨부 (이미지/문서 - 1MB 미만)
                     </label>
                     <input type="file" id="inputFile" class="w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-hermes-light file:text-hermes hover:file:bg-orange-200 cursor-pointer border border-gray-200 rounded-lg p-1.5">
                     <p class="text-[10px] text-gray-400 mt-1">* 참고용 시안, 기획서 등 1MB 미만 파일만 첨부 가능합니다.</p>
                 </div>
 
-                <!-- ★ [상태 선택 추가] 답변대기 기본값 설정 ★ -->
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-gray-700 mb-1">작성자 (자동입력)</label>
@@ -446,7 +444,7 @@
         </div>
     </div>
 
-    <!-- ★ [신규 추가] 관리자 답변 달기 모달 (Admin 전용) ★ -->
+    <!-- 관리자 답변 등록 모달 (Admin 전용) -->
     <div id="replyModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-lg p-5 md:p-6 shadow-2xl border border-gray-100">
             <div class="flex justify-between items-center mb-5 border-b pb-3">
@@ -471,6 +469,45 @@
                     <button type="submit" class="px-5 py-2 bg-hermes hover:bg-hermes-hover text-white rounded-xl text-xs font-bold shadow-md">답변 등록</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- ★ [신규 추가] 이슈 상세 보기 모달 (공통: Player/Leader/Admin 모두 조회 가능) ★ -->
+    <div id="detailModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-lg p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-start mb-4 border-b pb-3">
+                <div>
+                    <div class="flex items-center gap-2 mb-1.5">
+                        <span id="detailType" class="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded font-bold"></span>
+                        <span id="detailStatus"></span>
+                    </div>
+                    <h3 id="detailTitle" class="text-base md:text-lg font-black text-gray-900"></h3>
+                </div>
+                <button id="closeDetailModalBtn" class="text-gray-400 hover:text-gray-600 p-1"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div class="space-y-4 text-xs md:text-sm text-gray-700">
+                <div class="grid grid-cols-2 gap-2 bg-gray-50 p-3 rounded-xl border border-gray-100 text-xs">
+                    <div><span class="font-bold text-gray-400">클라이언트:</span> <span id="detailClient" class="font-bold text-gray-800"></span></div>
+                    <div><span class="font-bold text-gray-400">작성자:</span> <span id="detailStaff" class="font-bold text-gray-800"></span></div>
+                    <div><span class="font-bold text-gray-400">등록일:</span> <span id="detailDate" class="font-bold text-gray-800"></span></div>
+                    <div><span class="font-bold text-gray-400">소속:</span> <span id="detailAgency" class="font-bold text-gray-800"></span></div>
+                </div>
+                <div>
+                    <p class="font-bold text-gray-900 mb-1"><i class="fa-solid fa-align-left text-hermes mr-1"></i> 상세 내용</p>
+                    <div id="detailContent" class="bg-gray-50 p-3.5 rounded-xl border border-gray-100 whitespace-pre-line text-gray-700 min-h-[80px]"></div>
+                </div>
+                <div id="detailFileArea">
+                    <p class="font-bold text-gray-900 mb-1"><i class="fa-solid fa-paperclip text-hermes mr-1"></i> 첨부파일</p>
+                    <div id="detailFileBtn"></div>
+                </div>
+                <div class="border-t pt-3">
+                    <p class="font-bold text-gray-900 mb-2"><i class="fa-solid fa-comment-dots text-noah mr-1"></i> 관리자 공식 답변</p>
+                    <div id="detailAdminReply"></div>
+                </div>
+            </div>
+            <div class="flex justify-end pt-4 border-t mt-4">
+                <button type="button" id="closeDetailBtn" class="px-5 py-2 bg-gray-800 hover:bg-black text-white rounded-xl text-xs font-bold shadow-md">닫기</button>
+            </div>
         </div>
     </div>
 

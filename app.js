@@ -2,6 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, getDocs, query, where, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+// ★ [완벽 복구] 대표님의 원래 활성 프로젝트(partner-noah) 설정값 ★
 const firebaseConfig = {
     apiKey: "AIzaSyABMgjiEEqx1b4tBxl5CKQWL_3ifuVxKPI",
     authDomain: "partner-noah.firebaseapp.com",
@@ -21,10 +22,10 @@ let currentUserRole = '';
 let currentUserName = ''; 
 let currentAssignClientId = null; 
 let currentEditClientId = null;
-let currentDetailTaskId = null; // ★ 현재 열려있는 이슈 게시글 ID
+let currentDetailTaskId = null; // 상세조회 중인 게시판 이슈 ID
 let currentReplyTaskId = null;
 let isInitialLoginLogged = false;
-let tasksMap = {}; // 이슈 데이터 로컬 캐싱
+let tasksMap = {}; // 이슈 데이터 로컬 맵핑 저장소
 
 // DOM 맵핑
 const loginSection = document.getElementById('loginSection');
@@ -43,14 +44,22 @@ const sidebar = document.getElementById('sidebar');
 const mobileOverlay = document.getElementById('mobileOverlay');
 
 const createModal = document.getElementById('createModal');
-const editTaskModal = document.getElementById('editTaskModal'); // ★ 게시글 수정 모달
+const editTaskModal = document.getElementById('editTaskModal'); 
 const clientModal = document.getElementById('clientModal');
 const editClientModal = document.getElementById('editClientModal');
 const assignModal = document.getElementById('assignModal');
 const replyModal = document.getElementById('replyModal');
-const detailModal = document.getElementById('detailModal'); // ★ 상세 뷰 모달
+const detailModal = document.getElementById('detailModal');
 
-// ★ [신규 헬퍼] 이미지 파일 자동 압축 함수 (Canvas 기반) ★
+// ★ [안전 가드] 요소가 없을 때 스크립트가 죽는 현상을 방지하는 함수 ★
+function safeAddListener(id, eventType, callback) {
+    const el = document.getElementById(id);
+    if (el) {
+        el.addEventListener(eventType, callback);
+    }
+}
+
+// 이미지 파일 자동 압축 함수 (Canvas 기반 1MB 제한)
 function compressImage(file, maxWidth = 1200, quality = 0.7) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -99,63 +108,70 @@ async function logActivity(action, details = "") {
 }
 
 function closeMobileSidebar() {
-    sidebar.classList.add('-translate-x-full');
-    mobileOverlay.classList.add('hidden');
+    if(sidebar) sidebar.classList.add('-translate-x-full');
+    if(mobileOverlay) mobileOverlay.classList.add('hidden');
 }
 
-// 모바일 제어
-document.getElementById('mobileMenuBtn').addEventListener('click', () => { sidebar.classList.remove('-translate-x-full'); mobileOverlay.classList.remove('hidden'); });
-document.getElementById('closeSidebarBtn').addEventListener('click', closeMobileSidebar);
-document.getElementById('mobileOverlay').addEventListener('click', closeMobileSidebar);
+// 모바일 제어 이벤트
+safeAddListener('mobileMenuBtn', 'click', () => { 
+    if(sidebar) sidebar.classList.remove('-translate-x-full'); 
+    if(mobileOverlay) mobileOverlay.classList.remove('hidden'); 
+});
+safeAddListener('closeSidebarBtn', 'click', closeMobileSidebar);
+safeAddListener('mobileOverlay', 'click', closeMobileSidebar);
 
-// 모달 제어
-document.getElementById('openModalBtn').addEventListener('click', () => createModal.classList.remove('hidden'));
-document.getElementById('closeModalBtn').addEventListener('click', () => createModal.classList.add('hidden'));
-document.getElementById('cancelBtn').addEventListener('click', () => createModal.classList.add('hidden'));
+// 모달 제어 이벤트 (안전 가드 적용)
+safeAddListener('openModalBtn', 'click', () => createModal.classList.remove('hidden'));
+safeAddListener('closeModalBtn', 'click', () => createModal.classList.add('hidden'));
+safeAddListener('cancelBtn', 'click', () => createModal.classList.add('hidden'));
 
-// ★ 이슈 수정 모달 닫기
-document.getElementById('closeEditTaskModalBtn').addEventListener('click', () => editTaskModal.classList.add('hidden'));
-document.getElementById('cancelEditTaskBtn').addEventListener('click', () => editTaskModal.classList.add('hidden'));
-
-// 상세 뷰 닫기
-document.getElementById('closeDetailModalBtn').addEventListener('click', () => detailModal.classList.add('hidden'));
-document.getElementById('closeDetailBtn').addEventListener('click', () => detailModal.classList.add('hidden'));
-
-document.getElementById('openClientModalBtn').addEventListener('click', () => {
-    document.getElementById('c_registerName').value = currentUserName;
+safeAddListener('openClientModalBtn', 'click', () => {
+    const registerInput = document.getElementById('c_registerName');
+    if(registerInput) registerInput.value = currentUserName;
     clientModal.classList.remove('hidden');
 });
-document.getElementById('closeClientModalBtn').addEventListener('click', () => clientModal.classList.add('hidden'));
-document.getElementById('cancelClientBtn').addEventListener('click', () => clientModal.classList.add('hidden'));
+safeAddListener('closeClientModalBtn', 'click', () => clientModal.classList.add('hidden'));
+safeAddListener('cancelClientBtn', 'click', () => clientModal.classList.add('hidden'));
 
-document.getElementById('closeEditClientModalBtn').addEventListener('click', () => editClientModal.classList.add('hidden'));
-document.getElementById('cancelEditClientBtn').addEventListener('click', () => editClientModal.classList.add('hidden'));
+safeAddListener('closeEditClientModalBtn', 'click', () => editClientModal.classList.add('hidden'));
+safeAddListener('cancelEditClientBtn', 'click', () => editClientModal.classList.add('hidden'));
 
-document.getElementById('closeAssignModalBtn').addEventListener('click', () => assignModal.classList.add('hidden'));
-document.getElementById('cancelAssignBtn').addEventListener('click', () => assignModal.classList.add('hidden'));
+safeAddListener('closeAssignModalBtn', 'click', () => assignModal.classList.add('hidden'));
+safeAddListener('cancelAssignBtn', 'click', () => assignModal.classList.add('hidden'));
 
-document.getElementById('closeReplyModalBtn').addEventListener('click', () => replyModal.classList.add('hidden'));
-document.getElementById('cancelReplyBtn').addEventListener('click', () => replyModal.classList.add('hidden'));
+safeAddListener('closeReplyModalBtn', 'click', () => replyModal.classList.add('hidden'));
+safeAddListener('cancelReplyBtn', 'click', () => replyModal.classList.add('hidden'));
 
-// Auth 제어
-document.getElementById('googleLoginBtn').addEventListener('click', () => {
-    signInWithPopup(auth, provider).catch(e => {
-        console.error(e);
+safeAddListener('closeDetailModalBtn', 'click', () => detailModal.classList.add('hidden'));
+safeAddListener('closeDetailBtn', 'click', () => detailModal.classList.add('hidden'));
+safeAddListener('closeEditTaskModalBtn', 'click', () => editTaskModal.classList.add('hidden'));
+safeAddListener('cancelEditTaskBtn', 'click', () => editTaskModal.classList.add('hidden'));
+
+// ★ [업데이트] Auth 제어 - 에러 확인용 Alert 포함 ★
+safeAddListener('googleLoginBtn', 'click', async () => {
+    try {
+        await signInWithPopup(auth, provider);
+        // 성공 시 onAuthStateChanged에서 자동 처리됨
+    } catch(e) {
+        console.error("구글 로그인 에러:", e);
         if (e.code === 'auth/popup-blocked') {
-            alert("팝업창이 차단되어 있습니다. 브라우저의 팝업 차단을 해제해 주세요.");
+            alert("팝업창이 차단되었습니다. 브라우저 주소창 우측의 팝업 차단을 해제해 주세요.");
         } else if (e.code === 'auth/unauthorized-domain') {
-            alert("Firebase 콘솔에 승인되지 않은 도메인입니다. Firebase 설정에서 'adplanters.github.io' 도메인을 추가해 주세요.");
+            alert("Firebase에 등록되지 않은 도메인입니다. 관리자 콘솔을 확인해 주세요.");
         } else {
             alert("로그인 중 오류가 발생했습니다: " + e.message);
         }
-    });
+    }
 });
 
-document.getElementById('logoutBtn').addEventListener('click', async () => {
+safeAddListener('logoutBtn', 'click', async () => {
     await logActivity("로그아웃", "시스템을 정상 종료했습니다.");
     signOut(auth);
 });
-document.getElementById('closePendingBtn').addEventListener('click', () => { pendingModal.classList.add('hidden'); signOut(auth); });
+safeAddListener('closePendingBtn', 'click', () => { 
+    if(pendingModal) pendingModal.classList.add('hidden'); 
+    signOut(auth); 
+});
 
 // 라우터
 navItems.forEach(item => {
@@ -169,35 +185,35 @@ navItems.forEach(item => {
         });
         e.currentTarget.className = "nav-item flex items-center gap-3 bg-hermes text-white px-4 py-3 rounded-lg font-bold shadow-md shadow-orange-200/50 transition";
 
-        statsContainer.classList.add('hidden');
-        tasksContainer.classList.add('hidden');
-        clientsContainer.classList.add('hidden');
-        membersContainer.classList.add('hidden');
-        approvalsContainer.classList.add('hidden');
-        logsContainer.classList.add('hidden');
+        if(statsContainer) statsContainer.classList.add('hidden');
+        if(tasksContainer) tasksContainer.classList.add('hidden');
+        if(clientsContainer) clientsContainer.classList.add('hidden');
+        if(membersContainer) membersContainer.classList.add('hidden');
+        if(approvalsContainer) approvalsContainer.classList.add('hidden');
+        if(logsContainer) logsContainer.classList.add('hidden');
 
         if(menu !== 'logout') {
             logActivity("메뉴 이동", `[${menuTitle}] 화면을 조회했습니다.`);
         }
 
         if (menu === 'dashboard') {
-            statsContainer.classList.remove('hidden');
-            tasksContainer.classList.remove('hidden');
+            if(statsContainer) statsContainer.classList.remove('hidden');
+            if(tasksContainer) tasksContainer.classList.remove('hidden');
             fetchTasks();
         } else if (menu === 'clients') {
-            clientsContainer.classList.remove('hidden');
+            if(clientsContainer) clientsContainer.classList.remove('hidden');
             fetchClients();
         } else if (menu === 'inquiries') {
-            tasksContainer.classList.remove('hidden');
+            if(tasksContainer) tasksContainer.classList.remove('hidden');
             fetchTasks();
         } else if (menu === 'members') {
-            membersContainer.classList.remove('hidden');
+            if(membersContainer) membersContainer.classList.remove('hidden');
             fetchMembers();
         } else if (menu === 'approvals') {
-            approvalsContainer.classList.remove('hidden');
+            if(approvalsContainer) approvalsContainer.classList.remove('hidden');
             fetchApprovals();
         } else if (menu === 'logs') {
-            logsContainer.classList.remove('hidden');
+            if(logsContainer) logsContainer.classList.remove('hidden');
             fetchLogs();
         }
 
@@ -211,7 +227,9 @@ onAuthStateChanged(auth, async (user) => {
         const userRef = doc(db, "users", user.uid);
         const userSnap = await getDoc(userRef);
         currentUserName = user.displayName || "담당자";
-        document.getElementById('inputStaff').value = currentUserName;
+        
+        const staffInput = document.getElementById('inputStaff');
+        if(staffInput) staffInput.value = currentUserName;
 
         if(!isInitialLoginLogged) {
             logActivity("로그인", "시스템에 접속했습니다.");
@@ -239,9 +257,9 @@ onAuthStateChanged(auth, async (user) => {
         }
     } else {
         isInitialLoginLogged = false;
-        loginSection.classList.remove('hidden');
-        dashboardSection.classList.add('hidden');
-        pendingModal.classList.add('hidden');
+        if(loginSection) loginSection.classList.remove('hidden');
+        if(dashboardSection) dashboardSection.classList.add('hidden');
+        if(pendingModal) pendingModal.classList.add('hidden');
     }
 });
 
@@ -252,20 +270,23 @@ function getRoleDisplayName(role) {
 }
 
 function showDashboard(user) {
-    loginSection.classList.add('hidden');
-    pendingModal.classList.add('hidden');
-    dashboardSection.classList.remove('hidden');
+    if(loginSection) loginSection.classList.add('hidden');
+    if(pendingModal) pendingModal.classList.add('hidden');
+    if(dashboardSection) dashboardSection.classList.remove('hidden');
 
-    document.getElementById('currentUserName').innerText = user.displayName || '사용자';
-    document.getElementById('currentUserRoleName').innerText = getRoleDisplayName(currentUserRole);
+    if(document.getElementById('currentUserName')) document.getElementById('currentUserName').innerText = user.displayName || '사용자';
+    if(document.getElementById('currentUserRoleName')) document.getElementById('currentUserRoleName').innerText = getRoleDisplayName(currentUserRole);
     
     // 권한에 따른 관리자용 CSS 열 숨김 처리
     if(currentUserRole === 'admin') {
-        document.getElementById('adminMenuSection').classList.remove('hidden');
+        const adminMenu = document.getElementById('adminMenuSection');
+        if(adminMenu) adminMenu.classList.remove('hidden');
         const oldStyle = document.getElementById('adminStyle');
         if(oldStyle) oldStyle.remove();
     } else {
-        document.getElementById('adminMenuSection').classList.add('hidden');
+        const adminMenu = document.getElementById('adminMenuSection');
+        if(adminMenu) adminMenu.classList.add('hidden');
+        
         if(!document.getElementById('adminStyle')) {
             const style = document.createElement('style');
             style.id = 'adminStyle';
@@ -277,15 +298,15 @@ function showDashboard(user) {
 }
 
 function showPendingPopup() {
-    loginSection.classList.remove('hidden');
-    dashboardSection.classList.add('hidden');
-    pendingModal.classList.remove('hidden');
+    if(loginSection) loginSection.classList.remove('hidden');
+    if(dashboardSection) dashboardSection.classList.add('hidden');
+    if(pendingModal) pendingModal.classList.remove('hidden');
 }
 
 // ============================================================================
-// 클라이언트 DB 등록/수정/삭제/조회
+// 클라이언트 DB 로직 (등록, 수정, 삭제)
 // ============================================================================
-document.getElementById('clientForm').addEventListener('submit', async (e) => {
+safeAddListener('clientForm', 'submit', async (e) => {
     e.preventDefault();
     const cName = document.getElementById('c_name').value;
     const newClient = {
@@ -313,7 +334,7 @@ document.getElementById('clientForm').addEventListener('submit', async (e) => {
     } catch (error) { alert("등록 실패: " + error.message); }
 });
 
-document.getElementById('editClientForm').addEventListener('submit', async (e) => {
+safeAddListener('editClientForm', 'submit', async (e) => {
     e.preventDefault();
     if (!currentEditClientId) return;
 
@@ -341,6 +362,7 @@ document.getElementById('editClientForm').addEventListener('submit', async (e) =
 async function fetchClients() {
     const tbody = document.getElementById('clientsTable');
     const emptyState = document.getElementById('emptyClients');
+    if(!tbody) return;
     tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 로딩중...</td></tr>';
 
     try {
@@ -353,10 +375,10 @@ async function fetchClients() {
         tbody.innerHTML = '';
 
         if (querySnapshot.empty) {
-            emptyState.style.display = 'flex';
+            if(emptyState) emptyState.style.display = 'flex';
             return;
         }
-        emptyState.style.display = 'none';
+        if(emptyState) emptyState.style.display = 'none';
 
         querySnapshot.forEach((docSnap) => {
             const data = docSnap.data();
@@ -463,7 +485,7 @@ async function openAssignModal(clientId) {
     } catch (e) { listContainer.innerHTML = '<div class="text-red-500 text-xs text-center">에러 발생</div>'; }
 }
 
-document.getElementById('saveAssignBtn').addEventListener('click', async () => {
+safeAddListener('saveAssignBtn', 'click', async () => {
     if(!currentAssignClientId) return;
     const checkboxes = document.querySelectorAll('.assign-checkbox:checked');
     const selectedManagers = Array.from(checkboxes).map(cb => cb.value);
@@ -478,11 +500,10 @@ document.getElementById('saveAssignBtn').addEventListener('click', async () => {
 });
 
 // ============================================================================
-// ★ [업무 이슈 / Q&A 게시판 및 상세 모달, 댓글 구현] ★
+// [게시판 및 상세 모달, 댓글 구현]
 // ============================================================================
 
-// 1. 신규 등록
-document.getElementById('taskForm').addEventListener('submit', async (e) => {
+safeAddListener('taskForm', 'submit', async (e) => {
     e.preventDefault();
     const today = new Date();
     const dateStr = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')}`;
@@ -524,12 +545,12 @@ document.getElementById('taskForm').addEventListener('submit', async (e) => {
         staff: document.getElementById('inputStaff').value,
         status: "답변대기", 
         date: dateStr,
-        comments: [] // 빈 댓글 배열 초기화
+        comments: [] 
     };
 
     try {
         await addDoc(collection(db, "crm_tasks"), newTask);
-        document.getElementById('createModal').classList.add('hidden');
+        createModal.classList.add('hidden');
         document.getElementById('taskForm').reset();
         await logActivity("이슈 등록", `[${newTask.client}] 신규 게시글 작성: ${tTitle}`);
         fetchTasks();
@@ -537,16 +558,16 @@ document.getElementById('taskForm').addEventListener('submit', async (e) => {
     } catch (error) { alert("저장 실패: " + error.message); }
 });
 
-// 2. 게시글 렌더링
 async function fetchTasks() {
     const tbody = document.getElementById('boardTable');
     const emptyState = document.getElementById('emptyState');
+    if(!tbody) return;
     tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 로딩중...</td></tr>';
 
     try {
         let fetchedData = [];
         const querySnapshot = await getDocs(collection(db, "crm_tasks"));
-        tasksMap = {}; // 맵 초기화
+        tasksMap = {}; 
         
         if (currentUserRole === 'player') {
             const cQ = query(collection(db, "clients"), where("managers", "array-contains", currentUserName));
@@ -581,17 +602,20 @@ async function fetchTasks() {
             });
         }
 
-        // 최신순 정렬
-        fetchedData.sort((a, b) => new Date(b.date.replace(/\./g, '-')) - new Date(a.date.replace(/\./g, '-')));
+        fetchedData.sort((a, b) => {
+            const dateA = a.date ? new Date(a.date.replace(/\./g, '-')) : 0;
+            const dateB = b.date ? new Date(b.date.replace(/\./g, '-')) : 0;
+            return dateB - dateA;
+        });
 
         tbody.innerHTML = '';
         if (fetchedData.length === 0) {
-            emptyState.style.display = 'flex';
+            if(emptyState) emptyState.style.display = 'flex';
             updateStats([]);
             return;
         }
 
-        emptyState.style.display = 'none';
+        if(emptyState) emptyState.style.display = 'none';
         updateStats(fetchedData);
 
         let rowsHtml = '';
@@ -640,11 +664,9 @@ async function fetchTasks() {
     } catch (e) { console.error("Firestore error:", e); }
 }
 
-// ★ [완벽한 클릭 처리] 이벤트 위임을 사용하여 행 클릭 시 상세 모달 오픈 ★
 const boardTableEl = document.getElementById('boardTable');
 if (boardTableEl) {
     boardTableEl.addEventListener('click', async (e) => {
-        // 1. 삭제 버튼 클릭 시
         const deleteBtn = e.target.closest('.delete-task-btn');
         if (deleteBtn) {
             e.stopPropagation();
@@ -660,13 +682,11 @@ if (boardTableEl) {
             return;
         }
 
-        // 2. 다운로드 링크 클릭 시 팝업 열림 차단
         if (e.target.closest('.download-link')) {
             e.stopPropagation();
             return;
         }
 
-        // 3. 게시글 행 클릭 시 상세 모달 오픈
         const row = e.target.closest('.task-detail-trigger');
         if (row) {
             const taskId = row.getAttribute('data-id');
@@ -678,13 +698,12 @@ if (boardTableEl) {
 }
 
 function updateStats(data) {
-    document.getElementById('statTotal').innerText = data.length;
-    document.getElementById('statWait').innerText = data.filter(d => d.status === '답변대기' || d.status === '대기중').length;
-    document.getElementById('statIng').innerText = data.filter(d => d.status === '진행중').length;
-    document.getElementById('statDone').innerText = data.filter(d => d.status === '답변완료' || d.status === '완료').length;
+    if(document.getElementById('statTotal')) document.getElementById('statTotal').innerText = data.length;
+    if(document.getElementById('statWait')) document.getElementById('statWait').innerText = data.filter(d => d.status === '답변대기' || d.status === '대기중').length;
+    if(document.getElementById('statIng')) document.getElementById('statIng').innerText = data.filter(d => d.status === '진행중').length;
+    if(document.getElementById('statDone')) document.getElementById('statDone').innerText = data.filter(d => d.status === '답변완료' || d.status === '완료').length;
 }
 
-// 3. 상세 뷰 모달 오픈
 function openDetailModal(taskId) {
     const task = tasksMap[taskId];
     if(!task) return;
@@ -699,13 +718,11 @@ function openDetailModal(taskId) {
     document.getElementById('detailAgency').innerText = task.agency === 'noah' ? '노아유니버스' : '애드플랜터스';
     document.getElementById('detailContent').innerText = task.content || '등록된 상세 내용이 없습니다.';
 
-    // 상태
     const statusEl = document.getElementById('detailStatus');
     if(task.status === '답변대기' || task.status === '대기중') statusEl.innerHTML = `<span class="bg-red-50 text-red-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-red-100">답변대기</span>`;
     else if(task.status === '진행중') statusEl.innerHTML = `<span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-blue-100">진행중</span>`;
     else statusEl.innerHTML = `<span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-gray-200">답변완료</span>`;
 
-    // 파일
     const fileBtnArea = document.getElementById('detailFileBtn');
     if(task.fileData) {
         fileBtnArea.innerHTML = `<a href="${task.fileData}" download="${task.fileName}" class="inline-flex items-center gap-1.5 bg-gray-50 hover:bg-orange-50 text-gray-700 hover:text-hermes text-xs font-bold px-3 py-2 rounded-lg border border-gray-200 transition"><i class="fa-solid fa-download text-hermes"></i> ${task.fileName} 다운로드</a>`;
@@ -713,7 +730,6 @@ function openDetailModal(taskId) {
         fileBtnArea.innerHTML = `<span class="text-gray-400 text-xs">첨부파일이 없습니다.</span>`;
     }
 
-    // 작성자(본인) 수정 / 어드민 전용 삭제
     const actionArea = document.getElementById('authorActionArea');
     const editBtn = document.getElementById('detailEditBtn');
     const deleteBtn = document.getElementById('detailDeleteBtn');
@@ -742,14 +758,12 @@ function openDetailModal(taskId) {
     if(canShowAction) actionArea.classList.remove('hidden');
     else actionArea.classList.add('hidden');
 
-    // 댓글 렌더링
     renderComments(task.comments || []);
 
     detailModal.classList.remove('hidden');
-    logActivity("게시글 조회", `[${task.title}] 상세 내용을 조회했습니다.`);
+    logActivity("상세 조회", `[${task.title}] 상세 내용을 조회했습니다.`);
 }
 
-// 4. 댓글 렌더링
 function renderComments(commentsArr) {
     const list = document.getElementById('commentList');
     document.getElementById('commentCount').innerText = commentsArr.length;
@@ -779,8 +793,7 @@ function renderComments(commentsArr) {
     list.scrollTop = list.scrollHeight;
 }
 
-// 5. 댓글 및 상태 등록
-document.getElementById('submitCommentBtn').addEventListener('click', async () => {
+safeAddListener('submitCommentBtn', 'click', async () => {
     if(!currentDetailTaskId) return;
     const task = tasksMap[currentDetailTaskId];
     const textInput = document.getElementById('commentInput');
@@ -799,6 +812,7 @@ document.getElementById('submitCommentBtn').addEventListener('click', async () =
 
     const updatedComments = [...(task.comments || []), newComment];
     let updatePayload = { comments: updatedComments };
+    
     if(currentUserRole === 'admin') {
         updatePayload.status = document.getElementById('adminStatusSelect').value;
     }
@@ -806,17 +820,17 @@ document.getElementById('submitCommentBtn').addEventListener('click', async () =
     try {
         await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), updatePayload);
         textInput.value = '';
-        await logActivity("댓글 등록", `[${task.title}] 게시글에 댓글 작성`);
+        await logActivity("댓글 등록", `[${task.title}] 게시물에 소통 댓글 작성`);
         
         task.comments = updatedComments;
         if(currentUserRole === 'admin') task.status = updatePayload.status;
-        openDetailModal(currentDetailTaskId);
+        
+        openDetailModal(currentDetailTaskId); 
         fetchTasks(); 
     } catch (e) { alert("댓글 등록 실패: " + e.message); }
 });
 
-// 6. 게시글 삭제 (상세 뷰 내)
-document.getElementById('detailDeleteBtn').addEventListener('click', async () => {
+safeAddListener('detailDeleteBtn', 'click', async () => {
     if(!currentDetailTaskId) return;
     const task = tasksMap[currentDetailTaskId];
     if(confirm('게시글을 영구적으로 삭제하시겠습니까?')) {
@@ -830,8 +844,7 @@ document.getElementById('detailDeleteBtn').addEventListener('click', async () =>
     }
 });
 
-// 7. 게시글 수정 모달 열기
-document.getElementById('detailEditBtn').addEventListener('click', () => {
+safeAddListener('detailEditBtn', 'click', () => {
     if(!currentDetailTaskId) return;
     const task = tasksMap[currentDetailTaskId];
     
@@ -846,8 +859,7 @@ document.getElementById('detailEditBtn').addEventListener('click', () => {
     editTaskModal.classList.remove('hidden');
 });
 
-// 8. 게시글 수정 저장
-document.getElementById('editTaskForm').addEventListener('submit', async (e) => {
+safeAddListener('editTaskForm', 'submit', async (e) => {
     e.preventDefault();
     if(!currentDetailTaskId) return;
     const task = tasksMap[currentDetailTaskId];
@@ -859,6 +871,7 @@ document.getElementById('editTaskForm').addEventListener('submit', async (e) => 
     if (fileInput.files.length > 0) {
         const file = fileInput.files[0];
         if (file.size >= 1048576) { alert("파일 용량이 1MB를 초과합니다."); return; }
+        
         finalFileName = file.name;
         if (file.type.startsWith('image/')) {
             try { finalFileData = await compressImage(file, 1200, 0.7); } 
@@ -886,18 +899,19 @@ document.getElementById('editTaskForm').addEventListener('submit', async (e) => 
     try {
         await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), updatedTask);
         editTaskModal.classList.add('hidden');
-        await logActivity("게시글 수정", `[${updatedTask.title}] 내용 수정`);
+        await logActivity("게시글 수정", `[${updatedTask.title}] 본문 수정 처리`);
         alert("수정되었습니다.");
         fetchTasks();
     } catch(e) { alert("수정 실패: " + e.message); }
 });
 
 // ============================================================================
-// [5] 멤버 관리 (Admin 전용)
+// 멤버 관리 (Admin 전용)
 // ============================================================================
 async function fetchMembers() {
     if(currentUserRole !== 'admin') return;
     const tbody = document.getElementById('membersTable');
+    if(!tbody) return;
     tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin text-hermes mr-2"></i> 로딩 중...</td></tr>';
 
     try {
@@ -962,11 +976,14 @@ async function fetchMembers() {
     } catch (error) { console.error("멤버 로드 에러:", error); }
 }
 
-// 승인 로직
+// ============================================================================
+// 신규 가입 승인 관리 (Admin 전용)
+// ============================================================================
 async function fetchApprovals() {
     if(currentUserRole !== 'admin') return;
     const tbody = document.getElementById('approvalsTable');
     const emptyState = document.getElementById('emptyApprovals');
+    if(!tbody) return;
     tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 로딩 중...</td></tr>';
 
     try {
@@ -975,11 +992,11 @@ async function fetchApprovals() {
         tbody.innerHTML = '';
 
         if (querySnapshot.empty) {
-            emptyState.style.display = 'flex';
+            if(emptyState) emptyState.style.display = 'flex';
             return;
         }
 
-        emptyState.style.display = 'none';
+        if(emptyState) emptyState.style.display = 'none';
         querySnapshot.forEach((docSnap) => {
             const user = docSnap.data();
             const tr = `
@@ -1017,16 +1034,19 @@ async function fetchApprovals() {
     } catch (error) { console.error("유저 로드 에러:", error); }
 }
 
-// 접속 및 작업 이력 모니터링
+// ============================================================================
+// 접속 및 작업 이력 로그 모니터링 (Admin 전용)
+// ============================================================================
 async function fetchLogs() {
     if(currentUserRole !== 'admin') return;
     const tbody = document.getElementById('logsTable');
     const emptyState = document.getElementById('emptyLogs');
+    if(!tbody) return;
     tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 로그 데이터 수집 중...</td></tr>';
 
     try {
         const filterSelect = document.getElementById('logUserFilter');
-        if (filterSelect.options.length <= 1) {
+        if (filterSelect && filterSelect.options.length <= 1) {
             const usersSnap = await getDocs(collection(db, "users"));
             usersSnap.forEach(docSnap => {
                 const u = docSnap.data();
@@ -1045,17 +1065,17 @@ async function fetchLogs() {
 
         logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-        const selectedEmail = filterSelect.value;
+        const selectedEmail = filterSelect ? filterSelect.value : 'all';
         if (selectedEmail !== "all") {
             logs = logs.filter(log => log.email === selectedEmail);
         }
 
         tbody.innerHTML = '';
         if (logs.length === 0) {
-            emptyState.style.display = 'flex';
+            if(emptyState) emptyState.style.display = 'flex';
             return;
         }
-        emptyState.style.display = 'none';
+        if(emptyState) emptyState.style.display = 'none';
 
         logs.forEach(log => {
             const dateObj = new Date(log.timestamp);
@@ -1082,4 +1102,7 @@ async function fetchLogs() {
         tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-red-500">데이터를 불러오지 못했습니다.</td></tr>';
     }
 }
-document.getElementById('logUserFilter').addEventListener('change', fetchLogs);
+
+if(document.getElementById('logUserFilter')) {
+    document.getElementById('logUserFilter').addEventListener('change', fetchLogs);
+}

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <!-- 파비콘 -->
+    <!-- 파비콘: AP 크기 확대(40) 및 완벽 중앙 정렬 -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='16' fill='%23F37021'/><text x='50%' y='50%' font-family='system-ui, -apple-system, sans-serif' font-weight='900' font-size='40' fill='%23FFFFFF' text-anchor='middle' dominant-baseline='central' dy='-2px'>AP</text></svg>">
     
     <!-- SNS 공유용 메타데이터 (Open Graph) -->
@@ -181,7 +181,7 @@
                                 <th class="p-3 md:p-4 font-bold">URL (홈/인스타)</th>
                                 <th class="p-3 md:p-4 font-bold">메타광고 계정 (ID/PW)</th>
                                 <th class="p-3 md:p-4 font-bold">월 예산</th>
-                                <th class="p-3 md:p-4 font-bold">작업/광고 시작일</th>
+                                <th class="p-3 md:p-4 font-bold">작업 시작일</th>
                                 <th class="p-3 md:p-4 font-bold">등록자</th>
                                 <th class="p-3 md:p-4 font-bold">연결된 담당자</th>
                                 <th class="p-3 md:p-4 font-bold text-center admin-only-col">관리(ADMIN)</th>
@@ -193,10 +193,10 @@
                 <div id="emptyClients" class="hidden py-12 md:py-16 text-center flex-col items-center justify-center"><i class="fa-solid fa-folder-open text-3xl md:text-4xl text-gray-300 mb-3"></i><p class="text-gray-500 font-medium text-xs md:text-sm">조회 가능한 클라이언트 데이터가 없습니다.</p></div>
             </div>
 
-            <!-- ★ 뷰 3. 이슈/요청 리스트 (게시판 형태로 변경) ★ -->
+            <!-- 뷰 3. 이슈/요청 리스트 -->
             <div id="tasksContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8">
                 <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-white">
-                    <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-table-list text-hermes mr-2"></i> 업무 이슈/요청 게시판</h2>
+                    <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-table-list text-hermes mr-2"></i> 업무 이슈/요청 리스트</h2>
                     <button id="openModalBtn" class="bg-hermes hover:bg-hermes-hover text-white text-xs font-bold px-3 py-2 md:px-4 md:py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5"><i class="fa-solid fa-plus"></i> <span class="hidden sm:inline">신규 이슈 </span>등록</button>
                 </div>
                 <div class="overflow-x-auto">
@@ -209,7 +209,6 @@
                                 <th class="p-3 md:p-4 font-bold w-[15%]">작성자</th>
                                 <th class="p-3 md:p-4 font-bold text-center w-[10%]">상태</th>
                                 <th class="p-3 md:p-4 font-bold w-[10%]">등록일</th>
-                                <!-- 관리(삭제)열: Admin에게만 노출 -->
                                 <th class="p-3 md:p-4 font-bold text-center admin-only-col">관리(ADMIN)</th>
                             </tr>
                         </thead>
@@ -245,7 +244,7 @@
             <!-- 뷰 5. 신규 가입 승인 대기 목록 (어드민 전용) -->
             <div id="approvalsContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8">
                 <div class="p-4 md:p-5 border-b border-gray-100 bg-white">
-                    <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-user-shield text-hermes mr-2"></i> 신규 가입 승인 대기 목록</h2>
+                    <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-user-shield text-hermes mr-2"></i> 신규 가입 승인 관리</h2>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse whitespace-nowrap">
@@ -415,14 +414,24 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1"><i class="fa-solid fa-paperclip text-hermes mr-1"></i> 파일 첨부 (1MB 미만)</label>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">
+                        <i class="fa-solid fa-paperclip text-hermes mr-1"></i> 파일 첨부 (1MB 미만)
+                    </label>
                     <input type="file" id="inputFile" class="w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-hermes-light file:text-hermes hover:file:bg-orange-200 cursor-pointer border border-gray-200 rounded-lg p-1.5">
                     <p class="text-[10px] text-gray-400 mt-1">* 참고용 시안, 기획서 등 1MB 미만 파일만 첨부 가능합니다.</p>
                 </div>
 
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1">작성자 (자동입력)</label>
-                    <input type="text" id="inputStaff" readonly class="w-full text-sm bg-gray-50 border border-gray-200 text-gray-500 rounded-lg p-2.5 outline-none font-bold">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">작성자 (자동입력)</label>
+                        <input type="text" id="inputStaff" readonly class="w-full text-sm bg-gray-50 border border-gray-200 text-gray-500 rounded-lg p-2.5 outline-none font-bold">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">상태</label>
+                        <select id="inputStatus" class="w-full text-sm bg-gray-50 border border-gray-200 text-gray-500 rounded-lg p-2.5 outline-none font-bold" disabled>
+                            <option value="답변대기">답변대기</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="flex justify-end gap-2 pt-4 border-t mt-4">
@@ -433,11 +442,11 @@
         </div>
     </div>
 
-    <!-- ★ [신규 추가] 기존 등록 글 수정 모달 (Player 전용) ★ -->
+    <!-- ★ [신규 추가] 등록된 게시글 수정 모달 (작성자 전용) ★ -->
     <div id="editTaskModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-lg p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-5 border-b pb-3">
-                <h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-pen-to-square text-blue-600 mr-2"></i> 등록된 게시글 수정</h3>
+                <h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-pen-to-square text-blue-600 mr-2"></i> 등록된 이슈 수정</h3>
                 <button id="closeEditTaskModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
             <form id="editTaskForm" class="space-y-4">
@@ -474,10 +483,9 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1"><i class="fa-solid fa-paperclip text-hermes mr-1"></i> 파일 첨부 재등록 (선택 사항)</label>
+                    <label class="block text-xs font-bold text-gray-700 mb-1"><i class="fa-solid fa-paperclip text-hermes mr-1"></i> 첨부파일 교체 (선택사항, 1MB 미만)</label>
                     <input type="file" id="editTaskFile" class="w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-hermes-light file:text-hermes hover:file:bg-orange-200 cursor-pointer border border-gray-200 rounded-lg p-1.5">
                     <p class="text-[10px] text-gray-400 mt-1">* 기존 파일: <span id="currentAttachedFile" class="font-bold text-blue-500">없음</span></p>
-                    <p class="text-[10px] text-gray-400">* 새로운 파일을 선택하면 기존 파일이 교체됩니다. (1MB 미만 제한)</p>
                 </div>
 
                 <div class="flex justify-end gap-2 pt-4 border-t mt-4">
@@ -488,11 +496,37 @@
         </div>
     </div>
 
-    <!-- ★ [신규/고도화] 게시판 형태 상세 보기 팝업 (댓글창 포함) ★ -->
+    <!-- 관리자 답변 등록 모달 (Admin 전용, 레거시 지원용) -->
+    <div id="replyModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-lg p-5 md:p-6 shadow-2xl border border-gray-100">
+            <div class="flex justify-between items-center mb-5 border-b pb-3">
+                <h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-reply text-hermes mr-2"></i> 관리자 상태 변경</h3>
+                <button id="closeReplyModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <form id="replyForm" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">상태 변경</label>
+                    <select id="replyStatus" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none">
+                        <option value="답변완료">답변완료</option>
+                        <option value="진행중">진행중</option>
+                        <option value="답변대기">답변대기</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">답변 메모 (선택)</label>
+                    <textarea id="replyContent" rows="3" placeholder="메모를 입력해 주세요." class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none resize-none"></textarea>
+                </div>
+                <div class="flex justify-end gap-2 pt-4 border-t mt-4">
+                    <button type="button" id="cancelReplyBtn" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-xs font-bold">취소</button>
+                    <button type="submit" class="px-5 py-2 bg-hermes hover:bg-hermes-hover text-white rounded-xl text-xs font-bold shadow-md">변경 사항 저장</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ★ [고도화] 게시판 형태 상세 보기 팝업 (댓글 및 수정/삭제 기능 포함) ★ -->
     <div id="detailModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-2xl p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[95vh] overflow-y-auto flex flex-col">
-            
-            <!-- 헤더 영역 -->
             <div class="flex justify-between items-start mb-4 border-b pb-4">
                 <div class="w-full pr-4">
                     <div class="flex items-center gap-2 mb-2">
@@ -504,7 +538,6 @@
                 <button id="closeDetailModalBtn" class="text-gray-400 hover:text-gray-600 p-1 flex-shrink-0"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
 
-            <!-- 메타 정보 영역 -->
             <div class="grid grid-cols-2 gap-2 bg-gray-50 p-3 rounded-xl border border-gray-100 text-xs mb-4">
                 <div><span class="font-bold text-gray-400">클라이언트:</span> <span id="detailClient" class="font-bold text-gray-800"></span></div>
                 <div><span class="font-bold text-gray-400">작성자:</span> <span id="detailStaff" class="font-bold text-gray-800"></span></div>
@@ -512,13 +545,11 @@
                 <div><span class="font-bold text-gray-400">소속:</span> <span id="detailAgency" class="font-bold text-gray-800"></span></div>
             </div>
 
-            <!-- 본문 영역 -->
             <div class="mb-4 flex-1">
                 <p class="font-bold text-gray-900 mb-2"><i class="fa-solid fa-align-left text-hermes mr-1"></i> 본문 내용</p>
                 <div id="detailContent" class="p-4 rounded-xl border border-gray-200 whitespace-pre-line text-gray-800 text-sm min-h-[100px] bg-white leading-relaxed"></div>
             </div>
 
-            <!-- 첨부파일 영역 -->
             <div id="detailFileArea" class="mb-6">
                 <p class="font-bold text-gray-900 mb-1.5"><i class="fa-solid fa-paperclip text-hermes mr-1"></i> 첨부파일</p>
                 <div id="detailFileBtn"></div>
@@ -530,12 +561,10 @@
                 <button id="detailDeleteBtn" class="px-3 py-1.5 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white border border-red-200 rounded-lg text-xs font-bold transition">게시글 삭제</button>
             </div>
 
-            <!-- ★ 댓글(소통) 영역 ★ -->
+            <!-- 댓글(소통) 영역 -->
             <div class="border-t pt-5">
                 <div class="flex justify-between items-center mb-4">
                     <p class="font-bold text-gray-900"><i class="fa-solid fa-comments text-noah mr-1"></i> 소통 및 답변 <span id="commentCount" class="text-hermes ml-1">0</span></p>
-                    
-                    <!-- Admin 전용: 댓글 작성 시 상태값 즉시 변경 옵션 -->
                     <div id="adminStatusChangeArea" class="hidden flex items-center gap-2">
                         <label class="text-[10px] font-bold text-gray-500">상태 변경:</label>
                         <select id="adminStatusSelect" class="text-xs border border-gray-300 rounded p-1 focus:border-noah outline-none">
@@ -546,10 +575,8 @@
                     </div>
                 </div>
 
-                <!-- 댓글 리스트 렌더링 영역 -->
                 <div id="commentList" class="space-y-3 mb-4 max-h-48 overflow-y-auto px-1"></div>
 
-                <!-- 댓글 입력 폼 -->
                 <div class="flex gap-2">
                     <textarea id="commentInput" rows="2" placeholder="댓글을 입력해 주세요." class="flex-1 text-sm border border-gray-300 rounded-xl p-3 focus:border-noah outline-none resize-none bg-gray-50 focus:bg-white transition"></textarea>
                     <button id="submitCommentBtn" class="bg-gray-800 hover:bg-black text-white rounded-xl px-4 text-xs font-bold whitespace-nowrap transition shadow-sm">등록</button>

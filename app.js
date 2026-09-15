@@ -26,7 +26,7 @@ let currentDetailTaskId = null; // 상세조회 중인 게시판 이슈 ID
 let currentReplyTaskId = null;
 let isInitialLoginLogged = false;
 let tasksMap = {}; // 이슈 데이터 로컬 맵핑 저장소
-let cachedClientNames = []; // 🌟 실시간 자동완성을 위한 클라이언트 목록 캐시 메모리
+let cachedClientNames = []; // 실시간 자동완성을 위한 클라이언트 목록 캐시 메모리
 
 // DOM 맵핑
 const loginSection = document.getElementById('loginSection');
@@ -60,7 +60,7 @@ function safeAddListener(id, eventType, callback) {
     }
 }
 
-// 🌟 [신규] DB에서 전체 등록된 클라이언트 상호명 로드 함수
+// DB에서 전체 등록된 클라이언트 상호명 로드 함수
 async function ensureClientNamesLoaded() {
     if (cachedClientNames.length > 0) return cachedClientNames;
     try {
@@ -76,17 +76,15 @@ async function ensureClientNamesLoaded() {
     return cachedClientNames;
 }
 
-// 🌟 [신규] 입력창 하단 실시간 검색 자동완성 모듈
+// 입력창 하단 실시간 검색 자동완성 모듈
 function initClientAutocomplete(inputId) {
     const inputEl = document.getElementById(inputId);
     if (!inputEl) return;
 
-    // 부모 요소를 relative로 설정하여 하단 드롭다운의 기준점으로 지정
     if (inputEl.parentElement) {
         inputEl.parentElement.classList.add('relative');
     }
 
-    // 자동완성 레이어 엘리먼트 동적 생성
     let suggestBox = document.getElementById(inputId + '_suggestions');
     if (!suggestBox) {
         suggestBox = document.createElement('div');
@@ -105,7 +103,6 @@ function initClientAutocomplete(inputId) {
             return;
         }
 
-        // 철자가 포함된 클라이언트 필터링
         const matches = cachedClientNames.filter(name => 
             name.toLowerCase().includes(queryVal)
         );
@@ -116,7 +113,6 @@ function initClientAutocomplete(inputId) {
             return;
         }
 
-        // 검색 목록 렌더링
         suggestBox.innerHTML = matches.map(name => `
             <div class="suggestion-item p-2.5 text-xs font-bold text-gray-800 hover:bg-orange-50 hover:text-hermes cursor-pointer transition flex items-center justify-between">
                 <span>${name}</span>
@@ -126,7 +122,6 @@ function initClientAutocomplete(inputId) {
 
         suggestBox.classList.remove('hidden');
 
-        // 목록 선택 이벤트 연결
         suggestBox.querySelectorAll('.suggestion-item').forEach((item, idx) => {
             item.addEventListener('click', () => {
                 inputEl.value = matches[idx];
@@ -139,7 +134,6 @@ function initClientAutocomplete(inputId) {
     inputEl.addEventListener('input', showSuggestions);
     inputEl.addEventListener('focus', showSuggestions);
 
-    // 바깥 영역 클릭 시 추천 박스 닫기
     document.addEventListener('click', (e) => {
         if (!inputEl.contains(e.target) && !suggestBox.contains(e.target)) {
             suggestBox.classList.add('hidden');
@@ -180,6 +174,19 @@ function compressImage(file, maxWidth = 1200, quality = 0.7) {
     });
 }
 
+// 🌟 [신규] 단일/다중 파일 다운로드 버튼 렌더링 헬퍼 함수
+function renderFileButtons(item) {
+    if (item.files && item.files.length > 0) {
+        return item.files.map(f => 
+            `<a href="${f.fileData}" download="${f.fileName}" class="download-link inline-flex items-center gap-1 bg-gray-100 hover:bg-orange-100 text-gray-700 hover:text-hermes text-[10px] font-bold px-2 py-1.5 rounded-lg border border-gray-200 transition my-0.5"><i class="fa-solid fa-download text-hermes"></i> ${f.fileName}</a>`
+        ).join(' ');
+    } else if (item.fileData) {
+        // 기존 단일 파일 데이터 호환 처리
+        return `<a href="${item.fileData}" download="${item.fileName}" class="download-link inline-flex items-center gap-1 bg-gray-100 hover:bg-orange-100 text-gray-700 hover:text-hermes text-[10px] font-bold px-2 py-1.5 rounded-lg border border-gray-200 transition"><i class="fa-solid fa-download text-hermes"></i> ${item.fileName}</a>`;
+    }
+    return `<span class="text-gray-300 text-[10px]">없음</span>`;
+}
+
 // 활동 로그 기록 헬퍼 함수
 async function logActivity(action, details = "") {
     if (!auth.currentUser) return;
@@ -208,9 +215,9 @@ safeAddListener('mobileMenuBtn', 'click', () => {
 safeAddListener('closeSidebarBtn', 'click', closeMobileSidebar);
 safeAddListener('mobileOverlay', 'click', closeMobileSidebar);
 
-// 모달 제어 이벤트 (안전 가드 적용)
+// 모달 제어 이벤트
 safeAddListener('openModalBtn', 'click', () => {
-    ensureClientNamesLoaded(); // 모달 오픈 시 클라이언트 캐시 미리로드
+    ensureClientNamesLoaded();
     createModal.classList.remove('hidden');
 });
 safeAddListener('closeModalBtn', 'click', () => createModal.classList.add('hidden'));
@@ -367,7 +374,6 @@ function showDashboard(user) {
     if(document.getElementById('currentUserName')) document.getElementById('currentUserName').innerText = user.displayName || '사용자';
     if(document.getElementById('currentUserRoleName')) document.getElementById('currentUserRoleName').innerText = getRoleDisplayName(currentUserRole);
     
-    // 권한에 따른 관리자용 CSS 열 숨김 처리
     if(currentUserRole === 'admin') {
         const adminMenu = document.getElementById('adminMenuSection');
         if(adminMenu) adminMenu.classList.remove('hidden');
@@ -385,7 +391,6 @@ function showDashboard(user) {
         }
     }
 
-    // 🌟 실시간 자동완성 모듈 바인딩 가동
     initClientAutocomplete('inputClient');
     initClientAutocomplete('editTaskClient');
 
@@ -398,9 +403,7 @@ function showPendingPopup() {
     if(pendingModal) pendingModal.classList.remove('hidden');
 }
 
-// ============================================================================
-// 클라이언트 DB 로직 (등록, 수정, 삭제)
-// ============================================================================
+// 클라이언트 DB 로직
 safeAddListener('clientForm', 'submit', async (e) => {
     e.preventDefault();
     const cName = document.getElementById('c_name').value;
@@ -424,7 +427,7 @@ safeAddListener('clientForm', 'submit', async (e) => {
         clientModal.classList.add('hidden');
         document.getElementById('clientForm').reset();
         await logActivity("클라이언트 등록", `신규 클라이언트 [${cName}] 데이터 생성`);
-        cachedClientNames = []; // 🌟 신규 등록 시 검색 캐시 초기화하여 최신 데이터 적용
+        cachedClientNames = [];
         fetchClients();
         alert("성공적으로 등록되었습니다.");
     } catch (error) { alert("등록 실패: " + error.message); }
@@ -451,7 +454,7 @@ safeAddListener('editClientForm', 'submit', async (e) => {
         editClientModal.classList.add('hidden');
         await logActivity("클라이언트 수정", `클라이언트 [${cName}] 세부 정보 수정`);
         alert("클라이언트 정보가 수정되었습니다.");
-        cachedClientNames = []; // 🌟 수정 시 검색 캐시 초기화
+        cachedClientNames = [];
         fetchClients();
     } catch (error) { alert("수정 실패: " + error.message); }
 });
@@ -548,7 +551,7 @@ async function fetchClients() {
                 if (confirm(`정말 클라이언트 [${clientName}] 데이터를 삭제하시겠습니까?`)) {
                     await deleteDoc(doc(db, "clients", clientId));
                     await logActivity("클라이언트 삭제", `클라이언트 [${clientName}] 영구 삭제 처리`);
-                    cachedClientNames = []; // 🌟 삭제 시 검색 캐시 초기화
+                    cachedClientNames = [];
                     fetchClients();
                 }
             });
@@ -604,7 +607,7 @@ safeAddListener('saveAssignBtn', 'click', async () => {
 });
 
 // ============================================================================
-// [게시판 및 상세 모달, 댓글 구현]
+// 🌟 [업데이트] 게시판 다중 파일 제출 / 조회 / 수정 처리
 // ============================================================================
 
 safeAddListener('taskForm', 'submit', async (e) => {
@@ -612,28 +615,28 @@ safeAddListener('taskForm', 'submit', async (e) => {
     const today = new Date();
     const dateStr = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')}`;
     const fileInput = document.getElementById('inputFile');
-    let fileName = "", fileData = "";
+    let filesArr = [];
 
+    // 🌟 다중 파일 선택 배열 순회 처리
     if (fileInput.files.length > 0) {
-        const file = fileInput.files[0];
-        if (file.size >= 1048576) {
-            alert("파일 용량이 1MB를 초과합니다. 1MB 미만의 파일만 업로드 가능합니다.");
-            return;
-        }
-        fileName = file.name;
-        if (file.type.startsWith('image/')) {
-            try { fileData = await compressImage(file, 1200, 0.7); } 
-            catch (err) { alert("이미지 압축 처리 실패: " + err.message); return; }
-        } else {
-            fileData = await new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onload = (e) => resolve(e.target.result);
-                reader.readAsDataURL(file);
-            });
-        }
-        if (fileData.length > 900000) {
-            alert("파일 용량이 데이터베이스 저장 한도를 초과합니다.");
-            return;
+        for (let i = 0; i < fileInput.files.length; i++) {
+            const file = fileInput.files[i];
+            if (file.size >= 1048576) {
+                alert(`[${file.name}] 파일 용량이 1MB를 초과합니다.`);
+                return;
+            }
+            let fileData = "";
+            if (file.type.startsWith('image/')) {
+                try { fileData = await compressImage(file, 1200, 0.7); } 
+                catch (err) { alert("이미지 압축 처리 실패: " + err.message); return; }
+            } else {
+                fileData = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.readAsDataURL(file);
+                });
+            }
+            filesArr.push({ fileName: file.name, fileData: fileData });
         }
     }
 
@@ -644,8 +647,7 @@ safeAddListener('taskForm', 'submit', async (e) => {
         agency: document.getElementById('inputAgency').value,
         title: tTitle,
         content: document.getElementById('inputContent').value,
-        fileName: fileName,
-        fileData: fileData,
+        files: filesArr, // 🌟 다중 파일 배열 저장
         staff: document.getElementById('inputStaff').value,
         status: "답변대기", 
         date: dateStr,
@@ -656,6 +658,8 @@ safeAddListener('taskForm', 'submit', async (e) => {
         await addDoc(collection(db, "crm_tasks"), newTask);
         createModal.classList.add('hidden');
         document.getElementById('taskForm').reset();
+        const selNameEl = document.getElementById('selectedFileName');
+        if (selNameEl) selNameEl.innerText = "선택된 파일 없음";
         await logActivity("이슈 등록", `[${newTask.client}] 신규 게시글 작성: ${tTitle}`);
         fetchTasks();
         alert("게시글이 성공적으로 등록되었습니다.");
@@ -729,8 +733,8 @@ async function fetchTasks() {
                     <button class="delete-task-btn bg-red-50 text-red-500 hover:bg-red-500 hover:text-white px-2.5 py-1.5 rounded transition shadow-sm text-xs font-bold" data-id="${item.id}" data-t="${item.title}"><i class="fa-solid fa-trash-can"></i> 삭제</button>
                 </td>` : `<td class="admin-only-col hidden"></td>`;
 
-            const fileButton = item.fileData ? 
-                `<a href="${item.fileData}" download="${item.fileName}" class="download-link inline-flex items-center gap-1 bg-gray-100 hover:bg-orange-100 text-gray-700 hover:text-hermes text-[10px] font-bold px-2 py-1.5 rounded-lg border border-gray-200 transition"><i class="fa-solid fa-download text-hermes"></i> 첨부파일</a>` : `<span class="text-gray-300 text-[10px]">없음</span>`;
+            // 🌟 다중 파일 다운로드 버튼 렌더링 호출
+            const fileButton = renderFileButtons(item);
 
             function getBadge(status) {
                 if(status === '답변대기' || status === '대기중') return `<span class="text-red-500 font-bold border border-red-200 bg-red-50 px-2 py-0.5 rounded text-[11px]">답변대기</span>`;
@@ -827,9 +831,10 @@ function openDetailModal(taskId) {
     else if(task.status === '진행중') statusEl.innerHTML = `<span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-blue-100">진행중</span>`;
     else statusEl.innerHTML = `<span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-gray-200">답변완료</span>`;
 
+    // 🌟 상세 모달 내 다중 파일 다운로드 버튼 노출
     const fileBtnArea = document.getElementById('detailFileBtn');
-    if(task.fileData) {
-        fileBtnArea.innerHTML = `<a href="${task.fileData}" download="${task.fileName}" class="inline-flex items-center gap-1.5 bg-gray-50 hover:bg-orange-50 text-gray-700 hover:text-hermes text-xs font-bold px-3 py-2 rounded-lg border border-gray-200 transition"><i class="fa-solid fa-download text-hermes"></i> ${task.fileName} 다운로드</a>`;
+    if ((task.files && task.files.length > 0) || task.fileData) {
+        fileBtnArea.innerHTML = renderFileButtons(task);
     } else {
         fileBtnArea.innerHTML = `<span class="text-gray-400 text-xs">첨부파일이 없습니다.</span>`;
     }
@@ -957,7 +962,12 @@ safeAddListener('detailEditBtn', 'click', () => {
     document.getElementById('editTaskAgency').value = task.agency || 'noah';
     document.getElementById('editTaskTitle').value = task.title || '';
     document.getElementById('editTaskContent').value = task.content || '';
-    document.getElementById('currentAttachedFile').innerText = task.fileName || '없음';
+    
+    // 🌟 수정 모달 오픈 시 기존 첨부 목록 표시
+    const fileLabel = (task.files && task.files.length > 0) 
+        ? task.files.map(f => f.fileName).join(', ') 
+        : (task.fileName || '없음');
+    document.getElementById('currentAttachedFile').innerText = fileLabel;
     
     document.getElementById('detailModal').classList.add('hidden');
     editTaskModal.classList.remove('hidden');
@@ -969,25 +979,32 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
     const task = tasksMap[currentDetailTaskId];
     
     const fileInput = document.getElementById('editTaskFile');
-    let finalFileName = task.fileName || "";
-    let finalFileData = task.fileData || "";
+    let finalFilesArr = task.files || [];
+    if (task.fileData && finalFilesArr.length === 0) {
+        finalFilesArr = [{ fileName: task.fileName, fileData: task.fileData }];
+    }
 
+    // 🌟 수정 모달에서 신규 다중 파일 선택 시 교체 처리
     if (fileInput.files.length > 0) {
-        const file = fileInput.files[0];
-        if (file.size >= 1048576) { alert("파일 용량이 1MB를 초과합니다."); return; }
-        
-        finalFileName = file.name;
-        if (file.type.startsWith('image/')) {
-            try { finalFileData = await compressImage(file, 1200, 0.7); } 
-            catch (err) { alert("압축 실패"); return; }
-        } else {
-            finalFileData = await new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onload = (e) => resolve(e.target.result);
-                reader.readAsDataURL(file);
-            });
+        let newFilesArr = [];
+        for (let i = 0; i < fileInput.files.length; i++) {
+            const file = fileInput.files[i];
+            if (file.size >= 1048576) { alert(`[${file.name}] 용량이 1MB를 초과합니다.`); return; }
+            
+            let fileData = "";
+            if (file.type.startsWith('image/')) {
+                try { fileData = await compressImage(file, 1200, 0.7); } 
+                catch (err) { alert("압축 실패"); return; }
+            } else {
+                fileData = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.readAsDataURL(file);
+                });
+            }
+            newFilesArr.push({ fileName: file.name, fileData: fileData });
         }
-        if (finalFileData.length > 900000) { alert("용량 초과"); return; }
+        finalFilesArr = newFilesArr;
     }
 
     const updatedTask = {
@@ -996,8 +1013,7 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
         agency: document.getElementById('editTaskAgency').value,
         title: document.getElementById('editTaskTitle').value,
         content: document.getElementById('editTaskContent').value,
-        fileName: finalFileName,
-        fileData: finalFileData
+        files: finalFilesArr
     };
 
     try {
@@ -1009,9 +1025,7 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
     } catch(e) { alert("수정 실패: " + e.message); }
 });
 
-// ============================================================================
 // 멤버 관리 (Admin 전용)
-// ============================================================================
 async function fetchMembers() {
     if(currentUserRole !== 'admin') return;
     const tbody = document.getElementById('membersTable');
@@ -1080,9 +1094,7 @@ async function fetchMembers() {
     } catch (error) { console.error("멤버 로드 에러:", error); }
 }
 
-// ============================================================================
 // 신규 가입 승인 관리 (Admin 전용)
-// ============================================================================
 async function fetchApprovals() {
     if(currentUserRole !== 'admin') return;
     const tbody = document.getElementById('approvalsTable');
@@ -1138,9 +1150,7 @@ async function fetchApprovals() {
     } catch (error) { console.error("유저 로드 에러:", error); }
 }
 
-// ============================================================================
 // 접속 및 작업 이력 로그 모니터링 (Admin 전용)
-// ============================================================================
 async function fetchLogs() {
     if(currentUserRole !== 'admin') return;
     const tbody = document.getElementById('logsTable');

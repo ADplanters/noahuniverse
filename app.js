@@ -60,14 +60,21 @@ function safeAddListener(id, eventType, callback) {
     }
 }
 
-// 🌟 [신규] 최상위 관리자 모달 전용 담당자 선택 드롭다운 채우기 함수
+// 🌟 최상위 관리자 판별 헬퍼 함수 (이메일 및 Firestore Role 이중 검증)
+function checkIsAdmin() {
+    if (currentUserRole === 'admin') return true;
+    if (auth.currentUser && ADMIN_EMAILS.includes(auth.currentUser.email)) return true;
+    return false;
+}
+
+// 🌟 최상위 관리자 모달 전용 담당자 선택 드롭다운 채우기 함수
 async function populateAssignManagerDropdown() {
     const selectEl = document.getElementById('inputAssignManager');
     if (!selectEl) return;
-    selectEl.innerHTML = '<option value="">담당자 미지정</option>';
     try {
         const q = query(collection(db, "users"), where("status", "==", "approved"));
         const snap = await getDocs(q);
+        selectEl.innerHTML = '<option value="">담당자 미지정</option>';
         snap.forEach(docSnap => {
             const u = docSnap.data();
             const roleLabel = u.role === 'admin' ? '최상위 관리자' : (u.role === 'leader' ? '리더' : 'Player');
@@ -233,19 +240,23 @@ safeAddListener('closeSidebarBtn', 'click', closeMobileSidebar);
 safeAddListener('mobileOverlay', 'click', closeMobileSidebar);
 
 // 🌟 [업데이트] 신규 이슈 등록 모달 제어 (최상위 관리자 전용 담당자 지정 영역 스위칭)
-safeAddListener('openModalBtn', 'click', async () => {
+safeAddListener('openModalBtn', 'click', () => {
     ensureClientNamesLoaded();
+    createModal.classList.remove('hidden');
+
     const assignArea = document.getElementById('assignManagerArea');
-    if (currentUserRole === 'admin') {
+    const isAdmin = checkIsAdmin();
+
+    if (isAdmin) {
         if (assignArea) assignArea.classList.remove('hidden');
-        await populateAssignManagerDropdown();
+        populateAssignManagerDropdown();
     } else {
         if (assignArea) assignArea.classList.add('hidden');
         const selectEl = document.getElementById('inputAssignManager');
         if (selectEl) selectEl.value = "";
     }
-    createModal.classList.remove('hidden');
 });
+
 safeAddListener('closeModalBtn', 'click', () => createModal.classList.add('hidden'));
 safeAddListener('cancelBtn', 'click', () => createModal.classList.add('hidden'));
 
@@ -400,11 +411,14 @@ function showDashboard(user) {
     if(document.getElementById('currentUserName')) document.getElementById('currentUserName').innerText = user.displayName || '사용자';
     if(document.getElementById('currentUserRoleName')) document.getElementById('currentUserRoleName').innerText = getRoleDisplayName(currentUserRole);
     
-    if(currentUserRole === 'admin') {
+    const isAdmin = checkIsAdmin();
+
+    if(isAdmin) {
         const adminMenu = document.getElementById('adminMenuSection');
         if(adminMenu) adminMenu.classList.remove('hidden');
         const oldStyle = document.getElementById('adminStyle');
         if(oldStyle) oldStyle.remove();
+        populateAssignManagerDropdown(); // 대시보드 진입 시 미리 프리로드
     } else {
         const adminMenu = document.getElementById('adminMenuSection');
         if(adminMenu) adminMenu.classList.add('hidden');
@@ -513,7 +527,8 @@ async function fetchClients() {
                 managersHtml = data.managers.map(m => `<span class="inline-block bg-blue-50 text-noah text-[10px] px-2 py-1 rounded border border-blue-100 mr-1 mb-1 font-bold">${m}</span>`).join('');
             }
 
-            const adminActions = currentUserRole === 'admin' ? 
+            const isAdmin = checkIsAdmin();
+            const adminActions = isAdmin ? 
                 `<td class="p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col align-middle">
                     <div class="flex items-center justify-center gap-1.5">
                         <button class="open-assign-btn bg-gray-800 hover:bg-black text-white text-[11px] font-bold px-2.5 py-1.5 rounded transition shadow-sm" data-id="${docSnap.id}">배정</button>
@@ -633,7 +648,7 @@ safeAddListener('saveAssignBtn', 'click', async () => {
 });
 
 // ============================================================================
-// 🌟 [업데이트] 게시판 담당자 지정 연동 및 권한 필터링 처리
+// 게시판 담당자 지정 연동 및 권한 필터링 처리
 // ============================================================================
 
 safeAddListener('taskForm', 'submit', async (e) => {
@@ -667,8 +682,8 @@ safeAddListener('taskForm', 'submit', async (e) => {
 
     const tTitle = document.getElementById('inputTitle').value;
     const assignSelect = document.getElementById('inputAssignManager');
-    // 🌟 최상위 관리자가 지정한 담당자 값 획득 (Player가 제출할 땐 빈 값)
-    const assignedManager = (currentUserRole === 'admin' && assignSelect) ? assignSelect.value : "";
+    const isAdmin = checkIsAdmin();
+    const assignedManager = (isAdmin && assignSelect) ? assignSelect.value : "";
 
     const newTask = {
         client: document.getElementById('inputClient').value,
@@ -678,7 +693,7 @@ safeAddListener('taskForm', 'submit', async (e) => {
         content: document.getElementById('inputContent').value,
         files: filesArr,
         staff: document.getElementById('inputStaff').value,
-        assignedManager: assignedManager, // 🌟 담당자 정보 필드 추가
+        assignedManager: assignedManager, // 담당자 정보 필드 저장
         status: "답변대기", 
         date: dateStr,
         comments: [] 
@@ -707,7 +722,7 @@ async function fetchTasks() {
         const querySnapshot = await getDocs(collection(db, "crm_tasks"));
         tasksMap = {}; 
         
-        // 🌟 Player 계정: 본인 관련 문의만 필터링 (지정받은 문의 OR 본인 작성 문의 OR 본인 담당 클라이언트 문의)
+        // Player 계정: 본인 관련 문의만 필터링 (지정받은 문의 OR 본인 작성 문의 OR 본인 담당 클라이언트 문의)
         if (currentUserRole === 'player') {
             const cQ = query(collection(db, "clients"), where("managers", "array-contains", currentUserName));
             const cSnap = await getDocs(cQ);
@@ -723,7 +738,7 @@ async function fetchTasks() {
                 }
             });
         } 
-        // 🌟 리더(Leader) 및 최상위 관리자(Admin): 모든 게시글 전수 조회
+        // 리더(Leader) 및 최상위 관리자(Admin): 모든 게시글 전수 조회
         else {
             querySnapshot.forEach((docSnap) => { 
                 const tItem = { id: docSnap.id, ...docSnap.data() };
@@ -749,8 +764,10 @@ async function fetchTasks() {
         updateStats(fetchedData);
 
         let rowsHtml = '';
+        const isAdmin = checkIsAdmin();
+
         fetchedData.forEach(item => {
-            const adminActions = currentUserRole === 'admin' ? 
+            const adminActions = isAdmin ? 
                 `<td class="p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col align-middle">
                     <button class="delete-task-btn bg-red-50 text-red-500 hover:bg-red-500 hover:text-white px-2.5 py-1.5 rounded transition shadow-sm text-xs font-bold" data-id="${item.id}" data-t="${item.title}"><i class="fa-solid fa-trash-can"></i> 삭제</button>
                 </td>` : `<td class="admin-only-col hidden"></td>`;
@@ -765,7 +782,6 @@ async function fetchTasks() {
 
             const commentCount = item.comments ? item.comments.length : 0;
 
-            // 🌟 작성자 및 지정 담당자 표기 가공
             const staffDisplay = item.assignedManager 
                 ? `${item.staff || '미지정'} <span class="text-hermes font-bold text-[10px] block sm:inline sm:ml-1">(담당: ${item.assignedManager})</span>`
                 : (item.staff || '미지정');
@@ -848,7 +864,6 @@ function openDetailModal(taskId) {
     document.getElementById('detailType').innerText = task.type || 'Q&A';
     document.getElementById('detailClient').innerText = task.client || '-';
     document.getElementById('detailStaff').innerText = task.staff || '미지정';
-    // 🌟 지정 담당자 정보 레이아웃 갱신
     document.getElementById('detailAssignManager').innerText = task.assignedManager ? task.assignedManager : '미지정';
     document.getElementById('detailDate').innerText = task.date || '-';
     document.getElementById('detailAgency').innerText = task.agency === 'noah' ? '노아유니버스' : '애드플랜터스';
@@ -878,7 +893,9 @@ function openDetailModal(taskId) {
         editBtn.classList.add('hidden');
     }
 
-    if(currentUserRole === 'admin') {
+    const isAdmin = checkIsAdmin();
+
+    if(isAdmin) {
         deleteBtn.classList.remove('hidden');
         canShowAction = true;
         document.getElementById('adminStatusChangeArea').classList.remove('hidden');
@@ -949,7 +966,8 @@ safeAddListener('submitCommentBtn', 'click', async () => {
     const updatedComments = [...(task.comments || []), newComment];
     let updatePayload = { comments: updatedComments };
     
-    if(currentUserRole === 'admin') {
+    const isAdmin = checkIsAdmin();
+    if(isAdmin) {
         updatePayload.status = document.getElementById('adminStatusSelect').value;
     }
 
@@ -959,7 +977,7 @@ safeAddListener('submitCommentBtn', 'click', async () => {
         await logActivity("댓글 등록", `[${task.title}] 게시물에 소통 댓글 작성`);
         
         task.comments = updatedComments;
-        if(currentUserRole === 'admin') task.status = updatePayload.status;
+        if(isAdmin) task.status = updatePayload.status;
         
         openDetailModal(currentDetailTaskId); 
         fetchTasks(); 
@@ -1052,7 +1070,8 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
 
 // 멤버 관리 (Admin 전용)
 async function fetchMembers() {
-    if(currentUserRole !== 'admin') return;
+    const isAdmin = checkIsAdmin();
+    if(!isAdmin) return;
     const tbody = document.getElementById('membersTable');
     if(!tbody) return;
     tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin text-hermes mr-2"></i> 로딩 중...</td></tr>';
@@ -1121,7 +1140,8 @@ async function fetchMembers() {
 
 // 신규 가입 승인 관리 (Admin 전용)
 async function fetchApprovals() {
-    if(currentUserRole !== 'admin') return;
+    const isAdmin = checkIsAdmin();
+    if(!isAdmin) return;
     const tbody = document.getElementById('approvalsTable');
     const emptyState = document.getElementById('emptyApprovals');
     if(!tbody) return;
@@ -1177,7 +1197,8 @@ async function fetchApprovals() {
 
 // 접속 및 작업 이력 로그 모니터링 (Admin 전용)
 async function fetchLogs() {
-    if(currentUserRole !== 'admin') return;
+    const isAdmin = checkIsAdmin();
+    if(!isAdmin) return;
     const tbody = document.getElementById('logsTable');
     const emptyState = document.getElementById('emptyLogs');
     if(!tbody) return;

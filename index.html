@@ -387,12 +387,12 @@
                     <input type="text" id="inputClient" required placeholder="예: 노아피부과" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none">
                 </div>
 
-                <!-- 🌟 [신규] 최상위 관리자 전용 담당자 지정 영역 -->
+                <!-- 최상위 관리자 전용 담당자 지정 영역 -->
                 <div id="assignManagerArea" class="hidden">
                     <label class="block text-xs font-bold text-gray-700 mb-1">
                         <i class="fa-solid fa-user-gear text-hermes mr-1"></i> 담당자 지정 (최상위 관리자 전용)
                     </label>
-                    <select id="inputAssignManager" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none bg-orange-50/30">
+                    <select id="inputAssignManager" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none bg-orange-50/30 font-medium">
                         <option value="">담당자 미지정</option>
                     </select>
                 </div>
@@ -550,7 +550,6 @@
                 <button id="closeDetailModalBtn" class="text-gray-400 hover:text-gray-600 p-1 flex-shrink-0"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
 
-            <!-- 🌟 [신규] 지정 담당자 표기 항목 추가 -->
             <div class="grid grid-cols-2 gap-2 bg-gray-50 p-3 rounded-xl border border-gray-100 text-xs mb-4">
                 <div><span class="font-bold text-gray-400">클라이언트:</span> <span id="detailClient" class="font-bold text-gray-800"></span></div>
                 <div><span class="font-bold text-gray-400">작성자:</span> <span id="detailStaff" class="font-bold text-gray-800"></span></div>

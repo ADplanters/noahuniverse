@@ -396,6 +396,7 @@ async function fetchClients() {
                     </div>
                 </td>` : `<td class="admin-only-col hidden"></td>`;
 
+            // 🌟 [수정 완료] 메타 PW 마스킹 해제 및 평문 출력 + 원클릭 복사 버튼 추가
             const tr = `
                 <tr class="hover:bg-orange-50/30 transition border-b border-gray-100">
                     <td class="p-3 md:p-4 font-black text-gray-900 align-middle">${data.name}</td>
@@ -403,7 +404,13 @@ async function fetchClients() {
                         ${data.homeUrl ? `<a href="${data.homeUrl}" target="_blank" class="text-blue-500 hover:underline"><i class="fa-solid fa-link"></i> 웹</a> ` : ''}
                         ${data.instaUrl ? `<a href="${data.instaUrl}" target="_blank" class="text-pink-500 hover:underline"><i class="fa-brands fa-instagram"></i> 인스타</a>` : ''}
                     </td>
-                    <td class="p-3 md:p-4 text-xs align-middle"><div class="text-gray-700 font-medium">ID: ${data.metaId || '-'}</div><div class="text-gray-400">PW: ${data.metaPw ? '********' : '-'}</div></td>
+                    <td class="p-3 md:p-4 text-xs align-middle">
+                        <div class="text-gray-700 font-medium">ID: ${data.metaId || '-'}</div>
+                        <div class="text-gray-900 font-bold flex items-center gap-1 mt-0.5">
+                            PW: ${data.metaPw || '-'}
+                            ${data.metaPw ? `<button onclick="event.stopPropagation(); navigator.clipboard.writeText('${data.metaPw}'); alert('비밀번호가 복사되었습니다.');" class="text-[10px] text-gray-400 hover:text-blue-600 underline cursor-pointer ml-1" title="비밀번호 복사">복사</button>` : ''}
+                        </div>
+                    </td>
                     <td class="p-3 md:p-4 font-bold text-hermes text-xs align-middle">${data.budget || '-'}</td>
                     <td class="p-3 md:p-4 text-xs text-gray-600 align-middle"><div>인스타: ${data.instaDate || '-'}</div><div>메타: ${data.metaDate || '-'}</div></td>
                     <td class="p-3 md:p-4 text-xs font-bold text-gray-500 align-middle">${data.registeredBy || '-'}</td>

@@ -62,7 +62,7 @@ function checkIsAdmin() {
     return false;
 }
 
-// 🌟 다중 체크박스 UI 렌더링 함수
+// 다중 체크박스 UI 렌더링 함수
 async function populateAssignManagerCheckboxes(containerId, selectedManagers = []) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -836,7 +836,7 @@ function updateStats(data) {
     if(document.getElementById('statDone')) document.getElementById('statDone').innerText = data.filter(d => d.status === '답변완료' || d.status === '완료').length;
 }
 
-// 🌟 상세 모달 열기 및 상태 변경 드롭다운 이벤트 직접 바인딩
+// 🌟 [수정] 모달을 열 때마다 이벤트를 중복 바인딩하지 않고 값만 세팅합니다.
 function openDetailModal(taskId) {
     const task = tasksMap[taskId];
     if(!task) return;
@@ -893,39 +893,10 @@ function openDetailModal(taskId) {
         if(selStatus==='대기중') selStatus='답변대기';
         if(selStatus==='완료') selStatus='답변완료';
         
+        // 값만 세팅해 줍니다. 이벤트 연결은 아래 Event Delegation에서 한 번만 처리합니다.
         const adminSelectEl = document.getElementById('adminStatusSelect');
         if (adminSelectEl) {
             adminSelectEl.value = selStatus || '답변대기';
-            
-            // 🎯 드롭다운 상태 선택 시 즉시 Firestore DB 업데이트, 배지 갱신 및 메시지 창 출력
-            adminSelectEl.onchange = async (e) => {
-                const newStatus = e.target.value;
-                try {
-                    await updateDoc(doc(db, "crm_tasks", taskId), { status: newStatus });
-                    task.status = newStatus;
-
-                    // 1. 상세 모달 상단 배지 실시간 업데이트
-                    if (statusEl) {
-                        if (newStatus === '답변대기' || newStatus === '대기중') {
-                            statusEl.innerHTML = `<span class="bg-red-50 text-red-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-red-100">답변대기</span>`;
-                        } else if (newStatus === '진행중') {
-                            statusEl.innerHTML = `<span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-blue-100">진행중</span>`;
-                        } else {
-                            statusEl.innerHTML = `<span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-gray-200">답변완료</span>`;
-                        }
-                    }
-
-                    // 2. 이력 로그 기록 및 팝업 알림 메시지 출력
-                    await logActivity("상태 변경", `[${task.title}] 게시글 상태를 '${newStatus}'(으)로 변경`);
-                    alert(`상태가 '${newStatus}'(으)로 변경되었습니다.`);
-                    
-                    // 3. 메인 목록 테이블 실시간 갱신
-                    fetchTasks();
-                } catch (err) {
-                    console.error("상태 변경 실패:", err);
-                    alert("상태 변경 실패: " + err.message);
-                }
-            };
         }
     } else {
         deleteBtn.classList.add('hidden');
@@ -969,6 +940,47 @@ function renderComments(commentsArr) {
     });
     list.scrollTop = list.scrollHeight;
 }
+
+// 🌟 [완벽 리팩토링] 이벤트 위임(Event Delegation)을 통한 상태 변경 감지
+// 문서 전체에서 발생하는 change 이벤트를 가로채어, ID가 adminStatusSelect일 때만 즉각 실행합니다.
+document.addEventListener('change', async (e) => {
+    if (e.target && e.target.id === 'adminStatusSelect') {
+        if (!currentDetailTaskId) return;
+        const task = tasksMap[currentDetailTaskId];
+        if (!task) return;
+
+        const newStatus = e.target.value;
+        const statusEl = document.getElementById('detailStatus');
+
+        try {
+            // 1. UI 즉시 선반영 (체감 속도 최적화)
+            if (statusEl) {
+                if (newStatus === '답변대기' || newStatus === '대기중') {
+                    statusEl.innerHTML = `<span class="bg-red-50 text-red-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-red-100">답변대기</span>`;
+                } else if (newStatus === '진행중') {
+                    statusEl.innerHTML = `<span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-blue-100">진행중</span>`;
+                } else {
+                    statusEl.innerHTML = `<span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-gray-200">답변완료</span>`;
+                }
+            }
+
+            // 2. 파이어베이스 DB 업데이트
+            await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), { 
+                status: newStatus 
+            });
+            task.status = newStatus; // 로컬 메모리 동기화
+
+            // 3. 백그라운드 리스트 갱신 및 완료 알림
+            await logActivity("상태 변경", `[${task.title}] 게시글 상태를 '${newStatus}'(으)로 변경`);
+            alert(`상태가 '${newStatus}'(으)로 정상 변경되었습니다.`);
+            fetchTasks();
+
+        } catch (err) {
+            console.error("상태 변경 실패:", err);
+            alert("상태 변경 실패: " + err.message);
+        }
+    }
+});
 
 safeAddListener('submitCommentBtn', 'click', async () => {
     if(!currentDetailTaskId) return;

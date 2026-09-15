@@ -62,7 +62,7 @@ function checkIsAdmin() {
     return false;
 }
 
-// 다중 체크박스 UI 렌더링 함수
+// 🌟 다중 체크박스 UI 렌더링 함수
 async function populateAssignManagerCheckboxes(containerId, selectedManagers = []) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -655,6 +655,10 @@ safeAddListener('taskForm', 'submit', async (e) => {
         assignedManagersArr = Array.from(checkboxes).map(cb => cb.value);
     }
 
+    // 🌟 신규 등록 시 HTML select 태그(inputStatus)에서 선택된 값을 읽어오도록 수정 (없으면 답변대기)
+    const statusEl = document.getElementById('inputStatus');
+    const selectedStatus = statusEl && statusEl.value ? statusEl.value : "답변대기";
+
     const newTask = {
         client: document.getElementById('inputClient').value,
         type: document.getElementById('inputType').value,
@@ -664,7 +668,7 @@ safeAddListener('taskForm', 'submit', async (e) => {
         files: filesArr,
         staff: document.getElementById('inputStaff').value,
         assignedManagers: assignedManagersArr, 
-        status: "답변대기", 
+        status: selectedStatus, // 🎯 [수정됨] 무조건 "답변대기" 대신 폼에서 선택된 상태값 반영
         date: dateStr,
         comments: [] 
     };
@@ -836,7 +840,6 @@ function updateStats(data) {
     if(document.getElementById('statDone')) document.getElementById('statDone').innerText = data.filter(d => d.status === '답변완료' || d.status === '완료').length;
 }
 
-// 🌟 [수정] 모달을 열 때마다 이벤트를 중복 바인딩하지 않고 값만 세팅합니다.
 function openDetailModal(taskId) {
     const task = tasksMap[taskId];
     if(!task) return;
@@ -893,7 +896,6 @@ function openDetailModal(taskId) {
         if(selStatus==='대기중') selStatus='답변대기';
         if(selStatus==='완료') selStatus='답변완료';
         
-        // 값만 세팅해 줍니다. 이벤트 연결은 아래 Event Delegation에서 한 번만 처리합니다.
         const adminSelectEl = document.getElementById('adminStatusSelect');
         if (adminSelectEl) {
             adminSelectEl.value = selStatus || '답변대기';
@@ -941,8 +943,6 @@ function renderComments(commentsArr) {
     list.scrollTop = list.scrollHeight;
 }
 
-// 🌟 [완벽 리팩토링] 이벤트 위임(Event Delegation)을 통한 상태 변경 감지
-// 문서 전체에서 발생하는 change 이벤트를 가로채어, ID가 adminStatusSelect일 때만 즉각 실행합니다.
 document.addEventListener('change', async (e) => {
     if (e.target && e.target.id === 'adminStatusSelect') {
         if (!currentDetailTaskId) return;
@@ -953,7 +953,6 @@ document.addEventListener('change', async (e) => {
         const statusEl = document.getElementById('detailStatus');
 
         try {
-            // 1. UI 즉시 선반영 (체감 속도 최적화)
             if (statusEl) {
                 if (newStatus === '답변대기' || newStatus === '대기중') {
                     statusEl.innerHTML = `<span class="bg-red-50 text-red-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-red-100">답변대기</span>`;
@@ -964,13 +963,11 @@ document.addEventListener('change', async (e) => {
                 }
             }
 
-            // 2. 파이어베이스 DB 업데이트
             await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), { 
                 status: newStatus 
             });
-            task.status = newStatus; // 로컬 메모리 동기화
+            task.status = newStatus; 
 
-            // 3. 백그라운드 리스트 갱신 및 완료 알림
             await logActivity("상태 변경", `[${task.title}] 게시글 상태를 '${newStatus}'(으)로 변경`);
             alert(`상태가 '${newStatus}'(으)로 정상 변경되었습니다.`);
             fetchTasks();

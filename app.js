@@ -62,7 +62,7 @@ function checkIsAdmin() {
     return false;
 }
 
-// 🌟 [핵심 업데이트] 다중 체크박스 UI 렌더링 함수
+// 🌟 다중 체크박스 UI 렌더링 함수
 async function populateAssignManagerCheckboxes(containerId, selectedManagers = []) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -75,7 +75,6 @@ async function populateAssignManagerCheckboxes(containerId, selectedManagers = [
             return;
         }
 
-        // 기존 구버전 데이터(단일 텍스트)를 배열로 안전하게 치환
         const selArray = Array.isArray(selectedManagers) ? selectedManagers : (selectedManagers ? [selectedManagers] : []);
 
         snap.forEach(docSnap => {
@@ -83,7 +82,6 @@ async function populateAssignManagerCheckboxes(containerId, selectedManagers = [
             const roleLabel = u.role === 'admin' ? '최상위 관리자' : (u.role === 'leader' ? '리더' : 'Player');
             const isChecked = selArray.includes(u.name) ? 'checked' : '';
             
-            // 모달에 따라 테마 색상(주황/파랑) 적용
             const themeClass = containerId.includes('edit') ? 'text-blue-600 focus:ring-blue-600' : 'text-hermes focus:ring-hermes';
 
             container.innerHTML += `
@@ -651,7 +649,6 @@ safeAddListener('taskForm', 'submit', async (e) => {
     const tTitle = document.getElementById('inputTitle').value;
     const isAdmin = checkIsAdmin();
     
-    // 🌟 신규 등록 시 멀티 체크박스 값 추출하여 배열로 저장
     let assignedManagersArr = [];
     if (isAdmin) {
         const checkboxes = document.querySelectorAll('.createAssignManagerList-checkbox:checked');
@@ -666,7 +663,7 @@ safeAddListener('taskForm', 'submit', async (e) => {
         content: document.getElementById('inputContent').value,
         files: filesArr,
         staff: document.getElementById('inputStaff').value,
-        assignedManagers: assignedManagersArr, // 배열 저장
+        assignedManagers: assignedManagersArr, 
         status: "답변대기", 
         date: dateStr,
         comments: [] 
@@ -706,7 +703,7 @@ async function fetchTasks() {
                 let isAssigned = false;
                 if (Array.isArray(data.assignedManagers)) {
                     isAssigned = data.assignedManagers.includes(currentUserName);
-                } else if (data.assignedManager === currentUserName) { // 구버전 호환
+                } else if (data.assignedManager === currentUserName) { 
                     isAssigned = true;
                 }
 
@@ -839,6 +836,7 @@ function updateStats(data) {
     if(document.getElementById('statDone')) document.getElementById('statDone').innerText = data.filter(d => d.status === '답변완료' || d.status === '완료').length;
 }
 
+// 🌟 상세 모달 열기 및 상태 변경 드롭다운 이벤트 직접 바인딩
 function openDetailModal(taskId) {
     const task = tasksMap[taskId];
     if(!task) return;
@@ -894,7 +892,41 @@ function openDetailModal(taskId) {
         let selStatus = task.status;
         if(selStatus==='대기중') selStatus='답변대기';
         if(selStatus==='완료') selStatus='답변완료';
-        document.getElementById('adminStatusSelect').value = selStatus || '답변대기';
+        
+        const adminSelectEl = document.getElementById('adminStatusSelect');
+        if (adminSelectEl) {
+            adminSelectEl.value = selStatus || '답변대기';
+            
+            // 🎯 드롭다운 상태 선택 시 즉시 Firestore DB 업데이트, 배지 갱신 및 메시지 창 출력
+            adminSelectEl.onchange = async (e) => {
+                const newStatus = e.target.value;
+                try {
+                    await updateDoc(doc(db, "crm_tasks", taskId), { status: newStatus });
+                    task.status = newStatus;
+
+                    // 1. 상세 모달 상단 배지 실시간 업데이트
+                    if (statusEl) {
+                        if (newStatus === '답변대기' || newStatus === '대기중') {
+                            statusEl.innerHTML = `<span class="bg-red-50 text-red-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-red-100">답변대기</span>`;
+                        } else if (newStatus === '진행중') {
+                            statusEl.innerHTML = `<span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-blue-100">진행중</span>`;
+                        } else {
+                            statusEl.innerHTML = `<span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-gray-200">답변완료</span>`;
+                        }
+                    }
+
+                    // 2. 이력 로그 기록 및 팝업 알림 메시지 출력
+                    await logActivity("상태 변경", `[${task.title}] 게시글 상태를 '${newStatus}'(으)로 변경`);
+                    alert(`상태가 '${newStatus}'(으)로 변경되었습니다.`);
+                    
+                    // 3. 메인 목록 테이블 실시간 갱신
+                    fetchTasks();
+                } catch (err) {
+                    console.error("상태 변경 실패:", err);
+                    alert("상태 변경 실패: " + err.message);
+                }
+            };
+        }
     } else {
         deleteBtn.classList.add('hidden');
         document.getElementById('adminStatusChangeArea').classList.add('hidden');
@@ -937,38 +969,6 @@ function renderComments(commentsArr) {
     });
     list.scrollTop = list.scrollHeight;
 }
-
-// 🌟 [핵심 반영] 상세 모달 상태 변경 드롭다운(adminStatusSelect) 선택 즉시 Firestore 업데이트 & 화면 반영
-safeAddListener('adminStatusSelect', 'change', async (e) => {
-    if (!currentDetailTaskId) return;
-    const task = tasksMap[currentDetailTaskId];
-    if (!task) return;
-
-    const newStatus = e.target.value;
-    try {
-        await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), { status: newStatus });
-        task.status = newStatus;
-
-        // 상세 모달 내 상태 표시 배지 실시간 변경
-        const statusEl = document.getElementById('detailStatus');
-        if (statusEl) {
-            if (newStatus === '답변대기' || newStatus === '대기중') {
-                statusEl.innerHTML = `<span class="bg-red-50 text-red-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-red-100">답변대기</span>`;
-            } else if (newStatus === '진행중') {
-                statusEl.innerHTML = `<span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-blue-100">진행중</span>`;
-            } else {
-                statusEl.innerHTML = `<span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-gray-200">답변완료</span>`;
-            }
-        }
-
-        await logActivity("상태 변경", `[${task.title}] 게시글 상태를 '${newStatus}'(으)로 변경`);
-        alert(`상태가 '${newStatus}'(으)로 변경되었습니다.`);
-        fetchTasks();
-    } catch (err) {
-        console.error("상태 변경 실패:", err);
-        alert("상태 변경 실패: " + err.message);
-    }
-});
 
 safeAddListener('submitCommentBtn', 'click', async () => {
     if(!currentDetailTaskId) return;
@@ -1022,7 +1022,6 @@ safeAddListener('detailDeleteBtn', 'click', async () => {
     }
 });
 
-// 🌟 [핵심 연동] 수정 모달 오픈 시 체크박스 렌더링 및 배열 값 동기화
 safeAddListener('detailEditBtn', 'click', async () => {
     if(!currentDetailTaskId) return;
     const task = tasksMap[currentDetailTaskId];
@@ -1040,7 +1039,6 @@ safeAddListener('detailEditBtn', 'click', async () => {
         if (editAssignArea) editAssignArea.classList.remove('hidden');
         const legacyVal = task.assignedManager;
         const currentArr = task.assignedManagers || [];
-        // 기존 값과 신규 배열 값 호환성을 위해 결합
         const combinedSel = currentArr.length > 0 ? currentArr : (legacyVal ? [legacyVal] : []);
         await populateAssignManagerCheckboxes('editAssignManagerList', combinedSel);
     } else {
@@ -1056,7 +1054,6 @@ safeAddListener('detailEditBtn', 'click', async () => {
     editTaskModal.classList.remove('hidden');
 });
 
-// 🌟 다중 담당자 수정 반영하여 DB 저장
 safeAddListener('editTaskForm', 'submit', async (e) => {
     e.preventDefault();
     if(!currentDetailTaskId) return;
@@ -1101,10 +1098,9 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
 
     const isAdmin = checkIsAdmin();
     if (isAdmin) {
-        // 🌟 수정 폼 제출 시 선택된 체크박스 값 추출하여 배열로 저장
         const checkboxes = document.querySelectorAll('.editAssignManagerList-checkbox:checked');
         updatedTask.assignedManagers = Array.from(checkboxes).map(cb => cb.value);
-        updatedTask.assignedManager = ""; // 과거 단일 스트링과 중복되지 않도록 초기화
+        updatedTask.assignedManager = ""; 
     }
 
     try {

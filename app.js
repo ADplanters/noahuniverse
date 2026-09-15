@@ -938,6 +938,38 @@ function renderComments(commentsArr) {
     list.scrollTop = list.scrollHeight;
 }
 
+// 🌟 [핵심 반영] 상세 모달 상태 변경 드롭다운(adminStatusSelect) 선택 즉시 Firestore 업데이트 & 화면 반영
+safeAddListener('adminStatusSelect', 'change', async (e) => {
+    if (!currentDetailTaskId) return;
+    const task = tasksMap[currentDetailTaskId];
+    if (!task) return;
+
+    const newStatus = e.target.value;
+    try {
+        await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), { status: newStatus });
+        task.status = newStatus;
+
+        // 상세 모달 내 상태 표시 배지 실시간 변경
+        const statusEl = document.getElementById('detailStatus');
+        if (statusEl) {
+            if (newStatus === '답변대기' || newStatus === '대기중') {
+                statusEl.innerHTML = `<span class="bg-red-50 text-red-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-red-100">답변대기</span>`;
+            } else if (newStatus === '진행중') {
+                statusEl.innerHTML = `<span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-blue-100">진행중</span>`;
+            } else {
+                statusEl.innerHTML = `<span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-gray-200">답변완료</span>`;
+            }
+        }
+
+        await logActivity("상태 변경", `[${task.title}] 게시글 상태를 '${newStatus}'(으)로 변경`);
+        alert(`상태가 '${newStatus}'(으)로 변경되었습니다.`);
+        fetchTasks();
+    } catch (err) {
+        console.error("상태 변경 실패:", err);
+        alert("상태 변경 실패: " + err.message);
+    }
+});
+
 safeAddListener('submitCommentBtn', 'click', async () => {
     if(!currentDetailTaskId) return;
     const task = tasksMap[currentDetailTaskId];

@@ -22,13 +22,12 @@ let currentUserRole = '';
 let currentUserName = ''; 
 let currentAssignClientId = null; 
 let currentEditClientId = null;
-let currentDetailTaskId = null; // 상세조회 중인 게시판 이슈 ID
+let currentDetailTaskId = null; 
 let currentReplyTaskId = null;
 let isInitialLoginLogged = false;
-let tasksMap = {}; // 이슈 데이터 로컬 맵핑 저장소
-let cachedClientNames = []; // 실시간 자동완성을 위한 클라이언트 목록 캐시 메모리
+let tasksMap = {}; 
+let cachedClientNames = []; 
 
-// DOM 맵핑
 const loginSection = document.getElementById('loginSection');
 const dashboardSection = document.getElementById('dashboardSection');
 const pendingModal = document.getElementById('pendingModal');
@@ -52,22 +51,18 @@ const assignModal = document.getElementById('assignModal');
 const replyModal = document.getElementById('replyModal');
 const detailModal = document.getElementById('detailModal');
 
-// ★ [안전 가드] 요소가 없을 때 스크립트가 죽는 현상을 방지하는 함수 ★
 function safeAddListener(id, eventType, callback) {
     const el = document.getElementById(id);
-    if (el) {
-        el.addEventListener(eventType, callback);
-    }
+    if (el) el.addEventListener(eventType, callback);
 }
 
-// 🌟 최상위 관리자 판별 헬퍼 함수 (이메일 및 Firestore Role 이중 검증)
 function checkIsAdmin() {
     if (currentUserRole === 'admin') return true;
     if (auth.currentUser && ADMIN_EMAILS.includes(auth.currentUser.email)) return true;
     return false;
 }
 
-// 🌟 [재사용 유틸리티] 지정 셀렉트 박스 아이디에 따라 담당자 목록 채우기
+// 지정 셀렉트 박스 아이디에 따라 담당자 목록 채우기
 async function populateAssignManagerDropdown(targetSelectId = 'inputAssignManager') {
     const selectEl = document.getElementById(targetSelectId);
     if (!selectEl) return;
@@ -85,7 +80,6 @@ async function populateAssignManagerDropdown(targetSelectId = 'inputAssignManage
     }
 }
 
-// DB에서 전체 등록된 클라이언트 상호명 로드 함수
 async function ensureClientNamesLoaded() {
     if (cachedClientNames.length > 0) return cachedClientNames;
     try {
@@ -95,20 +89,14 @@ async function ensureClientNamesLoaded() {
             const data = docSnap.data();
             if (data.name) cachedClientNames.push(data.name);
         });
-    } catch (e) {
-        console.error("클라이언트 목록 로드 실패:", e);
-    }
+    } catch (e) { console.error("클라이언트 목록 로드 실패:", e); }
     return cachedClientNames;
 }
 
-// 입력창 하단 실시간 검색 자동완성 모듈
 function initClientAutocomplete(inputId) {
     const inputEl = document.getElementById(inputId);
     if (!inputEl) return;
-
-    if (inputEl.parentElement) {
-        inputEl.parentElement.classList.add('relative');
-    }
+    if (inputEl.parentElement) inputEl.parentElement.classList.add('relative');
 
     let suggestBox = document.getElementById(inputId + '_suggestions');
     if (!suggestBox) {
@@ -121,17 +109,13 @@ function initClientAutocomplete(inputId) {
     const showSuggestions = async () => {
         await ensureClientNamesLoaded();
         const queryVal = inputEl.value.trim().toLowerCase();
-
         if (!queryVal) {
             suggestBox.classList.add('hidden');
             suggestBox.innerHTML = '';
             return;
         }
 
-        const matches = cachedClientNames.filter(name => 
-            name.toLowerCase().includes(queryVal)
-        );
-
+        const matches = cachedClientNames.filter(name => name.toLowerCase().includes(queryVal));
         if (matches.length === 0) {
             suggestBox.classList.add('hidden');
             suggestBox.innerHTML = '';
@@ -158,15 +142,11 @@ function initClientAutocomplete(inputId) {
 
     inputEl.addEventListener('input', showSuggestions);
     inputEl.addEventListener('focus', showSuggestions);
-
     document.addEventListener('click', (e) => {
-        if (!inputEl.contains(e.target) && !suggestBox.contains(e.target)) {
-            suggestBox.classList.add('hidden');
-        }
+        if (!inputEl.contains(e.target) && !suggestBox.contains(e.target)) suggestBox.classList.add('hidden');
     });
 }
 
-// 이미지 파일 자동 압축 함수 (Canvas 기반 1MB 제한)
 function compressImage(file, maxWidth = 1200, quality = 0.7) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -178,18 +158,14 @@ function compressImage(file, maxWidth = 1200, quality = 0.7) {
                 const canvas = document.createElement('canvas');
                 let width = img.width;
                 let height = img.height;
-
                 if (width > maxWidth) {
                     height = Math.round((height * maxWidth) / width);
                     width = maxWidth;
                 }
-
                 canvas.width = width;
                 canvas.height = height;
-
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
-
                 const dataUrl = canvas.toDataURL('image/jpeg', quality);
                 resolve(dataUrl);
             };
@@ -199,7 +175,6 @@ function compressImage(file, maxWidth = 1200, quality = 0.7) {
     });
 }
 
-// 단일/다중 파일 다운로드 버튼 렌더링 헬퍼 함수
 function renderFileButtons(item) {
     if (item.files && item.files.length > 0) {
         return item.files.map(f => 
@@ -211,7 +186,6 @@ function renderFileButtons(item) {
     return `<span class="text-gray-300 text-[10px]">없음</span>`;
 }
 
-// 활동 로그 기록 헬퍼 함수
 async function logActivity(action, details = "") {
     if (!auth.currentUser) return;
     try {
@@ -231,7 +205,6 @@ function closeMobileSidebar() {
     if(mobileOverlay) mobileOverlay.classList.add('hidden');
 }
 
-// 모바일 제어 이벤트
 safeAddListener('mobileMenuBtn', 'click', () => { 
     if(sidebar) sidebar.classList.remove('-translate-x-full'); 
     if(mobileOverlay) mobileOverlay.classList.remove('hidden'); 
@@ -239,14 +212,11 @@ safeAddListener('mobileMenuBtn', 'click', () => {
 safeAddListener('closeSidebarBtn', 'click', closeMobileSidebar);
 safeAddListener('mobileOverlay', 'click', closeMobileSidebar);
 
-// 신규 이슈 등록 모달 제어
 safeAddListener('openModalBtn', 'click', () => {
     ensureClientNamesLoaded();
     createModal.classList.remove('hidden');
-
     const assignArea = document.getElementById('assignManagerArea');
     const isAdmin = checkIsAdmin();
-
     if (isAdmin) {
         if (assignArea) assignArea.classList.remove('hidden');
         populateAssignManagerDropdown('inputAssignManager');
@@ -282,19 +252,13 @@ safeAddListener('closeDetailBtn', 'click', () => detailModal.classList.add('hidd
 safeAddListener('closeEditTaskModalBtn', 'click', () => editTaskModal.classList.add('hidden'));
 safeAddListener('cancelEditTaskBtn', 'click', () => editTaskModal.classList.add('hidden'));
 
-// Auth 제어
 safeAddListener('googleLoginBtn', 'click', async () => {
     try {
         await signInWithPopup(auth, provider);
     } catch(e) {
-        console.error("구글 로그인 에러:", e);
-        if (e.code === 'auth/popup-blocked') {
-            alert("팝업창이 차단되었습니다. 브라우저 주소창 우측의 팝업 차단을 해제해 주세요.");
-        } else if (e.code === 'auth/unauthorized-domain') {
-            alert("Firebase에 등록되지 않은 도메인입니다. 관리자 콘솔을 확인해 주세요.");
-        } else {
-            alert("로그인 중 오류가 발생했습니다: " + e.message);
-        }
+        if (e.code === 'auth/popup-blocked') alert("팝업창이 차단되었습니다.");
+        else if (e.code === 'auth/unauthorized-domain') alert("Firebase에 등록되지 않은 도메인입니다.");
+        else alert("로그인 오류: " + e.message);
     }
 });
 
@@ -307,7 +271,6 @@ safeAddListener('closePendingBtn', 'click', () => {
     signOut(auth); 
 });
 
-// 라우터
 navItems.forEach(item => {
     item.addEventListener('click', async (e) => {
         e.preventDefault();
@@ -326,9 +289,7 @@ navItems.forEach(item => {
         if(approvalsContainer) approvalsContainer.classList.add('hidden');
         if(logsContainer) logsContainer.classList.add('hidden');
 
-        if(menu !== 'logout') {
-            logActivity("메뉴 이동", `[${menuTitle}] 화면을 조회했습니다.`);
-        }
+        if(menu !== 'logout') logActivity("메뉴 이동", `[${menuTitle}] 화면을 조회했습니다.`);
 
         if (menu === 'dashboard') {
             if(statsContainer) statsContainer.classList.remove('hidden');
@@ -350,12 +311,10 @@ navItems.forEach(item => {
             if(logsContainer) logsContainer.classList.remove('hidden');
             fetchLogs();
         }
-
         closeMobileSidebar();
     });
 });
 
-// 로그인 상태 모니터링
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         const userRef = doc(db, "users", user.uid);
@@ -434,7 +393,6 @@ function showDashboard(user) {
 
     initClientAutocomplete('inputClient');
     initClientAutocomplete('editTaskClient');
-
     fetchTasks();
 }
 
@@ -444,7 +402,6 @@ function showPendingPopup() {
     if(pendingModal) pendingModal.classList.remove('hidden');
 }
 
-// 클라이언트 DB 로직
 safeAddListener('clientForm', 'submit', async (e) => {
     e.preventDefault();
     const cName = document.getElementById('c_name').value;
@@ -648,7 +605,6 @@ safeAddListener('saveAssignBtn', 'click', async () => {
     } catch (error) { alert("업데이트 실패: " + error.message); }
 });
 
-// 게시판 담당자 지정 연동 및 권한 필터링 처리
 safeAddListener('taskForm', 'submit', async (e) => {
     e.preventDefault();
     const today = new Date();
@@ -734,8 +690,7 @@ async function fetchTasks() {
                     tasksMap[docSnap.id] = tItem;
                 }
             });
-        } 
-        else {
+        } else {
             querySnapshot.forEach((docSnap) => { 
                 const tItem = { id: docSnap.id, ...docSnap.data() };
                 fetchedData.push(tItem);
@@ -777,7 +732,6 @@ async function fetchTasks() {
             }
 
             const commentCount = item.comments ? item.comments.length : 0;
-
             const staffDisplay = item.assignedManager 
                 ? `${item.staff || '미지정'} <span class="text-hermes font-bold text-[10px] block sm:inline sm:ml-1">(담당: ${item.assignedManager})</span>`
                 : (item.staff || '미지정');
@@ -890,7 +844,6 @@ function openDetailModal(taskId) {
     }
 
     const isAdmin = checkIsAdmin();
-
     if(isAdmin) {
         deleteBtn.classList.remove('hidden');
         canShowAction = true;
@@ -994,7 +947,7 @@ safeAddListener('detailDeleteBtn', 'click', async () => {
     }
 });
 
-// 🌟 [수정 연동] 본문 수정 시 최상위 관리자에게 담당자 수정 영역 노출 및 기존 값 세팅
+// 🌟 [핵심 연동] 본문 수정 모달 오픈 시 관리자 권한 체크 및 담당자 목록 로드
 safeAddListener('detailEditBtn', 'click', async () => {
     if(!currentDetailTaskId) return;
     const task = tasksMap[currentDetailTaskId];
@@ -1026,7 +979,6 @@ safeAddListener('detailEditBtn', 'click', async () => {
     editTaskModal.classList.remove('hidden');
 });
 
-// 🌟 [수정 저장 연동] 본문 수정 제출 시 담당자 변경값 적용
 safeAddListener('editTaskForm', 'submit', async (e) => {
     e.preventDefault();
     if(!currentDetailTaskId) return;

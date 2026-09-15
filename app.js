@@ -228,9 +228,20 @@ safeAddListener('mobileMenuBtn', 'click', () => {
 safeAddListener('closeSidebarBtn', 'click', closeMobileSidebar);
 safeAddListener('mobileOverlay', 'click', closeMobileSidebar);
 
+// 🌟 [핵심 변경] 신규 등록 모달창을 열 때 상태 드롭다운의 잠금을 강제로 풀어줍니다.
 safeAddListener('openModalBtn', 'click', () => {
     ensureClientNamesLoaded();
     createModal.classList.remove('hidden');
+    
+    // HTML에 disabled가 적용되어 클릭이 안되는 상태 창을 강제로 활성화합니다.
+    const statusEl = document.getElementById('inputStatus');
+    if (statusEl) {
+        statusEl.disabled = false; // 속성 비활성화
+        statusEl.removeAttribute('disabled'); 
+        statusEl.classList.remove('bg-gray-100', 'cursor-not-allowed'); // 회색 배경 제거
+        statusEl.classList.add('bg-white'); // 정상 흰색 배경 추가
+    }
+
     const assignArea = document.getElementById('assignManagerArea');
     const isAdmin = checkIsAdmin();
     if (isAdmin) {
@@ -655,7 +666,6 @@ safeAddListener('taskForm', 'submit', async (e) => {
         assignedManagersArr = Array.from(checkboxes).map(cb => cb.value);
     }
 
-    // 🌟 신규 등록 시 HTML select 태그(inputStatus)에서 선택된 값을 읽어오도록 수정 (없으면 답변대기)
     const statusEl = document.getElementById('inputStatus');
     const selectedStatus = statusEl && statusEl.value ? statusEl.value : "답변대기";
 
@@ -668,7 +678,7 @@ safeAddListener('taskForm', 'submit', async (e) => {
         files: filesArr,
         staff: document.getElementById('inputStaff').value,
         assignedManagers: assignedManagersArr, 
-        status: selectedStatus, // 🎯 [수정됨] 무조건 "답변대기" 대신 폼에서 선택된 상태값 반영
+        status: selectedStatus, 
         date: dateStr,
         comments: [] 
     };
@@ -943,6 +953,7 @@ function renderComments(commentsArr) {
     list.scrollTop = list.scrollHeight;
 }
 
+// 이벤트 위임을 통한 모달 내부 드롭다운 실시간 반영
 document.addEventListener('change', async (e) => {
     if (e.target && e.target.id === 'adminStatusSelect') {
         if (!currentDetailTaskId) return;

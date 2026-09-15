@@ -151,7 +151,14 @@
                     <table class="w-full text-left border-collapse whitespace-nowrap">
                         <thead>
                             <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
-                                <th class="p-3 md:p-4 font-bold">상호명</th><th class="p-3 md:p-4 font-bold">URL (홈/인스타)</th><th class="p-3 md:p-4 font-bold">메타광고 계정 (ID/PW)</th><th class="p-3 md:p-4 font-bold">월 예산</th><th class="p-3 md:p-4 font-bold">작업/광고 시작일</th><th class="p-3 md:p-4 font-bold">등록자</th><th class="p-3 md:p-4 font-bold">연결된 담당자</th><th class="p-3 md:p-4 font-bold text-center admin-only-col">관리(ADMIN)</th>
+                                <th class="p-3 md:p-4 font-bold">상호명</th>
+                                <th class="p-3 md:p-4 font-bold">URL (홈/인스타)</th>
+                                <th class="p-3 md:p-4 font-bold">메타광고 계정 (ID/PW)</th>
+                                <th class="p-3 md:p-4 font-bold">월 예산</th>
+                                <th class="p-3 md:p-4 font-bold">작업/광고 시작일</th>
+                                <th class="p-3 md:p-4 font-bold">등록자</th>
+                                <th class="p-3 md:p-4 font-bold">연결된 담당자</th>
+                                <th class="p-3 md:p-4 font-bold text-center admin-only-col">관리(ADMIN)</th>
                             </tr>
                         </thead>
                         <tbody id="clientsTable" class="text-sm divide-y divide-gray-100"></tbody>
@@ -170,7 +177,14 @@
                     <table class="w-full text-left border-collapse whitespace-nowrap md:whitespace-normal">
                         <thead>
                             <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
-                                <th class="p-3 md:p-4 font-bold w-[15%]">클라이언트</th><th class="p-3 md:p-4 font-bold w-[10%]">분류</th><th class="p-3 md:p-4 font-bold w-[40%]">제목 (클릭 시 상세 보기 및 댓글)</th><th class="p-3 md:p-4 font-bold w-[15%]">첨부파일</th><th class="p-3 md:p-4 font-bold w-[10%]">작성자 / 담당자</th><th class="p-3 md:p-4 font-bold text-center w-[10%]">상태</th><th class="p-3 md:p-4 font-bold">등록일</th><th class="p-3 md:p-4 font-bold text-center admin-only-col">관리(ADMIN)</th>
+                                <th class="p-3 md:p-4 font-bold w-[15%]">클라이언트</th>
+                                <th class="p-3 md:p-4 font-bold w-[10%]">분류</th>
+                                <th class="p-3 md:p-4 font-bold w-[40%]">제목 (클릭 시 상세 보기 및 댓글)</th>
+                                <th class="p-3 md:p-4 font-bold w-[15%]">첨부파일</th>
+                                <th class="p-3 md:p-4 font-bold w-[10%]">작성자 / 담당자</th>
+                                <th class="p-3 md:p-4 font-bold text-center w-[10%]">상태</th>
+                                <th class="p-3 md:p-4 font-bold">등록일</th>
+                                <th class="p-3 md:p-4 font-bold text-center admin-only-col">관리(ADMIN)</th>
                             </tr>
                         </thead>
                         <tbody id="boardTable" class="text-sm divide-y divide-gray-100"></tbody>
@@ -179,16 +193,22 @@
                 <div id="emptyState" class="hidden py-12 md:py-16 text-center flex-col items-center justify-center"><i class="fa-solid fa-folder-open text-3xl md:text-4xl text-gray-300 mb-3"></i><p class="text-gray-500 font-medium text-xs md:text-sm">데이터가 없습니다.</p></div>
             </div>
 
-            <!-- 멤버 및 권한 관리 -->
+            <!-- 멤버 및 권한 관리 (어드민 전용) -->
             <div id="membersContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8">
                 <div class="p-4 md:p-5 border-b border-gray-100 bg-white">
                     <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-users-gear text-hermes mr-2"></i> 전체 멤버 및 권한 관리</h2>
+                    <p class="text-xs text-gray-500 mt-1">시스템에 가입된 모든 유저의 권한을 수정하거나 계정을 탈퇴(삭제)시킬 수 있습니다.</p>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse whitespace-nowrap">
                         <thead>
                             <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
-                                <th class="p-3 md:p-4 font-bold">이름</th><th class="p-3 md:p-4 font-bold">이메일 계정</th><th class="p-3 md:p-4 font-bold">상태</th><th class="p-3 md:p-4 font-bold">권한(Role) 수정</th><th class="p-3 md:p-4 font-bold text-center">저장</th><th class="p-3 md:p-4 font-bold text-center">탈퇴처리</th>
+                                <th class="p-3 md:p-4 font-bold">이름</th>
+                                <th class="p-3 md:p-4 font-bold">이메일 계정</th>
+                                <th class="p-3 md:p-4 font-bold">상태</th>
+                                <th class="p-3 md:p-4 font-bold">권한(Role) 수정</th>
+                                <th class="p-3 md:p-4 font-bold text-center">저장</th>
+                                <th class="p-3 md:p-4 font-bold text-center">탈퇴처리</th>
                             </tr>
                         </thead>
                         <tbody id="membersTable" class="text-sm divide-y divide-gray-100"></tbody>
@@ -196,7 +216,7 @@
                 </div>
             </div>
 
-            <!-- 신규 가입 승인 대기 목록 -->
+            <!-- 신규 가입 승인 대기 목록 (어드민 전용) -->
             <div id="approvalsContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8">
                 <div class="p-4 md:p-5 border-b border-gray-100 bg-white">
                     <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-user-shield text-hermes mr-2"></i> 신규 가입 승인 대기 목록</h2>
@@ -214,29 +234,36 @@
                 <div id="emptyApprovals" class="hidden py-12 md:py-16 text-center flex-col items-center justify-center"><i class="fa-solid fa-user-check text-3xl md:text-4xl text-gray-300 mb-3"></i><p class="text-gray-500 font-medium text-xs md:text-sm">가입 대기 중인 유저가 없습니다.</p></div>
             </div>
 
-            <!-- 접속 및 작업 이력 로그 -->
+            <!-- 접속 및 작업 이력 로그 (어드민 전용) -->
             <div id="logsContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8">
                 <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-white flex-wrap gap-3">
                     <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-clock-rotate-left text-hermes mr-2"></i> 시스템 접속 및 작업 이력</h2>
                     <div class="flex items-center gap-2">
                         <label class="text-xs font-bold text-gray-500">작업자 필터:</label>
-                        <select id="logUserFilter" class="text-xs border border-gray-300 rounded-lg p-1.5 focus:border-hermes outline-none cursor-pointer"><option value="all">전체 기록 보기</option></select>
+                        <select id="logUserFilter" class="text-xs border border-gray-300 rounded-lg p-1.5 focus:border-hermes outline-none cursor-pointer">
+                            <option value="all">전체 기록 보기</option>
+                        </select>
                     </div>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse whitespace-nowrap md:whitespace-normal">
                         <thead>
                             <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
-                                <th class="p-3 md:p-4 font-bold w-1/5">발생 일시</th><th class="p-3 md:p-4 font-bold w-1/5">작업자 (이름/계정)</th><th class="p-3 md:p-4 font-bold w-1/6">활동 구분</th><th class="p-3 md:p-4 font-bold w-[40%]">상세 내용</th>
+                                <th class="p-3 md:p-4 font-bold w-1/5">발생 일시</th>
+                                <th class="p-3 md:p-4 font-bold w-1/5">작업자 (이름/계정)</th>
+                                <th class="p-3 md:p-4 font-bold w-1/6">활동 구분</th>
+                                <th class="p-3 md:p-4 font-bold w-[40%]">상세 내용</th>
                             </tr>
                         </thead>
                         <tbody id="logsTable" class="text-sm divide-y divide-gray-100"></tbody>
                     </table>
                 </div>
                 <div id="emptyLogs" class="hidden py-12 md:py-16 text-center flex-col items-center justify-center">
-                    <i class="fa-solid fa-folder-open text-3xl md:text-4xl text-gray-300 mb-3"></i><p class="text-gray-500 font-medium text-xs md:text-sm">기록된 이력이 없습니다.</p>
+                    <i class="fa-solid fa-folder-open text-3xl md:text-4xl text-gray-300 mb-3"></i>
+                    <p class="text-gray-500 font-medium text-xs md:text-sm">기록된 이력이 없습니다.</p>
                 </div>
             </div>
+
         </main>
     </div>
 
@@ -247,7 +274,10 @@
     <!-- 클라이언트 등록 모달 -->
     <div id="clientModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-xl p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-5 border-b pb-3"><h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-address-card text-hermes mr-2"></i> 신규 클라이언트 DB 등록</h3><button id="closeClientModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button></div>
+            <div class="flex justify-between items-center mb-5 border-b pb-3">
+                <h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-address-card text-hermes mr-2"></i> 신규 클라이언트 DB 등록</h3>
+                <button id="closeClientModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
             <form id="clientForm" class="space-y-4">
                 <div><label class="block text-xs font-bold text-gray-700 mb-1">1. 상호명 (필수)</label><input type="text" id="c_name" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -264,7 +294,10 @@
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">8. 메타 광고 시작 예정일</label><input type="date" id="c_metaDate" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                 </div>
                 <div><label class="block text-xs font-bold text-gray-700 mb-1">9. 등록자 (자동입력)</label><input type="text" id="c_registerName" readonly class="w-full text-sm bg-gray-50 border border-gray-200 text-gray-500 rounded-lg p-2.5 outline-none font-bold"></div>
-                <div class="flex justify-end gap-2 pt-4 border-t mt-5"><button type="button" id="cancelClientBtn" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-xs font-bold">취소</button><button type="submit" class="px-5 py-2 bg-hermes hover:bg-hermes-hover text-white rounded-xl text-xs font-bold shadow-md">클라이언트 등록</button></div>
+                <div class="flex justify-end gap-2 pt-4 border-t mt-5">
+                    <button type="button" id="cancelClientBtn" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-xs font-bold">취소</button>
+                    <button type="submit" class="px-5 py-2 bg-hermes hover:bg-hermes-hover text-white rounded-xl text-xs font-bold shadow-md">클라이언트 등록</button>
+                </div>
             </form>
         </div>
     </div>
@@ -272,7 +305,10 @@
     <!-- 클라이언트 정보 수정 모달 -->
     <div id="editClientModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-xl p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-5 border-b pb-3"><h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-pen-to-square text-blue-600 mr-2"></i> 클라이언트 정보 수정</h3><button id="closeEditClientModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button></div>
+            <div class="flex justify-between items-center mb-5 border-b pb-3">
+                <h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-pen-to-square text-blue-600 mr-2"></i> 클라이언트 정보 수정</h3>
+                <button id="closeEditClientModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
             <form id="editClientForm" class="space-y-4">
                 <div><label class="block text-xs font-bold text-gray-700 mb-1">1. 상호명 (필수)</label><input type="text" id="edit_c_name" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -288,18 +324,27 @@
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">7. 인스타 기술작업 시작일</label><input type="date" id="edit_c_instaDate" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">8. 메타 광고 시작 예정일</label><input type="date" id="edit_c_metaDate" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                 </div>
-                <div class="flex justify-end gap-2 pt-4 border-t mt-5"><button type="button" id="cancelEditClientBtn" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-xs font-bold">취소</button><button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md">수정사항 저장</button></div>
+                <div class="flex justify-end gap-2 pt-4 border-t mt-5">
+                    <button type="button" id="cancelEditClientBtn" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-xs font-bold">취소</button>
+                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md">수정사항 저장</button>
+                </div>
             </form>
         </div>
     </div>
 
-    <!-- 다중 담당자 연결 모달 -->
+    <!-- 클라이언트 다중 담당자 연결 모달 -->
     <div id="assignModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-sm p-5 md:p-6 shadow-2xl border border-gray-100">
-            <div class="flex justify-between items-center mb-4 border-b pb-3"><h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-users text-hermes mr-2"></i> 담당자 다중 연결</h3><button id="closeAssignModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button></div>
+            <div class="flex justify-between items-center mb-4 border-b pb-3">
+                <h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-users text-hermes mr-2"></i> 담당자 다중 연결</h3>
+                <button id="closeAssignModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
             <p class="text-xs text-gray-500 mb-4">해당 클라이언트를 전담할 인원을 선택하세요.</p>
             <div id="managerCheckboxList" class="flex flex-col gap-2 mb-5 max-h-48 overflow-y-auto p-2 bg-gray-50 rounded-lg border border-gray-100"></div>
-            <div class="flex justify-end gap-2 border-t pt-4"><button type="button" id="cancelAssignBtn" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-xs font-bold">취소</button><button type="button" id="saveAssignBtn" class="px-5 py-2 bg-adplanters hover:bg-black text-white rounded-xl text-xs font-bold shadow-md">배정 완료</button></div>
+            <div class="flex justify-end gap-2 border-t pt-4">
+                <button type="button" id="cancelAssignBtn" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-xs font-bold">취소</button>
+                <button type="button" id="saveAssignBtn" class="px-5 py-2 bg-adplanters hover:bg-black text-white rounded-xl text-xs font-bold shadow-md">배정 완료</button>
+            </div>
         </div>
     </div>
 
@@ -316,13 +361,14 @@
                     <input type="text" id="inputClient" required placeholder="예: 노아피부과" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none">
                 </div>
 
+                <!-- 🌟 다중 선택 지원 담당자 지정 영역 -->
                 <div id="assignManagerArea" class="hidden">
                     <label class="block text-xs font-bold text-gray-700 mb-1">
-                        <i class="fa-solid fa-user-gear text-hermes mr-1"></i> 담당자 지정 (최상위 관리자 전용)
+                        <i class="fa-solid fa-user-gear text-hermes mr-1"></i> 담당자 지정 (최상위 관리자 전용 / 다중 선택 가능)
                     </label>
-                    <select id="inputAssignManager" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none bg-orange-50/30 font-medium">
-                        <option value="">담당자 미지정</option>
-                    </select>
+                    <div id="createAssignManagerList" class="flex flex-col gap-2 max-h-32 overflow-y-auto p-2 bg-orange-50/30 border border-orange-200 rounded-lg">
+                        <!-- JS가 체크박스를 채웁니다 -->
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -370,6 +416,7 @@
                         </select>
                     </div>
                 </div>
+
                 <div class="flex justify-end gap-2 pt-4 border-t mt-4">
                     <button type="button" id="cancelBtn" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-xs font-bold">취소</button>
                     <button type="submit" class="px-5 py-2 bg-hermes hover:bg-hermes-hover text-white rounded-xl text-xs font-bold shadow-md">이슈 등록</button>
@@ -378,7 +425,7 @@
         </div>
     </div>
 
-    <!-- 🌟 [핵심 반영] 단 1개로 병합된 등록된 게시글 수정 모달 -->
+    <!-- 등록된 게시글 수정 모달 (단 하나만 존재함!) -->
     <div id="editTaskModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-lg p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-5 border-b pb-3">
@@ -391,14 +438,14 @@
                     <input type="text" id="editTaskClient" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none">
                 </div>
 
-                <!-- 🌟 [수정 연동] 최상위 관리자 전용 담당자 변경 영역 -->
+                <!-- 🌟 다중 선택 지원 담당자 수정 영역 -->
                 <div id="editAssignManagerArea" class="hidden">
                     <label class="block text-xs font-bold text-gray-700 mb-1">
-                        <i class="fa-solid fa-user-gear text-blue-600 mr-1"></i> 담당자 변경 (최상위 관리자 전용)
+                        <i class="fa-solid fa-user-gear text-blue-600 mr-1"></i> 담당자 변경 (최상위 관리자 전용 / 다중 선택 가능)
                     </label>
-                    <select id="editTaskAssignManager" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-blue-600 outline-none bg-blue-50/30 font-medium">
-                        <option value="">담당자 미지정</option>
-                    </select>
+                    <div id="editAssignManagerList" class="flex flex-col gap-2 max-h-32 overflow-y-auto p-2 bg-blue-50/30 border border-blue-200 rounded-lg">
+                        <!-- JS가 체크박스를 채웁니다 -->
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -446,7 +493,10 @@
     <!-- 관리자 상태 변경 모달 -->
     <div id="replyModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-lg p-5 md:p-6 shadow-2xl border border-gray-100">
-            <div class="flex justify-between items-center mb-5 border-b pb-3"><h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-reply text-hermes mr-2"></i> 관리자 상태 변경</h3><button id="closeReplyModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button></div>
+            <div class="flex justify-between items-center mb-5 border-b pb-3">
+                <h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-reply text-hermes mr-2"></i> 관리자 상태 변경</h3>
+                <button id="closeReplyModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
             <form id="replyForm" class="space-y-4">
                 <div>
                     <label class="block text-xs font-bold text-gray-700 mb-1">상태 변경</label>
@@ -485,9 +535,9 @@
             <div class="grid grid-cols-2 gap-2 bg-gray-50 p-3 rounded-xl border border-gray-100 text-xs mb-4">
                 <div><span class="font-bold text-gray-400">클라이언트:</span> <span id="detailClient" class="font-bold text-gray-800"></span></div>
                 <div><span class="font-bold text-gray-400">작성자:</span> <span id="detailStaff" class="font-bold text-gray-800"></span></div>
-                <div><span class="font-bold text-gray-400">지정 담당자:</span> <span id="detailAssignManager" class="font-bold text-hermes">미지정</span></div>
+                <div class="col-span-2"><span class="font-bold text-gray-400">지정 담당자:</span> <span id="detailAssignManager" class="font-bold text-hermes">미지정</span></div>
                 <div><span class="font-bold text-gray-400">등록일:</span> <span id="detailDate" class="font-bold text-gray-800"></span></div>
-                <div class="col-span-2"><span class="font-bold text-gray-400">소속:</span> <span id="detailAgency" class="font-bold text-gray-800"></span></div>
+                <div><span class="font-bold text-gray-400">소속:</span> <span id="detailAgency" class="font-bold text-gray-800"></span></div>
             </div>
 
             <div class="mb-4 flex-1">
@@ -540,7 +590,6 @@
         </div>
     </div>
 
-    <!-- 워터마크 렌더링 스크립트 -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const container = document.getElementById('watermarkGrid');
@@ -558,7 +607,6 @@
         });
     </script>
 
-    <!-- JS 모듈 연결 -->
     <script type="module" src="app.js"></script>
 </body>
 </html>

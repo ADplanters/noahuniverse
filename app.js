@@ -62,18 +62,33 @@ function checkIsAdmin() {
     return false;
 }
 
-// 지정 셀렉트 박스 아이디에 따라 담당자 목록 채우기
-async function populateAssignManagerDropdown(targetSelectId = 'inputAssignManager') {
-    const selectEl = document.getElementById(targetSelectId);
-    if (!selectEl) return;
+// 🌟 [핵심 업데이트] 다중 체크박스 렌더링 함수
+async function populateAssignManagerCheckboxes(containerId, selectedManagers = []) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
     try {
         const q = query(collection(db, "users"), where("status", "==", "approved"));
         const snap = await getDocs(q);
-        selectEl.innerHTML = '<option value="">담당자 미지정</option>';
+        container.innerHTML = '';
+        if(snap.empty) {
+            container.innerHTML = '<p class="text-xs text-gray-500 p-2">승인된 사용자가 없습니다.</p>';
+            return;
+        }
+
+        // 기존 구버전 데이터(단일 텍스트)를 배열로 치환
+        const selArray = Array.isArray(selectedManagers) ? selectedManagers : (selectedManagers ? [selectedManagers] : []);
+
         snap.forEach(docSnap => {
             const u = docSnap.data();
             const roleLabel = u.role === 'admin' ? '최상위 관리자' : (u.role === 'leader' ? '리더' : 'Player');
-            selectEl.innerHTML += `<option value="${u.name}">${u.name} (${roleLabel})</option>`;
+            const isChecked = selArray.includes(u.name) ? 'checked' : '';
+            
+            container.innerHTML += `
+                <label class="flex items-center gap-2 p-1.5 hover:bg-white rounded cursor-pointer transition">
+                    <input type="checkbox" value="${u.name}" class="${containerId}-checkbox w-4 h-4 text-hermes focus:ring-hermes border-gray-300 rounded" ${isChecked}>
+                    <span class="text-xs font-bold text-gray-800">${u.name} <span class="text-[10px] font-normal text-gray-500">(${roleLabel})</span></span>
+                </label>
+            `;
         });
     } catch (e) {
         console.error("담당자 목록 로드 실패:", e);
@@ -212,6 +227,7 @@ safeAddListener('mobileMenuBtn', 'click', () => {
 safeAddListener('closeSidebarBtn', 'click', closeMobileSidebar);
 safeAddListener('mobileOverlay', 'click', closeMobileSidebar);
 
+// 🌟 [연동] 이슈 등록 모달 오픈 
 safeAddListener('openModalBtn', 'click', () => {
     ensureClientNamesLoaded();
     createModal.classList.remove('hidden');
@@ -219,11 +235,9 @@ safeAddListener('openModalBtn', 'click', () => {
     const isAdmin = checkIsAdmin();
     if (isAdmin) {
         if (assignArea) assignArea.classList.remove('hidden');
-        populateAssignManagerDropdown('inputAssignManager');
+        populateAssignManagerCheckboxes('createAssignManagerList', []);
     } else {
         if (assignArea) assignArea.classList.add('hidden');
-        const selectEl = document.getElementById('inputAssignManager');
-        if (selectEl) selectEl.value = "";
     }
 });
 
@@ -377,8 +391,6 @@ function showDashboard(user) {
         if(adminMenu) adminMenu.classList.remove('hidden');
         const oldStyle = document.getElementById('adminStyle');
         if(oldStyle) oldStyle.remove();
-        populateAssignManagerDropdown('inputAssignManager');
-        populateAssignManagerDropdown('editTaskAssignManager');
     } else {
         const adminMenu = document.getElementById('adminMenuSection');
         if(adminMenu) adminMenu.classList.add('hidden');
@@ -605,6 +617,7 @@ safeAddListener('saveAssignBtn', 'click', async () => {
     } catch (error) { alert("업데이트 실패: " + error.message); }
 });
 
+// 🌟 [핵심 연동] 신규 이슈 제출 로직 (배열 저장)
 safeAddListener('taskForm', 'submit', async (e) => {
     e.preventDefault();
     const today = new Date();
@@ -635,9 +648,14 @@ safeAddListener('taskForm', 'submit', async (e) => {
     }
 
     const tTitle = document.getElementById('inputTitle').value;
-    const assignSelect = document.getElementById('inputAssignManager');
     const isAdmin = checkIsAdmin();
-    const assignedManager = (isAdmin && assignSelect) ? assignSelect.value : "";
+    
+    // 🌟 멀티 체크박스 값 추출하여 배열로 저장
+    let assignedManagersArr = [];
+    if (isAdmin) {
+        const checkboxes = document.querySelectorAll('.createAssignManagerList-checkbox:checked');
+        assignedManagersArr = Array.from(checkboxes).map(cb => cb.value);
+    }
 
     const newTask = {
         client: document.getElementById('inputClient').value,
@@ -647,7 +665,7 @@ safeAddListener('taskForm', 'submit', async (e) => {
         content: document.getElementById('inputContent').value,
         files: filesArr,
         staff: document.getElementById('inputStaff').value,
-        assignedManager: assignedManager,
+        assignedManagers: assignedManagersArr, // 배열로 저장
         status: "답변대기", 
         date: dateStr,
         comments: [] 
@@ -676,6 +694,7 @@ async function fetchTasks() {
         const querySnapshot = await getDocs(collection(db, "crm_tasks"));
         tasksMap = {}; 
         
+        // 🌟 담당자 배열과 구버전 문자열을 동시에 필터링 호환 지원
         if (currentUserRole === 'player') {
             const cQ = query(collection(db, "clients"), where("managers", "array-contains", currentUserName));
             const cSnap = await getDocs(cQ);
@@ -684,13 +703,21 @@ async function fetchTasks() {
 
             querySnapshot.forEach((docSnap) => {
                 const data = docSnap.data();
-                if (myClients.includes(data.client) || data.staff === currentUserName || data.assignedManager === currentUserName) {
+                let isAssigned = false;
+                if (Array.isArray(data.assignedManagers)) {
+                    isAssigned = data.assignedManagers.includes(currentUserName);
+                } else if (data.assignedManager === currentUserName) { // 구버전 데이터 호환
+                    isAssigned = true;
+                }
+
+                if (myClients.includes(data.client) || data.staff === currentUserName || isAssigned) {
                     const tItem = { id: docSnap.id, ...data };
                     fetchedData.push(tItem);
                     tasksMap[docSnap.id] = tItem;
                 }
             });
-        } else {
+        } 
+        else {
             querySnapshot.forEach((docSnap) => { 
                 const tItem = { id: docSnap.id, ...docSnap.data() };
                 fetchedData.push(tItem);
@@ -732,8 +759,17 @@ async function fetchTasks() {
             }
 
             const commentCount = item.comments ? item.comments.length : 0;
-            const staffDisplay = item.assignedManager 
-                ? `${item.staff || '미지정'} <span class="text-hermes font-bold text-[10px] block sm:inline sm:ml-1">(담당: ${item.assignedManager})</span>`
+
+            // 🌟 리스트의 지정 담당자 노출을 배열 처리로 개선
+            let assignedStr = "";
+            if (Array.isArray(item.assignedManagers) && item.assignedManagers.length > 0) {
+                assignedStr = item.assignedManagers.join(', ');
+            } else if (item.assignedManager) {
+                assignedStr = item.assignedManager;
+            }
+
+            const staffDisplay = assignedStr 
+                ? `${item.staff || '미지정'} <span class="text-hermes font-bold text-[10px] block sm:inline sm:ml-1">(담당: ${assignedStr})</span>`
                 : (item.staff || '미지정');
 
             rowsHtml += `
@@ -814,7 +850,16 @@ function openDetailModal(taskId) {
     document.getElementById('detailType').innerText = task.type || 'Q&A';
     document.getElementById('detailClient').innerText = task.client || '-';
     document.getElementById('detailStaff').innerText = task.staff || '미지정';
-    document.getElementById('detailAssignManager').innerText = task.assignedManager ? task.assignedManager : '미지정';
+    
+    // 🌟 상세 모달의 담당자 정보 배열 연동
+    let assignedStr = "";
+    if (Array.isArray(task.assignedManagers) && task.assignedManagers.length > 0) {
+        assignedStr = task.assignedManagers.join(', ');
+    } else if (task.assignedManager) {
+        assignedStr = task.assignedManager;
+    }
+    document.getElementById('detailAssignManager').innerText = assignedStr ? assignedStr : '미지정';
+    
     document.getElementById('detailDate').innerText = task.date || '-';
     document.getElementById('detailAgency').innerText = task.agency === 'noah' ? '노아유니버스' : '애드플랜터스';
     document.getElementById('detailContent').innerText = task.content || '등록된 상세 내용이 없습니다.';
@@ -947,7 +992,7 @@ safeAddListener('detailDeleteBtn', 'click', async () => {
     }
 });
 
-// 🌟 [핵심 연동] 본문 수정 모달 오픈 시 관리자 권한 체크 및 담당자 목록 로드
+// 🌟 [핵심 연동] 수정 모달 오픈 시 체크박스 렌더링 및 배열 값 동기화
 safeAddListener('detailEditBtn', 'click', async () => {
     if(!currentDetailTaskId) return;
     const task = tasksMap[currentDetailTaskId];
@@ -959,13 +1004,14 @@ safeAddListener('detailEditBtn', 'click', async () => {
     document.getElementById('editTaskContent').value = task.content || '';
     
     const editAssignArea = document.getElementById('editAssignManagerArea');
-    const editAssignSelect = document.getElementById('editTaskAssignManager');
     const isAdmin = checkIsAdmin();
 
     if (isAdmin) {
         if (editAssignArea) editAssignArea.classList.remove('hidden');
-        await populateAssignManagerDropdown('editTaskAssignManager');
-        if (editAssignSelect) editAssignSelect.value = task.assignedManager || '';
+        const legacyVal = task.assignedManager;
+        const currentArr = task.assignedManagers || [];
+        const combinedSel = currentArr.length > 0 ? currentArr : (legacyVal ? [legacyVal] : []);
+        await populateAssignManagerCheckboxes('editAssignManagerList', combinedSel);
     } else {
         if (editAssignArea) editAssignArea.classList.add('hidden');
     }
@@ -1012,9 +1058,6 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
         finalFilesArr = newFilesArr;
     }
 
-    const isAdmin = checkIsAdmin();
-    const editAssignSelect = document.getElementById('editTaskAssignManager');
-
     const updatedTask = {
         client: document.getElementById('editTaskClient').value,
         type: document.getElementById('editTaskType').value,
@@ -1024,8 +1067,11 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
         files: finalFilesArr
     };
 
-    if (isAdmin && editAssignSelect) {
-        updatedTask.assignedManager = editAssignSelect.value;
+    const isAdmin = checkIsAdmin();
+    if (isAdmin) {
+        const checkboxes = document.querySelectorAll('.editAssignManagerList-checkbox:checked');
+        updatedTask.assignedManagers = Array.from(checkboxes).map(cb => cb.value);
+        updatedTask.assignedManager = ""; // 구버전 데이터와 겹치지 않게 클리어
     }
 
     try {

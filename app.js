@@ -62,7 +62,7 @@ function checkIsAdmin() {
     return false;
 }
 
-// 🌟 [핵심 업데이트] 다중 체크박스 렌더링 함수
+// 🌟 [핵심 업데이트] 다중 체크박스 UI 렌더링 함수
 async function populateAssignManagerCheckboxes(containerId, selectedManagers = []) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -75,7 +75,7 @@ async function populateAssignManagerCheckboxes(containerId, selectedManagers = [
             return;
         }
 
-        // 기존 구버전 데이터(단일 텍스트)를 배열로 치환
+        // 기존 구버전 데이터(단일 텍스트)를 배열로 안전하게 치환
         const selArray = Array.isArray(selectedManagers) ? selectedManagers : (selectedManagers ? [selectedManagers] : []);
 
         snap.forEach(docSnap => {
@@ -83,9 +83,12 @@ async function populateAssignManagerCheckboxes(containerId, selectedManagers = [
             const roleLabel = u.role === 'admin' ? '최상위 관리자' : (u.role === 'leader' ? '리더' : 'Player');
             const isChecked = selArray.includes(u.name) ? 'checked' : '';
             
+            // 모달에 따라 테마 색상(주황/파랑) 적용
+            const themeClass = containerId.includes('edit') ? 'text-blue-600 focus:ring-blue-600' : 'text-hermes focus:ring-hermes';
+
             container.innerHTML += `
-                <label class="flex items-center gap-2 p-1.5 hover:bg-white rounded cursor-pointer transition">
-                    <input type="checkbox" value="${u.name}" class="${containerId}-checkbox w-4 h-4 text-hermes focus:ring-hermes border-gray-300 rounded" ${isChecked}>
+                <label class="flex items-center gap-2 p-1.5 hover:bg-white rounded cursor-pointer transition border border-transparent hover:border-gray-200">
+                    <input type="checkbox" value="${u.name}" class="${containerId}-checkbox w-4 h-4 ${themeClass} border-gray-300 rounded" ${isChecked}>
                     <span class="text-xs font-bold text-gray-800">${u.name} <span class="text-[10px] font-normal text-gray-500">(${roleLabel})</span></span>
                 </label>
             `;
@@ -227,7 +230,6 @@ safeAddListener('mobileMenuBtn', 'click', () => {
 safeAddListener('closeSidebarBtn', 'click', closeMobileSidebar);
 safeAddListener('mobileOverlay', 'click', closeMobileSidebar);
 
-// 🌟 [연동] 이슈 등록 모달 오픈 
 safeAddListener('openModalBtn', 'click', () => {
     ensureClientNamesLoaded();
     createModal.classList.remove('hidden');
@@ -617,7 +619,6 @@ safeAddListener('saveAssignBtn', 'click', async () => {
     } catch (error) { alert("업데이트 실패: " + error.message); }
 });
 
-// 🌟 [핵심 연동] 신규 이슈 제출 로직 (배열 저장)
 safeAddListener('taskForm', 'submit', async (e) => {
     e.preventDefault();
     const today = new Date();
@@ -650,7 +651,7 @@ safeAddListener('taskForm', 'submit', async (e) => {
     const tTitle = document.getElementById('inputTitle').value;
     const isAdmin = checkIsAdmin();
     
-    // 🌟 멀티 체크박스 값 추출하여 배열로 저장
+    // 🌟 신규 등록 시 멀티 체크박스 값 추출하여 배열로 저장
     let assignedManagersArr = [];
     if (isAdmin) {
         const checkboxes = document.querySelectorAll('.createAssignManagerList-checkbox:checked');
@@ -665,7 +666,7 @@ safeAddListener('taskForm', 'submit', async (e) => {
         content: document.getElementById('inputContent').value,
         files: filesArr,
         staff: document.getElementById('inputStaff').value,
-        assignedManagers: assignedManagersArr, // 배열로 저장
+        assignedManagers: assignedManagersArr, // 배열 저장
         status: "답변대기", 
         date: dateStr,
         comments: [] 
@@ -694,7 +695,6 @@ async function fetchTasks() {
         const querySnapshot = await getDocs(collection(db, "crm_tasks"));
         tasksMap = {}; 
         
-        // 🌟 담당자 배열과 구버전 문자열을 동시에 필터링 호환 지원
         if (currentUserRole === 'player') {
             const cQ = query(collection(db, "clients"), where("managers", "array-contains", currentUserName));
             const cSnap = await getDocs(cQ);
@@ -706,7 +706,7 @@ async function fetchTasks() {
                 let isAssigned = false;
                 if (Array.isArray(data.assignedManagers)) {
                     isAssigned = data.assignedManagers.includes(currentUserName);
-                } else if (data.assignedManager === currentUserName) { // 구버전 데이터 호환
+                } else if (data.assignedManager === currentUserName) { // 구버전 호환
                     isAssigned = true;
                 }
 
@@ -760,7 +760,6 @@ async function fetchTasks() {
 
             const commentCount = item.comments ? item.comments.length : 0;
 
-            // 🌟 리스트의 지정 담당자 노출을 배열 처리로 개선
             let assignedStr = "";
             if (Array.isArray(item.assignedManagers) && item.assignedManagers.length > 0) {
                 assignedStr = item.assignedManagers.join(', ');
@@ -851,7 +850,6 @@ function openDetailModal(taskId) {
     document.getElementById('detailClient').innerText = task.client || '-';
     document.getElementById('detailStaff').innerText = task.staff || '미지정';
     
-    // 🌟 상세 모달의 담당자 정보 배열 연동
     let assignedStr = "";
     if (Array.isArray(task.assignedManagers) && task.assignedManagers.length > 0) {
         assignedStr = task.assignedManagers.join(', ');
@@ -1010,6 +1008,7 @@ safeAddListener('detailEditBtn', 'click', async () => {
         if (editAssignArea) editAssignArea.classList.remove('hidden');
         const legacyVal = task.assignedManager;
         const currentArr = task.assignedManagers || [];
+        // 기존 값과 신규 배열 값 호환성을 위해 결합
         const combinedSel = currentArr.length > 0 ? currentArr : (legacyVal ? [legacyVal] : []);
         await populateAssignManagerCheckboxes('editAssignManagerList', combinedSel);
     } else {
@@ -1025,6 +1024,7 @@ safeAddListener('detailEditBtn', 'click', async () => {
     editTaskModal.classList.remove('hidden');
 });
 
+// 🌟 다중 담당자 수정 반영하여 DB 저장
 safeAddListener('editTaskForm', 'submit', async (e) => {
     e.preventDefault();
     if(!currentDetailTaskId) return;
@@ -1069,9 +1069,10 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
 
     const isAdmin = checkIsAdmin();
     if (isAdmin) {
+        // 🌟 수정 폼 제출 시 선택된 체크박스 값 추출하여 배열로 저장
         const checkboxes = document.querySelectorAll('.editAssignManagerList-checkbox:checked');
         updatedTask.assignedManagers = Array.from(checkboxes).map(cb => cb.value);
-        updatedTask.assignedManager = ""; // 구버전 데이터와 겹치지 않게 클리어
+        updatedTask.assignedManager = ""; // 과거 단일 스트링과 중복되지 않도록 초기화
     }
 
     try {

@@ -26,6 +26,7 @@ let currentDetailTaskId = null; // 상세조회 중인 게시판 이슈 ID
 let currentReplyTaskId = null;
 let isInitialLoginLogged = false;
 let tasksMap = {}; // 이슈 데이터 로컬 맵핑 저장소
+let cachedClientNames = []; // 🌟 실시간 자동완성을 위한 클라이언트 목록 캐시 메모리
 
 // DOM 맵핑
 const loginSection = document.getElementById('loginSection');
@@ -57,6 +58,93 @@ function safeAddListener(id, eventType, callback) {
     if (el) {
         el.addEventListener(eventType, callback);
     }
+}
+
+// 🌟 [신규] DB에서 전체 등록된 클라이언트 상호명 로드 함수
+async function ensureClientNamesLoaded() {
+    if (cachedClientNames.length > 0) return cachedClientNames;
+    try {
+        const querySnapshot = await getDocs(collection(db, "clients"));
+        cachedClientNames = [];
+        querySnapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            if (data.name) cachedClientNames.push(data.name);
+        });
+    } catch (e) {
+        console.error("클라이언트 목록 로드 실패:", e);
+    }
+    return cachedClientNames;
+}
+
+// 🌟 [신규] 입력창 하단 실시간 검색 자동완성 모듈
+function initClientAutocomplete(inputId) {
+    const inputEl = document.getElementById(inputId);
+    if (!inputEl) return;
+
+    // 부모 요소를 relative로 설정하여 하단 드롭다운의 기준점으로 지정
+    if (inputEl.parentElement) {
+        inputEl.parentElement.classList.add('relative');
+    }
+
+    // 자동완성 레이어 엘리먼트 동적 생성
+    let suggestBox = document.getElementById(inputId + '_suggestions');
+    if (!suggestBox) {
+        suggestBox = document.createElement('div');
+        suggestBox.id = inputId + '_suggestions';
+        suggestBox.className = 'absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-48 overflow-y-auto hidden divide-y divide-gray-100';
+        inputEl.parentElement.appendChild(suggestBox);
+    }
+
+    const showSuggestions = async () => {
+        await ensureClientNamesLoaded();
+        const queryVal = inputEl.value.trim().toLowerCase();
+
+        if (!queryVal) {
+            suggestBox.classList.add('hidden');
+            suggestBox.innerHTML = '';
+            return;
+        }
+
+        // 철자가 포함된 클라이언트 필터링
+        const matches = cachedClientNames.filter(name => 
+            name.toLowerCase().includes(queryVal)
+        );
+
+        if (matches.length === 0) {
+            suggestBox.classList.add('hidden');
+            suggestBox.innerHTML = '';
+            return;
+        }
+
+        // 검색 목록 렌더링
+        suggestBox.innerHTML = matches.map(name => `
+            <div class="suggestion-item p-2.5 text-xs font-bold text-gray-800 hover:bg-orange-50 hover:text-hermes cursor-pointer transition flex items-center justify-between">
+                <span>${name}</span>
+                <span class="text-[10px] text-gray-400 font-normal bg-gray-100 px-1.5 py-0.5 rounded">클릭하여 선택</span>
+            </div>
+        `).join('');
+
+        suggestBox.classList.remove('hidden');
+
+        // 목록 선택 이벤트 연결
+        suggestBox.querySelectorAll('.suggestion-item').forEach((item, idx) => {
+            item.addEventListener('click', () => {
+                inputEl.value = matches[idx];
+                suggestBox.classList.add('hidden');
+                suggestBox.innerHTML = '';
+            });
+        });
+    };
+
+    inputEl.addEventListener('input', showSuggestions);
+    inputEl.addEventListener('focus', showSuggestions);
+
+    // 바깥 영역 클릭 시 추천 박스 닫기
+    document.addEventListener('click', (e) => {
+        if (!inputEl.contains(e.target) && !suggestBox.contains(e.target)) {
+            suggestBox.classList.add('hidden');
+        }
+    });
 }
 
 // 이미지 파일 자동 압축 함수 (Canvas 기반 1MB 제한)
@@ -121,7 +209,10 @@ safeAddListener('closeSidebarBtn', 'click', closeMobileSidebar);
 safeAddListener('mobileOverlay', 'click', closeMobileSidebar);
 
 // 모달 제어 이벤트 (안전 가드 적용)
-safeAddListener('openModalBtn', 'click', () => createModal.classList.remove('hidden'));
+safeAddListener('openModalBtn', 'click', () => {
+    ensureClientNamesLoaded(); // 모달 오픈 시 클라이언트 캐시 미리로드
+    createModal.classList.remove('hidden');
+});
 safeAddListener('closeModalBtn', 'click', () => createModal.classList.add('hidden'));
 safeAddListener('cancelBtn', 'click', () => createModal.classList.add('hidden'));
 
@@ -147,11 +238,10 @@ safeAddListener('closeDetailBtn', 'click', () => detailModal.classList.add('hidd
 safeAddListener('closeEditTaskModalBtn', 'click', () => editTaskModal.classList.add('hidden'));
 safeAddListener('cancelEditTaskBtn', 'click', () => editTaskModal.classList.add('hidden'));
 
-// ★ [업데이트] Auth 제어 - 에러 확인용 Alert 포함 ★
+// Auth 제어
 safeAddListener('googleLoginBtn', 'click', async () => {
     try {
         await signInWithPopup(auth, provider);
-        // 성공 시 onAuthStateChanged에서 자동 처리됨
     } catch(e) {
         console.error("구글 로그인 에러:", e);
         if (e.code === 'auth/popup-blocked') {
@@ -294,6 +384,11 @@ function showDashboard(user) {
             document.head.appendChild(style);
         }
     }
+
+    // 🌟 실시간 자동완성 모듈 바인딩 가동
+    initClientAutocomplete('inputClient');
+    initClientAutocomplete('editTaskClient');
+
     fetchTasks();
 }
 
@@ -329,6 +424,7 @@ safeAddListener('clientForm', 'submit', async (e) => {
         clientModal.classList.add('hidden');
         document.getElementById('clientForm').reset();
         await logActivity("클라이언트 등록", `신규 클라이언트 [${cName}] 데이터 생성`);
+        cachedClientNames = []; // 🌟 신규 등록 시 검색 캐시 초기화하여 최신 데이터 적용
         fetchClients();
         alert("성공적으로 등록되었습니다.");
     } catch (error) { alert("등록 실패: " + error.message); }
@@ -355,6 +451,7 @@ safeAddListener('editClientForm', 'submit', async (e) => {
         editClientModal.classList.add('hidden');
         await logActivity("클라이언트 수정", `클라이언트 [${cName}] 세부 정보 수정`);
         alert("클라이언트 정보가 수정되었습니다.");
+        cachedClientNames = []; // 🌟 수정 시 검색 캐시 초기화
         fetchClients();
     } catch (error) { alert("수정 실패: " + error.message); }
 });
@@ -396,7 +493,6 @@ async function fetchClients() {
                     </div>
                 </td>` : `<td class="admin-only-col hidden"></td>`;
 
-            // 🌟 [수정 완료] 메타 PW 마스킹 해제 및 평문 출력 + 원클릭 복사 버튼 추가
             const tr = `
                 <tr class="hover:bg-orange-50/30 transition border-b border-gray-100">
                     <td class="p-3 md:p-4 font-black text-gray-900 align-middle">${data.name}</td>
@@ -452,6 +548,7 @@ async function fetchClients() {
                 if (confirm(`정말 클라이언트 [${clientName}] 데이터를 삭제하시겠습니까?`)) {
                     await deleteDoc(doc(db, "clients", clientId));
                     await logActivity("클라이언트 삭제", `클라이언트 [${clientName}] 영구 삭제 처리`);
+                    cachedClientNames = []; // 🌟 삭제 시 검색 캐시 초기화
                     fetchClients();
                 }
             });

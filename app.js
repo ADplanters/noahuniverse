@@ -67,9 +67,9 @@ function checkIsAdmin() {
     return false;
 }
 
-// 🌟 최상위 관리자 모달 전용 담당자 선택 드롭다운 채우기 함수
-async function populateAssignManagerDropdown() {
-    const selectEl = document.getElementById('inputAssignManager');
+// 🌟 [재사용 유틸리티] 지정 셀렉트 박스 아이디에 따라 담당자 목록 채우기
+async function populateAssignManagerDropdown(targetSelectId = 'inputAssignManager') {
+    const selectEl = document.getElementById(targetSelectId);
     if (!selectEl) return;
     try {
         const q = query(collection(db, "users"), where("status", "==", "approved"));
@@ -239,7 +239,7 @@ safeAddListener('mobileMenuBtn', 'click', () => {
 safeAddListener('closeSidebarBtn', 'click', closeMobileSidebar);
 safeAddListener('mobileOverlay', 'click', closeMobileSidebar);
 
-// 🌟 [업데이트] 신규 이슈 등록 모달 제어 (최상위 관리자 전용 담당자 지정 영역 스위칭)
+// 신규 이슈 등록 모달 제어
 safeAddListener('openModalBtn', 'click', () => {
     ensureClientNamesLoaded();
     createModal.classList.remove('hidden');
@@ -249,7 +249,7 @@ safeAddListener('openModalBtn', 'click', () => {
 
     if (isAdmin) {
         if (assignArea) assignArea.classList.remove('hidden');
-        populateAssignManagerDropdown();
+        populateAssignManagerDropdown('inputAssignManager');
     } else {
         if (assignArea) assignArea.classList.add('hidden');
         const selectEl = document.getElementById('inputAssignManager');
@@ -418,7 +418,8 @@ function showDashboard(user) {
         if(adminMenu) adminMenu.classList.remove('hidden');
         const oldStyle = document.getElementById('adminStyle');
         if(oldStyle) oldStyle.remove();
-        populateAssignManagerDropdown(); // 대시보드 진입 시 미리 프리로드
+        populateAssignManagerDropdown('inputAssignManager');
+        populateAssignManagerDropdown('editTaskAssignManager');
     } else {
         const adminMenu = document.getElementById('adminMenuSection');
         if(adminMenu) adminMenu.classList.add('hidden');
@@ -647,10 +648,7 @@ safeAddListener('saveAssignBtn', 'click', async () => {
     } catch (error) { alert("업데이트 실패: " + error.message); }
 });
 
-// ============================================================================
 // 게시판 담당자 지정 연동 및 권한 필터링 처리
-// ============================================================================
-
 safeAddListener('taskForm', 'submit', async (e) => {
     e.preventDefault();
     const today = new Date();
@@ -693,7 +691,7 @@ safeAddListener('taskForm', 'submit', async (e) => {
         content: document.getElementById('inputContent').value,
         files: filesArr,
         staff: document.getElementById('inputStaff').value,
-        assignedManager: assignedManager, // 담당자 정보 필드 저장
+        assignedManager: assignedManager,
         status: "답변대기", 
         date: dateStr,
         comments: [] 
@@ -722,7 +720,6 @@ async function fetchTasks() {
         const querySnapshot = await getDocs(collection(db, "crm_tasks"));
         tasksMap = {}; 
         
-        // Player 계정: 본인 관련 문의만 필터링 (지정받은 문의 OR 본인 작성 문의 OR 본인 담당 클라이언트 문의)
         if (currentUserRole === 'player') {
             const cQ = query(collection(db, "clients"), where("managers", "array-contains", currentUserName));
             const cSnap = await getDocs(cQ);
@@ -738,7 +735,6 @@ async function fetchTasks() {
                 }
             });
         } 
-        // 리더(Leader) 및 최상위 관리자(Admin): 모든 게시글 전수 조회
         else {
             querySnapshot.forEach((docSnap) => { 
                 const tItem = { id: docSnap.id, ...docSnap.data() };
@@ -998,7 +994,8 @@ safeAddListener('detailDeleteBtn', 'click', async () => {
     }
 });
 
-safeAddListener('detailEditBtn', 'click', () => {
+// 🌟 [수정 연동] 본문 수정 시 최상위 관리자에게 담당자 수정 영역 노출 및 기존 값 세팅
+safeAddListener('detailEditBtn', 'click', async () => {
     if(!currentDetailTaskId) return;
     const task = tasksMap[currentDetailTaskId];
     
@@ -1008,6 +1005,18 @@ safeAddListener('detailEditBtn', 'click', () => {
     document.getElementById('editTaskTitle').value = task.title || '';
     document.getElementById('editTaskContent').value = task.content || '';
     
+    const editAssignArea = document.getElementById('editAssignManagerArea');
+    const editAssignSelect = document.getElementById('editTaskAssignManager');
+    const isAdmin = checkIsAdmin();
+
+    if (isAdmin) {
+        if (editAssignArea) editAssignArea.classList.remove('hidden');
+        await populateAssignManagerDropdown('editTaskAssignManager');
+        if (editAssignSelect) editAssignSelect.value = task.assignedManager || '';
+    } else {
+        if (editAssignArea) editAssignArea.classList.add('hidden');
+    }
+
     const fileLabel = (task.files && task.files.length > 0) 
         ? task.files.map(f => f.fileName).join(', ') 
         : (task.fileName || '없음');
@@ -1017,6 +1026,7 @@ safeAddListener('detailEditBtn', 'click', () => {
     editTaskModal.classList.remove('hidden');
 });
 
+// 🌟 [수정 저장 연동] 본문 수정 제출 시 담당자 변경값 적용
 safeAddListener('editTaskForm', 'submit', async (e) => {
     e.preventDefault();
     if(!currentDetailTaskId) return;
@@ -1050,6 +1060,9 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
         finalFilesArr = newFilesArr;
     }
 
+    const isAdmin = checkIsAdmin();
+    const editAssignSelect = document.getElementById('editTaskAssignManager');
+
     const updatedTask = {
         client: document.getElementById('editTaskClient').value,
         type: document.getElementById('editTaskType').value,
@@ -1059,10 +1072,14 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
         files: finalFilesArr
     };
 
+    if (isAdmin && editAssignSelect) {
+        updatedTask.assignedManager = editAssignSelect.value;
+    }
+
     try {
         await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), updatedTask);
         editTaskModal.classList.add('hidden');
-        await logActivity("게시글 수정", `[${updatedTask.title}] 본문 수정 처리`);
+        await logActivity("게시글 수정", `[${updatedTask.title}] 본문 및 담당자 수정 처리`);
         alert("수정되었습니다.");
         fetchTasks();
     } catch(e) { alert("수정 실패: " + e.message); }

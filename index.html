@@ -207,7 +207,7 @@
                                 <th class="p-3 md:p-4 font-bold w-[10%]">분류</th>
                                 <th class="p-3 md:p-4 font-bold w-[40%]">제목 (클릭 시 상세 보기 및 댓글)</th>
                                 <th class="p-3 md:p-4 font-bold w-[15%]">첨부파일</th>
-                                <th class="p-3 md:p-4 font-bold w-[10%]">작성자</th>
+                                <th class="p-3 md:p-4 font-bold w-[10%]">작성자 / 담당자</th>
                                 <th class="p-3 md:p-4 font-bold text-center w-[10%]">상태</th>
                                 <th class="p-3 md:p-4 font-bold">등록일</th>
                                 <th class="p-3 md:p-4 font-bold text-center admin-only-col">관리(ADMIN)</th>
@@ -386,6 +386,17 @@
                     <label class="block text-xs font-bold text-gray-700 mb-1">클라이언트명</label>
                     <input type="text" id="inputClient" required placeholder="예: 노아피부과" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none">
                 </div>
+
+                <!-- 🌟 [신규] 최상위 관리자 전용 담당자 지정 영역 -->
+                <div id="assignManagerArea" class="hidden">
+                    <label class="block text-xs font-bold text-gray-700 mb-1">
+                        <i class="fa-solid fa-user-gear text-hermes mr-1"></i> 담당자 지정 (최상위 관리자 전용)
+                    </label>
+                    <select id="inputAssignManager" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none bg-orange-50/30">
+                        <option value="">담당자 미지정</option>
+                    </select>
+                </div>
+
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
                         <label class="block text-xs font-bold text-gray-700 mb-1">분류</label>
@@ -414,7 +425,6 @@
                     <textarea id="inputContent" rows="4" placeholder="상세 문의 및 요구사항을 작성해 주세요." class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none resize-none"></textarea>
                 </div>
 
-                <!-- 🌟 [업데이트] 다중 파일 선택(multiple) 추가 영역 -->
                 <div>
                     <label class="block text-xs font-bold text-gray-700 mb-1">
                         <i class="fa-solid fa-paperclip text-hermes mr-1"></i> 파일 첨부 (파일당 1MB 미만, 다중 선택 가능)
@@ -484,7 +494,6 @@
                     <textarea id="editTaskContent" rows="4" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none resize-none"></textarea>
                 </div>
 
-                <!-- 🌟 [업데이트] 파일 수정을 위한 다중 선택 input 추가 -->
                 <div>
                     <label class="block text-xs font-bold text-gray-700 mb-1"><i class="fa-solid fa-paperclip text-hermes mr-1"></i> 첨부파일 교체 (파일당 1MB 미만, 다중 선택 가능)</label>
                     <input type="file" id="editTaskFile" multiple class="w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-hermes-light file:text-hermes hover:file:bg-orange-200 cursor-pointer border border-gray-200 rounded-lg p-1.5">
@@ -527,7 +536,7 @@
         </div>
     </div>
 
-    <!-- 게시판 형태 상세 보기 팝업 (댓글 및 수정/삭제 기능 포함) -->
+    <!-- 게시판 형태 상세 보기 팝업 -->
     <div id="detailModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-2xl p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[95vh] overflow-y-auto flex flex-col">
             <div class="flex justify-between items-start mb-4 border-b pb-4">
@@ -541,11 +550,13 @@
                 <button id="closeDetailModalBtn" class="text-gray-400 hover:text-gray-600 p-1 flex-shrink-0"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
 
+            <!-- 🌟 [신규] 지정 담당자 표기 항목 추가 -->
             <div class="grid grid-cols-2 gap-2 bg-gray-50 p-3 rounded-xl border border-gray-100 text-xs mb-4">
                 <div><span class="font-bold text-gray-400">클라이언트:</span> <span id="detailClient" class="font-bold text-gray-800"></span></div>
                 <div><span class="font-bold text-gray-400">작성자:</span> <span id="detailStaff" class="font-bold text-gray-800"></span></div>
+                <div><span class="font-bold text-gray-400">지정 담당자:</span> <span id="detailAssignManager" class="font-bold text-hermes">미지정</span></div>
                 <div><span class="font-bold text-gray-400">등록일:</span> <span id="detailDate" class="font-bold text-gray-800"></span></div>
-                <div><span class="font-bold text-gray-400">소속:</span> <span id="detailAgency" class="font-bold text-gray-800"></span></div>
+                <div class="col-span-2"><span class="font-bold text-gray-400">소속:</span> <span id="detailAgency" class="font-bold text-gray-800"></span></div>
             </div>
 
             <div class="mb-4 flex-1">

@@ -60,6 +60,24 @@ function safeAddListener(id, eventType, callback) {
     }
 }
 
+// 🌟 [신규] 최상위 관리자 모달 전용 담당자 선택 드롭다운 채우기 함수
+async function populateAssignManagerDropdown() {
+    const selectEl = document.getElementById('inputAssignManager');
+    if (!selectEl) return;
+    selectEl.innerHTML = '<option value="">담당자 미지정</option>';
+    try {
+        const q = query(collection(db, "users"), where("status", "==", "approved"));
+        const snap = await getDocs(q);
+        snap.forEach(docSnap => {
+            const u = docSnap.data();
+            const roleLabel = u.role === 'admin' ? '최상위 관리자' : (u.role === 'leader' ? '리더' : 'Player');
+            selectEl.innerHTML += `<option value="${u.name}">${u.name} (${roleLabel})</option>`;
+        });
+    } catch (e) {
+        console.error("담당자 목록 로드 실패:", e);
+    }
+}
+
 // DB에서 전체 등록된 클라이언트 상호명 로드 함수
 async function ensureClientNamesLoaded() {
     if (cachedClientNames.length > 0) return cachedClientNames;
@@ -174,14 +192,13 @@ function compressImage(file, maxWidth = 1200, quality = 0.7) {
     });
 }
 
-// 🌟 [신규] 단일/다중 파일 다운로드 버튼 렌더링 헬퍼 함수
+// 단일/다중 파일 다운로드 버튼 렌더링 헬퍼 함수
 function renderFileButtons(item) {
     if (item.files && item.files.length > 0) {
         return item.files.map(f => 
             `<a href="${f.fileData}" download="${f.fileName}" class="download-link inline-flex items-center gap-1 bg-gray-100 hover:bg-orange-100 text-gray-700 hover:text-hermes text-[10px] font-bold px-2 py-1.5 rounded-lg border border-gray-200 transition my-0.5"><i class="fa-solid fa-download text-hermes"></i> ${f.fileName}</a>`
         ).join(' ');
     } else if (item.fileData) {
-        // 기존 단일 파일 데이터 호환 처리
         return `<a href="${item.fileData}" download="${item.fileName}" class="download-link inline-flex items-center gap-1 bg-gray-100 hover:bg-orange-100 text-gray-700 hover:text-hermes text-[10px] font-bold px-2 py-1.5 rounded-lg border border-gray-200 transition"><i class="fa-solid fa-download text-hermes"></i> ${item.fileName}</a>`;
     }
     return `<span class="text-gray-300 text-[10px]">없음</span>`;
@@ -215,9 +232,18 @@ safeAddListener('mobileMenuBtn', 'click', () => {
 safeAddListener('closeSidebarBtn', 'click', closeMobileSidebar);
 safeAddListener('mobileOverlay', 'click', closeMobileSidebar);
 
-// 모달 제어 이벤트
-safeAddListener('openModalBtn', 'click', () => {
+// 🌟 [업데이트] 신규 이슈 등록 모달 제어 (최상위 관리자 전용 담당자 지정 영역 스위칭)
+safeAddListener('openModalBtn', 'click', async () => {
     ensureClientNamesLoaded();
+    const assignArea = document.getElementById('assignManagerArea');
+    if (currentUserRole === 'admin') {
+        if (assignArea) assignArea.classList.remove('hidden');
+        await populateAssignManagerDropdown();
+    } else {
+        if (assignArea) assignArea.classList.add('hidden');
+        const selectEl = document.getElementById('inputAssignManager');
+        if (selectEl) selectEl.value = "";
+    }
     createModal.classList.remove('hidden');
 });
 safeAddListener('closeModalBtn', 'click', () => createModal.classList.add('hidden'));
@@ -607,7 +633,7 @@ safeAddListener('saveAssignBtn', 'click', async () => {
 });
 
 // ============================================================================
-// 🌟 [업데이트] 게시판 다중 파일 제출 / 조회 / 수정 처리
+// 🌟 [업데이트] 게시판 담당자 지정 연동 및 권한 필터링 처리
 // ============================================================================
 
 safeAddListener('taskForm', 'submit', async (e) => {
@@ -617,7 +643,6 @@ safeAddListener('taskForm', 'submit', async (e) => {
     const fileInput = document.getElementById('inputFile');
     let filesArr = [];
 
-    // 🌟 다중 파일 선택 배열 순회 처리
     if (fileInput.files.length > 0) {
         for (let i = 0; i < fileInput.files.length; i++) {
             const file = fileInput.files[i];
@@ -641,14 +666,19 @@ safeAddListener('taskForm', 'submit', async (e) => {
     }
 
     const tTitle = document.getElementById('inputTitle').value;
+    const assignSelect = document.getElementById('inputAssignManager');
+    // 🌟 최상위 관리자가 지정한 담당자 값 획득 (Player가 제출할 땐 빈 값)
+    const assignedManager = (currentUserRole === 'admin' && assignSelect) ? assignSelect.value : "";
+
     const newTask = {
         client: document.getElementById('inputClient').value,
         type: document.getElementById('inputType').value,
         agency: document.getElementById('inputAgency').value,
         title: tTitle,
         content: document.getElementById('inputContent').value,
-        files: filesArr, // 🌟 다중 파일 배열 저장
+        files: filesArr,
         staff: document.getElementById('inputStaff').value,
+        assignedManager: assignedManager, // 🌟 담당자 정보 필드 추가
         status: "답변대기", 
         date: dateStr,
         comments: [] 
@@ -677,6 +707,7 @@ async function fetchTasks() {
         const querySnapshot = await getDocs(collection(db, "crm_tasks"));
         tasksMap = {}; 
         
+        // 🌟 Player 계정: 본인 관련 문의만 필터링 (지정받은 문의 OR 본인 작성 문의 OR 본인 담당 클라이언트 문의)
         if (currentUserRole === 'player') {
             const cQ = query(collection(db, "clients"), where("managers", "array-contains", currentUserName));
             const cSnap = await getDocs(cQ);
@@ -685,23 +716,14 @@ async function fetchTasks() {
 
             querySnapshot.forEach((docSnap) => {
                 const data = docSnap.data();
-                if (myClients.includes(data.client) || data.staff === currentUserName) {
+                if (myClients.includes(data.client) || data.staff === currentUserName || data.assignedManager === currentUserName) {
                     const tItem = { id: docSnap.id, ...data };
                     fetchedData.push(tItem);
                     tasksMap[docSnap.id] = tItem;
                 }
             });
         } 
-        else if (currentUserRole === 'leader') {
-            querySnapshot.forEach((docSnap) => {
-                const data = docSnap.data();
-                if (data.agency === "noah") {
-                    const tItem = { id: docSnap.id, ...data };
-                    fetchedData.push(tItem);
-                    tasksMap[docSnap.id] = tItem;
-                }
-            });
-        } 
+        // 🌟 리더(Leader) 및 최상위 관리자(Admin): 모든 게시글 전수 조회
         else {
             querySnapshot.forEach((docSnap) => { 
                 const tItem = { id: docSnap.id, ...docSnap.data() };
@@ -733,7 +755,6 @@ async function fetchTasks() {
                     <button class="delete-task-btn bg-red-50 text-red-500 hover:bg-red-500 hover:text-white px-2.5 py-1.5 rounded transition shadow-sm text-xs font-bold" data-id="${item.id}" data-t="${item.title}"><i class="fa-solid fa-trash-can"></i> 삭제</button>
                 </td>` : `<td class="admin-only-col hidden"></td>`;
 
-            // 🌟 다중 파일 다운로드 버튼 렌더링 호출
             const fileButton = renderFileButtons(item);
 
             function getBadge(status) {
@@ -743,6 +764,11 @@ async function fetchTasks() {
             }
 
             const commentCount = item.comments ? item.comments.length : 0;
+
+            // 🌟 작성자 및 지정 담당자 표기 가공
+            const staffDisplay = item.assignedManager 
+                ? `${item.staff || '미지정'} <span class="text-hermes font-bold text-[10px] block sm:inline sm:ml-1">(담당: ${item.assignedManager})</span>`
+                : (item.staff || '미지정');
 
             rowsHtml += `
                 <tr class="hover:bg-hermes-light/30 transition group border-b border-gray-100 cursor-pointer task-detail-trigger" data-id="${item.id}">
@@ -758,7 +784,7 @@ async function fetchTasks() {
                     <td class="p-3 md:p-4 align-middle whitespace-nowrap">
                         <div class="flex items-center gap-1.5">
                             <div class="w-4 h-4 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[8px] flex-shrink-0"><i class="fa-solid fa-user"></i></div>
-                            <span class="text-gray-600 font-medium text-[11px]">${item.staff || '미지정'}</span>
+                            <span class="text-gray-600 font-medium text-[11px]">${staffDisplay}</span>
                         </div>
                     </td>
                     <td class="p-3 md:p-4 align-middle text-center">${getBadge(item.status)}</td>
@@ -822,6 +848,8 @@ function openDetailModal(taskId) {
     document.getElementById('detailType').innerText = task.type || 'Q&A';
     document.getElementById('detailClient').innerText = task.client || '-';
     document.getElementById('detailStaff').innerText = task.staff || '미지정';
+    // 🌟 지정 담당자 정보 레이아웃 갱신
+    document.getElementById('detailAssignManager').innerText = task.assignedManager ? task.assignedManager : '미지정';
     document.getElementById('detailDate').innerText = task.date || '-';
     document.getElementById('detailAgency').innerText = task.agency === 'noah' ? '노아유니버스' : '애드플랜터스';
     document.getElementById('detailContent').innerText = task.content || '등록된 상세 내용이 없습니다.';
@@ -831,7 +859,6 @@ function openDetailModal(taskId) {
     else if(task.status === '진행중') statusEl.innerHTML = `<span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-blue-100">진행중</span>`;
     else statusEl.innerHTML = `<span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-gray-200">답변완료</span>`;
 
-    // 🌟 상세 모달 내 다중 파일 다운로드 버튼 노출
     const fileBtnArea = document.getElementById('detailFileBtn');
     if ((task.files && task.files.length > 0) || task.fileData) {
         fileBtnArea.innerHTML = renderFileButtons(task);
@@ -963,7 +990,6 @@ safeAddListener('detailEditBtn', 'click', () => {
     document.getElementById('editTaskTitle').value = task.title || '';
     document.getElementById('editTaskContent').value = task.content || '';
     
-    // 🌟 수정 모달 오픈 시 기존 첨부 목록 표시
     const fileLabel = (task.files && task.files.length > 0) 
         ? task.files.map(f => f.fileName).join(', ') 
         : (task.fileName || '없음');
@@ -984,7 +1010,6 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
         finalFilesArr = [{ fileName: task.fileName, fileData: task.fileData }];
     }
 
-    // 🌟 수정 모달에서 신규 다중 파일 선택 시 교체 처리
     if (fileInput.files.length > 0) {
         let newFilesArr = [];
         for (let i = 0; i < fileInput.files.length; i++) {

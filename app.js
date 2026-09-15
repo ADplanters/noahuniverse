@@ -62,7 +62,20 @@ function checkIsAdmin() {
     return false;
 }
 
-// 🌟 다중 체크박스 UI 렌더링 함수
+// 🌟 [공통 함수] 통일된 4가지 상태값에 따른 배지 디자인 자동 반환
+function getStatusBadgeHtml(status) {
+    if(status === '답변 대기' || status === '답변대기' || status === '대기중') {
+        return `<span class="bg-red-50 text-red-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-red-100">답변 대기</span>`;
+    } else if(status === '진행중') {
+        return `<span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-blue-100">진행중</span>`;
+    } else if(status === '작업 완료') {
+        return `<span class="bg-orange-50 text-hermes px-2 py-0.5 rounded-md text-[10px] font-bold border border-orange-200">작업 완료</span>`;
+    } else {
+        return `<span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-gray-200">답변 완료</span>`;
+    }
+}
+
+// 다중 체크박스 UI 렌더링 함수
 async function populateAssignManagerCheckboxes(containerId, selectedManagers = []) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -228,18 +241,25 @@ safeAddListener('mobileMenuBtn', 'click', () => {
 safeAddListener('closeSidebarBtn', 'click', closeMobileSidebar);
 safeAddListener('mobileOverlay', 'click', closeMobileSidebar);
 
-// 🌟 [핵심 변경] 신규 등록 모달창을 열 때 상태 드롭다운의 잠금을 강제로 풀어줍니다.
+// 🌟 신규 등록 모달창을 열 때 상태 드롭다운 강제 통일 및 잠금 해제
 safeAddListener('openModalBtn', 'click', () => {
     ensureClientNamesLoaded();
     createModal.classList.remove('hidden');
     
-    // HTML에 disabled가 적용되어 클릭이 안되는 상태 창을 강제로 활성화합니다.
+    // HTML에 disabled가 적용되어 클릭이 안되는 상태 창을 강제로 활성화하고 통일된 4개 항목을 삽입
     const statusEl = document.getElementById('inputStatus');
     if (statusEl) {
-        statusEl.disabled = false; // 속성 비활성화
+        statusEl.disabled = false; 
         statusEl.removeAttribute('disabled'); 
-        statusEl.classList.remove('bg-gray-100', 'cursor-not-allowed'); // 회색 배경 제거
-        statusEl.classList.add('bg-white'); // 정상 흰색 배경 추가
+        statusEl.classList.remove('bg-gray-100', 'cursor-not-allowed');
+        statusEl.classList.add('bg-white');
+        
+        statusEl.innerHTML = `
+            <option value="답변 대기">답변 대기</option>
+            <option value="답변 완료">답변 완료</option>
+            <option value="진행중">진행중</option>
+            <option value="작업 완료">작업 완료</option>
+        `;
     }
 
     const assignArea = document.getElementById('assignManagerArea');
@@ -667,7 +687,7 @@ safeAddListener('taskForm', 'submit', async (e) => {
     }
 
     const statusEl = document.getElementById('inputStatus');
-    const selectedStatus = statusEl && statusEl.value ? statusEl.value : "답변대기";
+    const selectedStatus = statusEl && statusEl.value ? statusEl.value : "답변 대기";
 
     const newTask = {
         client: document.getElementById('inputClient').value,
@@ -763,12 +783,6 @@ async function fetchTasks() {
 
             const fileButton = renderFileButtons(item);
 
-            function getBadge(status) {
-                if(status === '답변대기' || status === '대기중') return `<span class="text-red-500 font-bold border border-red-200 bg-red-50 px-2 py-0.5 rounded text-[11px]">답변대기</span>`;
-                if(status === '진행중') return `<span class="text-blue-500 font-bold border border-blue-200 bg-blue-50 px-2 py-0.5 rounded text-[11px]">진행중</span>`;
-                return `<span class="text-gray-600 font-bold border border-gray-200 bg-gray-100 px-2 py-0.5 rounded text-[11px]">답변완료</span>`;
-            }
-
             const commentCount = item.comments ? item.comments.length : 0;
 
             let assignedStr = "";
@@ -799,7 +813,7 @@ async function fetchTasks() {
                             <span class="text-gray-600 font-medium text-[11px]">${staffDisplay}</span>
                         </div>
                     </td>
-                    <td class="p-3 md:p-4 align-middle text-center">${getBadge(item.status)}</td>
+                    <td class="p-3 md:p-4 align-middle text-center">${getStatusBadgeHtml(item.status)}</td>
                     <td class="p-3 md:p-4 align-middle text-gray-400 text-[11px] font-medium">${item.date || '-'}</td>
                     ${adminActions}
                 </tr>
@@ -845,11 +859,12 @@ if (boardTableEl) {
 
 function updateStats(data) {
     if(document.getElementById('statTotal')) document.getElementById('statTotal').innerText = data.length;
-    if(document.getElementById('statWait')) document.getElementById('statWait').innerText = data.filter(d => d.status === '답변대기' || d.status === '대기중').length;
+    if(document.getElementById('statWait')) document.getElementById('statWait').innerText = data.filter(d => d.status === '답변 대기' || d.status === '답변대기' || d.status === '대기중').length;
     if(document.getElementById('statIng')) document.getElementById('statIng').innerText = data.filter(d => d.status === '진행중').length;
-    if(document.getElementById('statDone')) document.getElementById('statDone').innerText = data.filter(d => d.status === '답변완료' || d.status === '완료').length;
+    if(document.getElementById('statDone')) document.getElementById('statDone').innerText = data.filter(d => d.status === '답변 완료' || d.status === '답변완료' || d.status === '작업 완료' || d.status === '완료').length;
 }
 
+// 🌟 상세 모달 열기 및 상태 변경 항목 통일
 function openDetailModal(taskId) {
     const task = tasksMap[taskId];
     if(!task) return;
@@ -874,9 +889,7 @@ function openDetailModal(taskId) {
     document.getElementById('detailContent').innerText = task.content || '등록된 상세 내용이 없습니다.';
 
     const statusEl = document.getElementById('detailStatus');
-    if(task.status === '답변대기' || task.status === '대기중') statusEl.innerHTML = `<span class="bg-red-50 text-red-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-red-100">답변대기</span>`;
-    else if(task.status === '진행중') statusEl.innerHTML = `<span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-blue-100">진행중</span>`;
-    else statusEl.innerHTML = `<span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-gray-200">답변완료</span>`;
+    if(statusEl) statusEl.innerHTML = getStatusBadgeHtml(task.status);
 
     const fileBtnArea = document.getElementById('detailFileBtn');
     if ((task.files && task.files.length > 0) || task.fileData) {
@@ -902,13 +915,22 @@ function openDetailModal(taskId) {
         deleteBtn.classList.remove('hidden');
         canShowAction = true;
         document.getElementById('adminStatusChangeArea').classList.remove('hidden');
+        
+        // 과거 DB 상태값을 새 4가지 표준값으로 자동 변환
         let selStatus = task.status;
-        if(selStatus==='대기중') selStatus='답변대기';
-        if(selStatus==='완료') selStatus='답변완료';
+        if(selStatus === '대기중' || selStatus === '답변대기') selStatus = '답변 대기';
+        if(selStatus === '완료' || selStatus === '답변완료') selStatus = '답변 완료';
         
         const adminSelectEl = document.getElementById('adminStatusSelect');
         if (adminSelectEl) {
-            adminSelectEl.value = selStatus || '답변대기';
+            // 통일된 4가지 옵션 강제 삽입
+            adminSelectEl.innerHTML = `
+                <option value="답변 대기">답변 대기</option>
+                <option value="답변 완료">답변 완료</option>
+                <option value="진행중">진행중</option>
+                <option value="작업 완료">작업 완료</option>
+            `;
+            adminSelectEl.value = selStatus || '답변 대기';
         }
     } else {
         deleteBtn.classList.add('hidden');
@@ -964,15 +986,7 @@ document.addEventListener('change', async (e) => {
         const statusEl = document.getElementById('detailStatus');
 
         try {
-            if (statusEl) {
-                if (newStatus === '답변대기' || newStatus === '대기중') {
-                    statusEl.innerHTML = `<span class="bg-red-50 text-red-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-red-100">답변대기</span>`;
-                } else if (newStatus === '진행중') {
-                    statusEl.innerHTML = `<span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-blue-100">진행중</span>`;
-                } else {
-                    statusEl.innerHTML = `<span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-gray-200">답변완료</span>`;
-                }
-            }
+            if (statusEl) statusEl.innerHTML = getStatusBadgeHtml(newStatus);
 
             await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), { 
                 status: newStatus 
@@ -1042,6 +1056,7 @@ safeAddListener('detailDeleteBtn', 'click', async () => {
     }
 });
 
+// 🌟 본문 수정 모달 열 때도 항목 4가지 통일
 safeAddListener('detailEditBtn', 'click', async () => {
     if(!currentDetailTaskId) return;
     const task = tasksMap[currentDetailTaskId];
@@ -1051,6 +1066,21 @@ safeAddListener('detailEditBtn', 'click', async () => {
     document.getElementById('editTaskAgency').value = task.agency || 'noah';
     document.getElementById('editTaskTitle').value = task.title || '';
     document.getElementById('editTaskContent').value = task.content || '';
+
+    // 수정 폼의 상태 창에 4가지 옵션 주입 및 값 세팅
+    const editStatusEl = document.getElementById('editTaskStatus');
+    if (editStatusEl) {
+        editStatusEl.innerHTML = `
+            <option value="답변 대기">답변 대기</option>
+            <option value="답변 완료">답변 완료</option>
+            <option value="진행중">진행중</option>
+            <option value="작업 완료">작업 완료</option>
+        `;
+        let selStatus = task.status;
+        if(selStatus === '대기중' || selStatus === '답변대기') selStatus = '답변 대기';
+        if(selStatus === '완료' || selStatus === '답변완료') selStatus = '답변 완료';
+        editStatusEl.value = selStatus || '답변 대기';
+    }
     
     const editAssignArea = document.getElementById('editAssignManagerArea');
     const isAdmin = checkIsAdmin();
@@ -1107,12 +1137,16 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
         finalFilesArr = newFilesArr;
     }
 
+    const editStatusEl = document.getElementById('editTaskStatus');
+    const selectedStatus = editStatusEl && editStatusEl.value ? editStatusEl.value : task.status;
+
     const updatedTask = {
         client: document.getElementById('editTaskClient').value,
         type: document.getElementById('editTaskType').value,
         agency: document.getElementById('editTaskAgency').value,
         title: document.getElementById('editTaskTitle').value,
         content: document.getElementById('editTaskContent').value,
+        status: selectedStatus, // 수정한 폼의 상태값 반영
         files: finalFilesArr
     };
 

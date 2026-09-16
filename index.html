@@ -42,15 +42,12 @@
             word-break: break-word;
         }
 
-        /* =======================================================
-           🌟 테이블 셀 세로 줄바꿈 및 글자 찌그러짐 방지 전역 스타일
-           ======================================================= */
+        /* 테이블 셀 세로 줄바꿈 및 글자 찌그러짐 방지 전역 스타일 */
         #boardTable td, #boardTable th,
         #clientsTable td, #clientsTable th {
             vertical-align: middle;
         }
 
-        /* 클라이언트(1열), 분류(2열), 상태(6열), 등록일(7열), 관리(8열) 세로 줄바꿈 방지 */
         #boardTable td:nth-child(1),
         #boardTable td:nth-child(2),
         #boardTable td:nth-child(6),
@@ -200,7 +197,7 @@
                 <div id="emptyClients" class="hidden py-12 md:py-16 text-center flex-col items-center justify-center"><i class="fa-solid fa-folder-open text-3xl md:text-4xl text-gray-300 mb-3"></i><p class="text-gray-500 font-medium text-xs md:text-sm">조회 가능한 클라이언트 데이터가 없습니다.</p></div>
             </div>
 
-            <!-- 뷰 3. 이슈/요청 리스트 (레이아웃 보호 적용) -->
+            <!-- 뷰 3. 이슈/요청 리스트 -->
             <div id="tasksContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8">
                 <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-white">
                     <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-table-list text-hermes mr-2"></i> 업무 이슈/요청 리스트</h2>
@@ -526,7 +523,7 @@
     </div>
 
     <!-- ==================================================================== -->
-    <!-- 게시판 형태 상세 보기 팝업 (첨부파일 썸네일 미리보기 & 인라인 수정) -->
+    <!-- 게시판 형태 상세 보기 팝업 -->
     <!-- ==================================================================== -->
     <div id="detailModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-2xl p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[95vh] overflow-y-auto flex flex-col">
@@ -562,7 +559,7 @@
                 <div id="detailContent" class="p-4 rounded-xl border border-gray-200 whitespace-pre-wrap text-gray-800 text-sm min-h-[100px] bg-white leading-relaxed"></div>
             </div>
 
-            <!-- 본문 첨부파일 미리보기 (이미지 썸네일 카드 렌더링 영역) -->
+            <!-- 본문 첨부파일 미리보기 영역 -->
             <div id="detailFileArea" class="mb-6">
                 <p class="font-bold text-gray-900 mb-1.5"><i class="fa-solid fa-paperclip text-hermes mr-1"></i> 첨부파일</p>
                 <div id="detailFileBtn" class="flex flex-wrap gap-3">
@@ -607,7 +604,7 @@
                         <div class="relative flex-1">
                             <textarea id="commentInputBox" rows="2" placeholder="댓글 내용을 입력하거나 파일을 드래그하여 올려주세요." class="w-full border border-gray-300 rounded-xl p-2.5 pb-7 text-xs focus:outline-none focus:ring-2 focus:ring-slate-800 resize-none bg-white shadow-inner transition-all min-h-[58px]"></textarea>
                             
-                            <!-- 첨부파일 버튼 (이미지 및 문서/PDF 포함) -->
+                            <!-- 첨부파일 버튼 -->
                             <div class="absolute bottom-2 left-2.5 flex items-center gap-2">
                                 <input type="file" id="commentFileInputBox" multiple accept="*" class="hidden">
                                 <button type="button" id="attachFileLocalBtn" class="flex items-center gap-1 text-[11px] text-gray-600 hover:text-blue-600 font-semibold bg-gray-100 hover:bg-gray-200 px-2 py-0.5 rounded border border-gray-300 transition">
@@ -623,12 +620,12 @@
         </div>
     </div>
 
-    <!-- 원본 이미지 확대 모달 (썸네일 클릭 시 팝업) -->
+    <!-- 원본 이미지 확대 모달 -->
     <div id="imageModal" class="fixed inset-0 z-[60] hidden bg-black bg-opacity-85 flex justify-center items-center p-4" onclick="closeImageModal()">
         <img id="modalImgTag" src="" alt="원본 확대 이미지" class="max-w-full max-h-full rounded-lg shadow-2xl object-contain">
     </div>
 
-    <!-- 🌟 인사이트 라이브러리 HTML 상세보기 모달 -->
+    <!-- 인사이트 라이브러리 HTML 상세보기 모달 -->
     <div id="libraryViewModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-4xl p-5 md:p-8 shadow-2xl border border-gray-100 max-h-[95vh] overflow-y-auto flex flex-col">
             <div class="flex justify-between items-start mb-4 border-b pb-4">
@@ -858,8 +855,9 @@
                             </div>
                         </div>
                     </div>
-                    <div id="local-content-${item.id}" class="text-xs text-gray-800 leading-normal comment-text mt-0.5">
-                        ${escapeLocalHtml(item.content)}
+                    <!-- comment-text 클래스를 순수 텍스트 영역으로 한정하여 상위 공백 감화 차단 -->
+                    <div id="local-content-${item.id}" class="text-xs text-gray-800 leading-normal mt-0.5">
+                        <div class="comment-text">${escapeLocalHtml(item.content)}</div>
                         ${filesHtml}
                     </div>
                 `;
@@ -880,7 +878,7 @@
             renderEditForm(id, target.content);
         };
 
-        // 🌟 수정 폼 동적 출력 (높이 튐 차단 autoResizeTextarea + 드래그 앤 드롭 지원)
+        // 🌟 수정 폼 동적 출력 (한 줄 HTML 스트링으로 여백 팽창을 완벽히 제거)
         function renderEditForm(id, textContent) {
             const contentArea = document.getElementById(`local-content-${id}`);
             if(!contentArea) return;
@@ -889,44 +887,11 @@
 
             let fileEditAreaHtml = '';
             if (currentFiles.length > 0) {
-                fileEditAreaHtml = `
-                    <div class="flex flex-wrap gap-1.5 pt-1 mt-1 border-t border-gray-100">
-                        ${currentFiles.map((f, fileIdx) => renderFileCardHtml(f, { canDelete: true, onRemove: `removeEditFile('${id}', ${fileIdx})` })).join('')}
-                    </div>
-                `;
+                fileEditAreaHtml = `<div class="flex flex-wrap gap-1.5 pt-1.5 mt-1 border-t border-gray-100">${currentFiles.map((f, fileIdx) => renderFileCardHtml(f, { canDelete: true, onRemove: `removeEditFile('${id}', ${fileIdx})` })).join('')}</div>`;
             }
 
-            contentArea.innerHTML = `
-                <div class="py-0.5 edit-drop-zone transition-colors rounded-lg" id="edit-drop-zone-${id}"
-                     ondragover="handleEditDragOver(event, '${id}')"
-                     ondragleave="handleEditDragLeave(event, '${id}')"
-                     ondrop="handleEditDrop(event, '${id}')">
-                    
-                    <textarea id="local-edit-ta-${id}" 
-                        oninput="autoResizeTextarea(this)"
-                        class="w-full border border-blue-400 rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none bg-white leading-normal overflow-hidden block box-border transition-all m-0"
-                        style="height: 38px; min-height: 38px;"
-                        rows="1">${textContent}</textarea>
-                    
-                    ${fileEditAreaHtml}
-
-                    <div class="flex justify-between items-center pt-1 mt-1 border-t border-gray-100">
-                        <div class="flex items-center gap-1.5">
-                            <input type="file" id="editFileInputBox-${id}" multiple accept="*" class="hidden" onchange="handleEditFileUpload('${id}', this)">
-                            <button type="button" onclick="document.getElementById('editFileInputBox-${id}').click()" 
-                                    class="flex items-center gap-1 text-[10px] text-gray-600 hover:text-blue-600 font-medium px-2 py-0.5 rounded border border-gray-300 hover:bg-gray-50 transition">
-                                <i class="fa-solid fa-paperclip text-[9px]"></i> 파일 첨부
-                            </button>
-                            <span class="text-[9px] text-gray-400 hidden sm:inline">(드래그 가능)</span>
-                        </div>
-
-                        <div class="flex gap-1">
-                            <button onclick="cancelLocalInlineEdit('${id}')" class="px-2.5 py-0.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md text-[11px] font-bold transition">취소</button>
-                            <button onclick="saveLocalInlineEdit('${id}')" class="px-2.5 py-0.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-[11px] font-bold transition shadow-sm">저장</button>
-                        </div>
-                    </div>
-                </div>
-            `;
+            // HTML 개행 공백문자를 완전히 제거한 한 줄 템플릿
+            contentArea.innerHTML = `<div class="edit-drop-zone transition-colors rounded-lg" id="edit-drop-zone-${id}" ondragover="handleEditDragOver(event, '${id}')" ondragleave="handleEditDragLeave(event, '${id}')" ondrop="handleEditDrop(event, '${id}')"><textarea id="local-edit-ta-${id}" oninput="autoResizeTextarea(this)" class="w-full border border-blue-400 rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none bg-white leading-normal overflow-hidden block box-border transition-all m-0" rows="1">${textContent}</textarea>${fileEditAreaHtml}<div class="flex justify-between items-center pt-1.5 mt-1 border-t border-gray-100"><div class="flex items-center gap-1.5"><input type="file" id="editFileInputBox-${id}" multiple accept="*" class="hidden" onchange="handleEditFileUpload('${id}', this)"><button type="button" onclick="document.getElementById('editFileInputBox-${id}').click()" class="flex items-center gap-1 text-[10px] text-gray-600 hover:text-blue-600 font-medium px-2 py-0.5 rounded border border-gray-300 hover:bg-gray-50 transition"><i class="fa-solid fa-paperclip text-[9px]"></i> 파일 첨부</button><span class="text-[9px] text-gray-400 hidden sm:inline">(드래그 가능)</span></div><div class="flex gap-1"><button onclick="cancelLocalInlineEdit('${id}')" class="px-2.5 py-0.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md text-[11px] font-bold transition">취소</button><button onclick="saveLocalInlineEdit('${id}')" class="px-2.5 py-0.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-[11px] font-bold transition shadow-sm">저장</button></div></div></div>`;
 
             const ta = document.getElementById(`local-edit-ta-${id}`);
             if(ta) {
@@ -936,11 +901,10 @@
             }
         }
 
-        // 🌟 정밀 Textarea 높이 맞춤 함수 (임시 0px 설정 후 scrollHeight 자동 정렬)
+        // Textarea 높이 밀착 맞춤 함수
         function autoResizeTextarea(ta) {
-            ta.style.height = '0px';
-            const calcHeight = Math.max(38, ta.scrollHeight);
-            ta.style.height = calcHeight + 'px';
+            ta.style.height = 'auto';
+            ta.style.height = ta.scrollHeight + 'px';
         }
 
         // 수정 모드 드래그 앤 드롭 핸들러

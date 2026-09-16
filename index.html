@@ -36,6 +36,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- CSS 연결 -->
     <link rel="stylesheet" href="style.css">
+    <style>
+        .comment-text {
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+    </style>
 </head>
 <body class="bg-grid-pattern text-gray-800 font-sans min-h-screen relative flex flex-col justify-between overflow-x-hidden">
 
@@ -487,18 +493,20 @@
         </div>
     </div>
 
-    <!-- 게시판 형태 상세 보기 팝업 -->
+    <!-- ==================================================================== -->
+    <!-- 게시판 형태 상세 보기 팝업 (댓글 인라인 수정 및 파일 첨부 통합본) -->
+    <!-- ==================================================================== -->
     <div id="detailModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-2xl p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[95vh] overflow-y-auto flex flex-col">
+            
             <div class="flex justify-between items-start mb-4 border-b pb-4">
                 <div class="w-full pr-4">
                     <div class="flex items-center gap-2 mb-2">
-                        <span id="detailType" class="bg-gray-100 text-gray-600 text-[11px] px-2 py-0.5 rounded font-bold"></span>
-                        <span id="detailStatus"></span>
+                        <span id="detailType" class="bg-gray-100 text-gray-600 text-[11px] px-2 py-0.5 rounded font-bold">분류</span>
+                        <span id="detailStatus" class="text-xs font-bold">상태</span>
                     </div>
-                    <h3 id="detailTitle" class="text-lg md:text-xl font-black text-gray-900 leading-tight"></h3>
+                    <h3 id="detailTitle" class="text-lg md:text-xl font-black text-gray-900 leading-tight">게시글 제목 영역</h3>
                 </div>
-                
                 <div class="flex items-center gap-2 flex-shrink-0">
                     <button id="shareLinkBtn" type="button" class="px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 text-hermes border border-orange-200 rounded-lg text-[10px] sm:text-xs font-bold transition flex items-center gap-1 shadow-sm" title="고유 URL 복사">
                         <i class="fa-solid fa-share-nodes"></i> <span class="hidden sm:inline">링크 복사</span>
@@ -507,6 +515,7 @@
                 </div>
             </div>
 
+            <!-- 상세 정보 표기 -->
             <div class="grid grid-cols-2 gap-2 bg-gray-50 p-3 rounded-xl border border-gray-100 text-xs mb-4">
                 <div><span class="font-bold text-gray-400">클라이언트:</span> <span id="detailClient" class="font-bold text-gray-800"></span></div>
                 <div><span class="font-bold text-gray-400">작성자:</span> <span id="detailStaff" class="font-bold text-gray-800"></span></div>
@@ -515,27 +524,36 @@
                 <div><span class="font-bold text-gray-400">소속:</span> <span id="detailAgency" class="font-bold text-gray-800"></span></div>
             </div>
 
+            <!-- 게시글 본문 -->
             <div class="mb-4 flex-1">
                 <p class="font-bold text-gray-900 mb-2"><i class="fa-solid fa-align-left text-hermes mr-1"></i> 본문 내용</p>
-                <div id="detailContent" class="p-4 rounded-xl border border-gray-200 whitespace-pre-line text-gray-800 text-sm min-h-[100px] bg-white leading-relaxed"></div>
+                <div id="detailContent" class="p-4 rounded-xl border border-gray-200 whitespace-pre-wrap text-gray-800 text-sm min-h-[100px] bg-white leading-relaxed"></div>
             </div>
 
+            <!-- 본문 첨부파일 미리보기 (app.js에서 동적 할당) -->
             <div id="detailFileArea" class="mb-6">
                 <p class="font-bold text-gray-900 mb-1.5"><i class="fa-solid fa-paperclip text-hermes mr-1"></i> 첨부파일</p>
-                <div id="detailFileBtn"></div>
+                <div id="detailFileBtn" class="flex flex-wrap gap-3"></div>
             </div>
 
+            <!-- 작성자 전용 옵션 -->
             <div id="authorActionArea" class="flex justify-end gap-2 mb-6 hidden">
                 <button id="detailEditBtn" class="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white border border-blue-200 rounded-lg text-xs font-bold transition">본문 수정</button>
                 <button id="detailDeleteBtn" class="px-3 py-1.5 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white border border-red-200 rounded-lg text-xs font-bold transition">게시글 삭제</button>
             </div>
 
-            <div class="border-t pt-5">
+            <!-- ===================== 소통 및 댓글(답변) 영역 ===================== -->
+            <div class="border-t pt-5 bg-gray-50/50 -mx-5 md:-mx-6 -mb-5 md:-mb-6 px-5 md:px-6 pb-5 md:pb-6 rounded-b-2xl">
+                
                 <div class="flex justify-between items-center mb-4">
-                    <p class="font-bold text-gray-900"><i class="fa-solid fa-comments text-noah mr-1"></i> 소통 및 답변 <span id="commentCount" class="text-hermes ml-1">0</span></p>
+                    <p class="font-bold text-gray-900 flex items-center gap-1.5">
+                        <span class="text-blue-800 text-lg">🗣️</span> 소통 및 답변 
+                        <span id="commentCountBadge" class="text-orange-600 text-xs bg-orange-100 px-2 py-0.5 rounded-full ml-1">0</span>
+                    </p>
+                    
                     <div id="adminStatusChangeArea" class="hidden flex items-center gap-2">
                         <label class="text-[10px] font-bold text-gray-500">상태 변경:</label>
-                        <select id="adminStatusSelect" class="text-xs border border-gray-300 rounded p-1 focus:border-noah outline-none">
+                        <select id="adminStatusSelect" class="text-xs border border-gray-300 rounded p-1 focus:border-noah outline-none bg-white font-semibold">
                             <option value="답변대기">답변대기</option>
                             <option value="진행중">진행중</option>
                             <option value="답변완료">답변완료</option>
@@ -543,17 +561,40 @@
                     </div>
                 </div>
 
-                <div id="commentList" class="space-y-3 mb-4 max-h-48 overflow-y-auto px-1"></div>
+                <!-- 댓글 목록 리스트 (인라인 수정 포함) -->
+                <div id="commentListArea" class="space-y-3 mb-4 max-h-[300px] overflow-y-auto px-1">
+                    <!-- 자바스크립트를 통해 댓글과 첨부 썸네일이 렌더링됩니다. -->
+                </div>
 
-                <div class="flex gap-2">
-                    <textarea id="commentInput" rows="2" placeholder="댓글 내용을 입력해 주세요." class="flex-1 text-sm border border-gray-300 rounded-xl p-3 focus:border-noah outline-none resize-none bg-gray-50 focus:bg-white transition"></textarea>
-                    <button id="submitCommentBtn" class="bg-gray-800 hover:bg-black text-white rounded-xl px-4 text-xs font-bold whitespace-nowrap transition shadow-sm">등록</button>
+                <!-- 댓글 작성 및 파일 첨부 -->
+                <div class="space-y-2">
+                    <div id="pendingFilesPreview" class="flex flex-wrap gap-2 hidden"></div>
+                    <div class="flex gap-2 items-stretch">
+                        <div class="relative flex-1">
+                            <textarea id="commentInputBox" rows="3" placeholder="댓글 내용을 입력해 주세요." class="w-full border border-gray-300 rounded-xl p-3 pb-8 text-xs focus:outline-none focus:ring-2 focus:ring-slate-800 resize-none bg-white shadow-inner"></textarea>
+                            
+                            <!-- 첨부파일 버튼 -->
+                            <div class="absolute bottom-2.5 left-3 flex items-center gap-2">
+                                <input type="file" id="commentFileInputBox" multiple accept="image/*" class="hidden">
+                                <button type="button" id="attachFileLocalBtn" class="flex items-center gap-1 text-[11px] text-gray-500 hover:text-blue-600 font-medium bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded border border-gray-300 transition">
+                                    📷 이미지 첨부
+                                </button>
+                                <span id="attachedCountLabel" class="text-[10px] text-blue-600 font-semibold hidden"></span>
+                            </div>
+                        </div>
+                        <button id="submitNewCommentBtn" class="bg-slate-900 hover:bg-slate-800 text-white rounded-xl px-5 text-xs font-bold transition shadow-md flex items-center justify-center shrink-0">등록</button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 🌟 인사이트 라이브러리 HTML 상세보기 모달 (링크 공유 버튼 반영) -->
+    <!-- 원본 이미지 확대 모달 (썸네일 클릭 시 팝업) -->
+    <div id="imageModal" class="fixed inset-0 z-[60] hidden bg-black bg-opacity-85 flex justify-center items-center p-4" onclick="closeImageModal()">
+        <img id="modalImgTag" src="" alt="원본 확대 이미지" class="max-w-full max-h-full rounded-lg shadow-2xl object-contain">
+    </div>
+
+    <!-- 🌟 인사이트 라이브러리 HTML 상세보기 모달 -->
     <div id="libraryViewModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-4xl p-5 md:p-8 shadow-2xl border border-gray-100 max-h-[95vh] overflow-y-auto flex flex-col">
             <div class="flex justify-between items-start mb-4 border-b pb-4">
@@ -562,16 +603,13 @@
                     <h3 id="libViewTitle" class="text-xl md:text-2xl font-black text-gray-900 leading-tight"></h3>
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
-                    <!-- 🌟 라이브러리 전용 고유 URL 공유 버튼 -->
                     <button id="shareLibLinkBtn" type="button" class="px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 text-hermes border border-orange-200 rounded-lg text-[10px] sm:text-xs font-bold transition flex items-center gap-1 shadow-sm" title="고유 URL 복사">
                         <i class="fa-solid fa-share-nodes"></i> <span class="hidden sm:inline">링크 복사</span>
                     </button>
                     <button id="closeLibViewModalBtn" class="text-gray-400 hover:text-gray-600 p-1"><i class="fa-solid fa-xmark text-2xl"></i></button>
                 </div>
             </div>
-            
             <div id="libViewHtmlContent" class="prose max-w-none text-sm text-gray-800 leading-relaxed min-h-[200px] mb-6 border-b pb-6"></div>
-            
             <div class="flex justify-between items-center mt-auto">
                 <a id="libViewPdfBtn" href="#" download class="px-4 py-2 bg-hermes hover:bg-hermes-hover text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-2">
                     <i class="fa-solid fa-file-pdf"></i> PDF 다운로드
@@ -648,8 +686,239 @@
                 container.innerHTML = html;
             }
         });
-    </script>
 
+        // =======================================================
+        // 모달 내 독립적인 댓글 인라인 UI + 첨부파일 프론트 로직
+        // =======================================================
+        let mockComments = [
+            {
+                id: 'comment-1',
+                author: 'admin',
+                role: 'admin',
+                createdAt: '2026.09.16 13:08',
+                content: '확인했습니다. 우선 신규 계정부터 세팅하도록 하겠습니다.',
+                files: [
+                    { name: 'sample1.jpg', url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&q=80' }
+                ]
+            }
+        ];
+
+        let pendingLocalFiles = [];
+
+        function renderLocalComments() {
+            const listEl = document.getElementById('commentListArea');
+            const countEl = document.getElementById('commentCountBadge');
+            if(!listEl || !countEl) return;
+
+            listEl.innerHTML = '';
+            countEl.textContent = mockComments.length;
+
+            mockComments.forEach(item => {
+                const commentCard = document.createElement('div');
+                commentCard.className = 'bg-white border border-gray-200 rounded-xl p-3.5 space-y-2 shadow-sm';
+                commentCard.id = `local-card-${item.id}`;
+
+                // 이미지 첨부파일 미리보기 (썸네일 클릭 시 확대 모달 실행)
+                let filesHtml = '';
+                if (item.files && item.files.length > 0) {
+                    filesHtml = `
+                        <div class="flex flex-wrap gap-2 pt-2 border-t border-gray-100 mt-2">
+                            ${item.files.map(file => `
+                                <div class="flex flex-col items-center bg-gray-50 border border-gray-200 rounded-lg p-1.5 w-24 hover:border-blue-400 transition cursor-pointer" onclick="openImageModal('${file.url}')">
+                                    <img src="${file.url}" alt="${file.name}" class="w-full h-16 object-cover rounded mb-1">
+                                    <span class="text-[10px] text-gray-500 truncate w-full text-center">${file.name}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+
+                commentCard.innerHTML = `
+                    <div class="flex justify-between items-center text-[11px]">
+                        <div class="flex items-center gap-1.5 font-semibold text-gray-700">
+                            <span class="text-amber-500">👑</span>
+                            <span class="text-gray-900">${item.author}</span>
+                            <span class="text-gray-400 font-normal">(${item.role})</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-gray-400">
+                            <span>${item.createdAt}</span>
+                            <div id="local-action-${item.id}" class="flex items-center gap-1.5">
+                                <button onclick="enableLocalInlineEdit('${item.id}')" class="text-blue-500 hover:text-blue-700 hover:underline">수정</button>
+                                <button onclick="deleteLocalComment('${item.id}')" class="text-gray-400 hover:text-red-500 hover:underline">삭제</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="local-content-${item.id}" class="text-xs text-gray-800 leading-relaxed comment-text mt-1">
+                        ${escapeLocalHtml(item.content)}
+                        ${filesHtml}
+                    </div>
+                `;
+                listEl.appendChild(commentCard);
+            });
+        }
+
+        // 인라인 수정 모드 진입
+        window.enableLocalInlineEdit = function(id) {
+            const target = mockComments.find(c => c.id === id);
+            if (!target) return;
+
+            const contentArea = document.getElementById(`local-content-${id}`);
+            const actionArea = document.getElementById(`local-action-${id}`);
+
+            actionArea.style.display = 'none';
+
+            // 이미지 첨부파일은 수정 모드에서는 조회만 가능하도록 보존
+            let existingFilesHtml = '';
+            if (target.files && target.files.length > 0) {
+                existingFilesHtml = `
+                    <div class="flex gap-2 mb-2">
+                        ${target.files.map(f => `<span class="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded border border-gray-200">📎 ${f.name}</span>`).join('')}
+                    </div>
+                `;
+            }
+
+            contentArea.innerHTML = `
+                <div class="space-y-2 pt-1">
+                    ${existingFilesHtml}
+                    <textarea id="local-edit-${id}" class="w-full border border-blue-400 rounded-lg p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y min-h-[70px] bg-blue-50/20">${target.content}</textarea>
+                    <div class="flex justify-end gap-1.5">
+                        <button onclick="renderLocalComments()" class="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded text-xs font-semibold transition">취소</button>
+                        <button onclick="saveLocalInlineEdit('${id}')" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold transition shadow-sm">저장</button>
+                    </div>
+                </div>
+            `;
+
+            const ta = document.getElementById(`local-edit-${id}`);
+            ta.focus();
+            ta.setSelectionRange(ta.value.length, ta.value.length);
+        };
+
+        // 수정사항 저장
+        window.saveLocalInlineEdit = function(id) {
+            const ta = document.getElementById(`local-edit-${id}`);
+            const newText = ta.value.trim();
+            if(!newText) {
+                alert('내용을 입력해주세요.');
+                return;
+            }
+            const target = mockComments.find(c => c.id === id);
+            if(target) target.content = newText;
+            renderLocalComments();
+        };
+
+        // 삭제
+        window.deleteLocalComment = function(id) {
+            if(confirm('댓글을 삭제하시겠습니까?')) {
+                mockComments = mockComments.filter(c => c.id !== id);
+                renderLocalComments();
+            }
+        };
+
+        // 파일 첨부 UI 핸들링
+        const attachBtn = document.getElementById('attachFileLocalBtn');
+        const fileInputBox = document.getElementById('commentFileInputBox');
+        const filePreviewBox = document.getElementById('pendingFilesPreview');
+        const countLabel = document.getElementById('attachedCountLabel');
+
+        if(attachBtn && fileInputBox) {
+            attachBtn.addEventListener('click', () => fileInputBox.click());
+
+            fileInputBox.addEventListener('change', (e) => {
+                const files = Array.from(e.target.files);
+                files.forEach(file => {
+                    if (file.type.startsWith('image/')) {
+                        pendingLocalFiles.push({ name: file.name, url: URL.createObjectURL(file) });
+                    }
+                });
+                updatePreview();
+            });
+        }
+
+        function updatePreview() {
+            if (pendingLocalFiles.length > 0) {
+                filePreviewBox.classList.remove('hidden');
+                countLabel.classList.remove('hidden');
+                countLabel.textContent = `${pendingLocalFiles.length}개 선택됨`;
+
+                filePreviewBox.innerHTML = pendingLocalFiles.map((file, idx) => `
+                    <div class="relative group border border-blue-300 rounded p-1 bg-white flex items-center gap-1.5 shadow-sm">
+                        <img src="${file.url}" class="w-8 h-8 object-cover rounded">
+                        <span class="text-[10px] text-gray-600 truncate max-w-[80px] font-medium">${file.name}</span>
+                        <button type="button" onclick="removePendingLocalFile(${idx})" class="text-red-500 hover:bg-red-50 font-bold text-xs px-1.5 rounded">✕</button>
+                    </div>
+                `).join('');
+            } else {
+                filePreviewBox.classList.add('hidden');
+                countLabel.classList.add('hidden');
+                filePreviewBox.innerHTML = '';
+            }
+        }
+
+        window.removePendingLocalFile = function(idx) {
+            pendingLocalFiles.splice(idx, 1);
+            updatePreview();
+        };
+
+        // 신규 댓글 작성
+        const submitBtn = document.getElementById('submitNewCommentBtn');
+        const inputBox = document.getElementById('commentInputBox');
+
+        if(submitBtn && inputBox) {
+            submitBtn.addEventListener('click', () => {
+                const text = inputBox.value.trim();
+                if (!text && pendingLocalFiles.length === 0) {
+                    alert('내용이나 이미지를 입력해 주세요.');
+                    return;
+                }
+
+                const now = new Date();
+                const timeStr = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+                mockComments.push({
+                    id: `comment-${Date.now()}`,
+                    author: 'admin',
+                    role: 'admin',
+                    createdAt: timeStr,
+                    content: text,
+                    files: [...pendingLocalFiles]
+                });
+
+                inputBox.value = '';
+                fileInputBox.value = '';
+                pendingLocalFiles = [];
+                updatePreview();
+                renderLocalComments();
+                
+                // 최하단 스크롤 이동
+                const scrollArea = document.getElementById('commentListArea');
+                setTimeout(() => { scrollArea.scrollTop = scrollArea.scrollHeight; }, 100);
+            });
+        }
+
+        // 공통 이미지 모달
+        window.openImageModal = function(src) {
+            const modal = document.getElementById('imageModal');
+            const img = document.getElementById('modalImgTag');
+            if(modal && img) {
+                img.src = src;
+                modal.classList.remove('hidden');
+            }
+        };
+
+        window.closeImageModal = function() {
+            const modal = document.getElementById('imageModal');
+            if(modal) modal.classList.add('hidden');
+        };
+
+        function escapeLocalHtml(str) {
+            if(!str) return '';
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        // 초기 렌더링
+        setTimeout(renderLocalComments, 500);
+
+    </script>
     <script type="module" src="app.js"></script>
 </body>
 </html>

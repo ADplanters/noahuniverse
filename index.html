@@ -224,7 +224,7 @@
                 <div id="emptyState" class="hidden py-12 md:py-16 text-center flex-col items-center justify-center"><i class="fa-solid fa-folder-open text-3xl md:text-4xl text-gray-300 mb-3"></i><p class="text-gray-500 font-medium text-xs md:text-sm">데이터가 없습니다.</p></div>
             </div>
 
-            <!-- 뷰 4. 인사이트 라이브러 컨테이너 -->
+            <!-- 뷰 4. 인사이트 라이브러리 컨테이너 -->
             <div id="libraryContainer" class="hidden flex-1 mb-6 md:mb-8 animate-fade-in w-full">
                 <div class="flex flex-col sm:flex-row justify-between sm:items-end gap-4 mb-6">
                     <div>
@@ -354,7 +354,7 @@
         </div>
     </div>
 
-    <!-- 다중 담당자 연결 모달 -->
+    <!-- 다중 담당자 연결 모달 (클라이언트 리스트 전용) -->
     <div id="assignModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-sm p-5 md:p-6 shadow-2xl border border-gray-100">
             <div class="flex justify-between items-center mb-4 border-b pb-3"><h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-users text-hermes mr-2"></i> 담당자 다중 연결</h3><button id="closeAssignModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button></div>
@@ -767,7 +767,7 @@
                 }
             });
 
-            // 🌟 1. 게시글 리스트 렌더링 시 조회수 뱃지 자동 삽입 옵저버
+            // 🌟 게시글 리스트 렌더링 시 조회수 뱃지 자동 삽입 옵저버
             const boardTbody = document.getElementById('boardTable');
             if (boardTbody) {
                 const boardObserver = new MutationObserver(() => {
@@ -822,9 +822,7 @@
             }
         });
 
-        // =======================================================
         // 🌟 게시글 리스트 클라이언트명 하단에 조회수 뱃지 동적 생성
-        // =======================================================
         function refreshBoardTableViews() {
             const boardTable = document.getElementById('boardTable');
             if (!boardTable) return;
@@ -835,13 +833,11 @@
                 const titleCell = row.cells[2];  // 3열: 제목
                 if (!clientCell || !titleCell) return;
 
-                // 타이틀 정제 (댓글 카운트 등 제거)
                 let rawTitle = titleCell.textContent.replace(/\[\d+\]/g, '').trim(); 
                 const allViews = loadAllViewsFromStorage();
                 const viewsList = allViews[rawTitle] || [];
                 const isAdmin = isTopAdmin();
 
-                // 무한 루프(Observer 트리거) 방지를 위해 기존 뱃지 재활용 판단
                 const existing = clientCell.querySelector('.post-view-badge');
                 if (existing && existing.dataset.count === String(viewsList.length) && existing.dataset.admin === String(isAdmin)) return;
 
@@ -870,7 +866,6 @@
                     `;
                 }
 
-                // 클라이언트 텍스트 아래에 조회수 삽입 (block 적용)
                 const badgeWrapper = document.createElement('div');
                 badgeWrapper.className = 'post-view-badge block mt-1.5 relative group w-max';
                 badgeWrapper.dataset.count = viewsList.length;
@@ -885,9 +880,43 @@
             });
         }
 
-        // =======================================================
+        // 🌟 스마트 이미지 압축(리사이징) 유틸리티 추가 - localStorage 용량 한계 극복
+        function processFileToBase64(file, callback) {
+            if (file.type && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const MAX_SIZE = 800; // 최대 해상도 800px 축소
+                        let width = img.width;
+                        let height = img.height;
+                        if (width > height && width > MAX_SIZE) {
+                            height *= MAX_SIZE / width; 
+                            width = MAX_SIZE;
+                        } else if (height > MAX_SIZE) {
+                            width *= MAX_SIZE / height; 
+                            height = MAX_SIZE;
+                        }
+                        canvas.width = width; 
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        // 품질 60% 로 JPEG 압축하여 용량 90% 이상 절감
+                        callback(canvas.toDataURL('image/jpeg', 0.6));
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                // PDF 등 일반 문서는 압축 없이 Base64 그대로 변환
+                const reader = new FileReader();
+                reader.onload = (e) => callback(e.target.result);
+                reader.readAsDataURL(file);
+            }
+        }
+
         // 파일 판별 및 UI 렌더링 헬퍼 함수
-        // =======================================================
         function isImageFile(file) {
             if (file.type && file.type.startsWith('image/')) return true;
             return /\.(jpg|jpeg|png|gif|webp|bmp)/i.test(file.name || file.url || '');
@@ -921,9 +950,6 @@
             `;
         }
 
-        // =======================================================
-        // 게시글별 고유 키(PostKey) 추출 및 댓글 데이터
-        // =======================================================
         function getPostKey() {
             const titleEl = document.getElementById('detailTitle');
             return (titleEl && titleEl.textContent.trim()) ? titleEl.textContent.trim() : 'default_post';
@@ -952,13 +978,18 @@
             };
         }
 
+        // 🌟 저장소 용량 초과 예외 처리 적용
         function saveAllCommentsToStorage(allData) {
-            localStorage.setItem('noah_comments_data_v3', JSON.stringify(allData));
+            try {
+                localStorage.setItem('noah_comments_data_v3', JSON.stringify(allData));
+                return true;
+            } catch(e) {
+                console.error('Storage Full Error:', e);
+                alert('로컬 저장소의 여유 공간이 부족하여 파일을 저장할 수 없습니다.\n불필요한 파일이나 댓글을 먼저 삭제해 주세요.');
+                return false;
+            }
         }
 
-        // =======================================================
-        // 🌟 게시글 조회수 및 최근 10명 조회 이력 (Admin 전용)
-        // =======================================================
         const VIEWS_STORAGE_KEY = 'noah_post_views_v1';
 
         function loadAllViewsFromStorage() {
@@ -995,8 +1026,6 @@
             if (!postTitle || postTitle === '게시글 제목 영역') return;
 
             const nowTime = Date.now();
-            
-            // 디바운스 로직 (1초 이내 동일 게시글 중복 호출 방지)
             if (lastRecordData.title === postTitle && (nowTime - lastRecordData.time) < 1000) {
                 return;
             }
@@ -1018,7 +1047,6 @@
             const now = new Date();
             const timeStr = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 
-            // 최근 10명 이력 배열 맨 앞에 추가
             allViews[postTitle].unshift({ user: displayName, time: timeStr });
             if (allViews[postTitle].length > 10) {
                 allViews[postTitle] = allViews[postTitle].slice(0, 10);
@@ -1026,7 +1054,7 @@
 
             saveAllViewsToStorage(allViews);
             updateViewCountUI(postTitle);
-            refreshBoardTableViews(); // 게시판 목록의 조회수도 실시간 갱신
+            refreshBoardTableViews();
         }
 
         function updateViewCountUI(postTitle) {
@@ -1038,7 +1066,6 @@
                 countNumEl.textContent = viewsList.length;
             }
 
-            // 최상위 관리자 전용 호버 툴팁 리스트 갱신
             const listContentEl = document.getElementById('viewersListContent');
             const tooltipBox = document.getElementById('viewersTooltip');
             
@@ -1109,7 +1136,7 @@
                             </div>
                         </div>
                     </div>
-                    <!-- comment-text 클래스를 순수 텍스트 영역으로 한정하여 상위 공백 팽창 차단 -->
+                    <!-- comment-text를 통해 댓글 본문 텍스트 여백 팽창 차단 -->
                     <div id="local-content-${item.id}" class="text-xs text-gray-800 leading-normal mt-0.5">
                         <div class="comment-text">${escapeLocalHtml(item.content)}</div>
                         ${filesHtml}
@@ -1119,7 +1146,6 @@
             });
         }
 
-        // 인라인 수정 모드 활성화
         window.enableLocalInlineEdit = function(id) {
             const postKey = getPostKey();
             const allComments = loadAllCommentsFromStorage();
@@ -1147,7 +1173,6 @@
                 fileEditAreaHtml = `<div class="flex flex-wrap gap-1.5 pt-1.5 mt-1 border-t border-gray-100">${currentFiles.map((f, fileIdx) => renderFileCardHtml(f, { canDelete: true, onRemove: `removeEditFile('${id}', ${fileIdx})` })).join('')}</div>`;
             }
 
-            // HTML 개행 공백문자를 완전히 제거한 한 줄 템플릿
             contentArea.innerHTML = `<div class="edit-drop-zone transition-colors rounded-lg" id="edit-drop-zone-${id}" ondragover="handleEditDragOver(event, '${id}')" ondragleave="handleEditDragLeave(event, '${id}')" ondrop="handleEditDrop(event, '${id}')"><textarea id="local-edit-ta-${id}" oninput="autoResizeTextarea(this)" class="w-full border border-blue-400 rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none bg-white leading-normal overflow-hidden block box-border transition-all m-0" rows="1">${textContent}</textarea>${fileEditAreaHtml}<div class="flex justify-between items-center pt-1.5 mt-1 border-t border-gray-100"><div class="flex items-center gap-1.5"><input type="file" id="editFileInputBox-${id}" multiple accept="*" class="hidden" onchange="handleEditFileUpload('${id}', this)"><button type="button" onclick="document.getElementById('editFileInputBox-${id}').click()" class="flex items-center gap-1 text-[10px] text-gray-600 hover:text-blue-600 font-medium px-2 py-0.5 rounded border border-gray-300 hover:bg-gray-50 transition"><i class="fa-solid fa-paperclip text-[9px]"></i> 파일 첨부</button><span class="text-[9px] text-gray-400 hidden sm:inline">(드래그 가능)</span></div><div class="flex gap-1"><button onclick="cancelLocalInlineEdit('${id}')" class="px-2.5 py-0.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md text-[11px] font-bold transition">취소</button><button onclick="saveLocalInlineEdit('${id}')" class="px-2.5 py-0.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-[11px] font-bold transition shadow-sm">저장</button></div></div></div>`;
 
             const ta = document.getElementById(`local-edit-ta-${id}`);
@@ -1158,13 +1183,11 @@
             }
         }
 
-        // Textarea 높이 밀착 맞춤 함수 (임시 0px 후 scrollHeight 자동 정렬)
         function autoResizeTextarea(ta) {
             ta.style.height = '0px';
             ta.style.height = ta.scrollHeight + 'px';
         }
 
-        // 수정 모드 드래그 앤 드롭 핸들러
         window.handleEditDragOver = function(e, id) {
             e.preventDefault();
             e.stopPropagation();
@@ -1189,12 +1212,11 @@
             if (files && files.length > 0) {
                 let processCount = 0;
                 files.forEach(file => {
-                    const reader = new FileReader();
-                    reader.onload = (evt) => {
+                    processFileToBase64(file, (base64Url) => {
                         if (!editingTempFiles[id]) editingTempFiles[id] = [];
                         editingTempFiles[id].push({
                             name: file.name,
-                            url: evt.target.result, 
+                            url: base64Url,
                             type: file.type
                         });
                         processCount++;
@@ -1202,23 +1224,20 @@
                             const ta = document.getElementById(`local-edit-ta-${id}`);
                             renderEditForm(id, ta ? ta.value : '');
                         }
-                    };
-                    reader.readAsDataURL(file);
+                    });
                 });
             }
         };
 
-        // 수정 중 파일 선택창 업로드 처리 (Base64 변환)
         window.handleEditFileUpload = function(commentId, inputEl) {
             const files = Array.from(inputEl.files);
             let processCount = 0;
             files.forEach(file => {
-                const reader = new FileReader();
-                reader.onload = (evt) => {
+                processFileToBase64(file, (base64Url) => {
                     if (!editingTempFiles[commentId]) editingTempFiles[commentId] = [];
                     editingTempFiles[commentId].push({ 
                         name: file.name, 
-                        url: evt.target.result,
+                        url: base64Url,
                         type: file.type 
                     });
                     processCount++;
@@ -1226,12 +1245,10 @@
                         const ta = document.getElementById(`local-edit-ta-${commentId}`);
                         renderEditForm(commentId, ta ? ta.value : '');
                     }
-                };
-                reader.readAsDataURL(file);
+                });
             });
         };
 
-        // 수정 시 개별 첨부파일 X 삭제
         window.removeEditFile = function(commentId, fileIdx) {
             if (editingTempFiles[commentId]) {
                 editingTempFiles[commentId].splice(fileIdx, 1);
@@ -1241,7 +1258,7 @@
             }
         };
 
-        // 수정사항 저장
+        // 🌟 수정사항 저장 시 에러 핸들링
         window.saveLocalInlineEdit = function(id) {
             const ta = document.getElementById(`local-edit-ta-${id}`);
             const newText = ta ? ta.value.trim() : '';
@@ -1257,23 +1274,28 @@
             const target = list.find(c => c.id === id);
 
             if(target) {
+                const oldContent = target.content;
+                const oldFiles = target.files;
+
                 target.content = newText;
                 target.files = editingTempFiles[id] || [];
                 allComments[postKey] = list;
-                saveAllCommentsToStorage(allComments);
-            }
 
-            delete editingTempFiles[id];
-            renderLocalComments();
+                if (saveAllCommentsToStorage(allComments)) {
+                    delete editingTempFiles[id];
+                    renderLocalComments();
+                } else {
+                    target.content = oldContent;
+                    target.files = oldFiles; // 용량 초과 롤백
+                }
+            }
         };
 
-        // 수정 취소
         window.cancelLocalInlineEdit = function(id) {
             delete editingTempFiles[id];
             renderLocalComments();
         };
 
-        // 댓글 삭제
         window.deleteLocalComment = function(id) {
             if(confirm('댓글을 삭제하시겠습니까?')) {
                 const postKey = getPostKey();
@@ -1286,7 +1308,7 @@
             }
         };
 
-        // 신규 댓글 파일 첨부 및 드래그 앤 드롭 이벤트
+        // 신규 댓글 파일 첨부 및 드래그 앤 드롭
         const attachBtn = document.getElementById('attachFileLocalBtn');
         const fileInputBox = document.getElementById('commentFileInputBox');
         const filePreviewBox = document.getElementById('pendingFilesPreview');
@@ -1300,24 +1322,21 @@
                 const files = Array.from(e.target.files);
                 let processCount = 0;
                 files.forEach(file => {
-                    const reader = new FileReader();
-                    reader.onload = (evt) => {
+                    processFileToBase64(file, (base64Url) => {
                         pendingLocalFiles.push({ 
                             name: file.name, 
-                            url: evt.target.result, 
+                            url: base64Url, 
                             type: file.type 
                         });
                         processCount++;
                         if (processCount === files.length) {
                             updatePreview();
                         }
-                    };
-                    reader.readAsDataURL(file);
+                    });
                 });
             });
         }
 
-        // 신규 댓글 작성창 드래그 앤 드롭 바인딩
         if (commentDropArea) {
             commentDropArea.addEventListener('dragover', (e) => {
                 e.preventDefault();
@@ -1340,19 +1359,17 @@
                 if (files && files.length > 0) {
                     let processCount = 0;
                     files.forEach(file => {
-                        const reader = new FileReader();
-                        reader.onload = (evt) => {
+                        processFileToBase64(file, (base64Url) => {
                             pendingLocalFiles.push({
                                 name: file.name,
-                                url: evt.target.result, 
+                                url: base64Url, 
                                 type: file.type
                             });
                             processCount++;
                             if (processCount === files.length) {
                                 updatePreview();
                             }
-                        };
-                        reader.readAsDataURL(file);
+                        });
                     });
                 }
             });
@@ -1379,7 +1396,7 @@
             updatePreview();
         };
 
-        // 신규 댓글 등록
+        // 🌟 신규 댓글 등록 (용량 초과 에러 방어)
         const submitBtn = document.getElementById('submitNewCommentBtn');
         const inputBox = document.getElementById('commentInputBox');
 
@@ -1398,25 +1415,28 @@
                 const now = new Date();
                 const timeStr = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 
-                allComments[postKey].push({
+                const newComment = {
                     id: `comment-${Date.now()}`,
                     author: 'admin',
                     role: 'admin',
                     createdAt: timeStr,
                     content: text,
                     files: [...pendingLocalFiles]
-                });
+                };
 
-                inputBox.value = '';
-                fileInputBox.value = '';
-                pendingLocalFiles = [];
-                updatePreview();
-                saveAllCommentsToStorage(allComments); 
-                renderLocalComments();
-                
-                const scrollArea = document.getElementById('commentListArea');
-                if(scrollArea) {
-                    setTimeout(() => { scrollArea.scrollTop = scrollArea.scrollHeight; }, 100);
+                allComments[postKey].push(newComment);
+
+                if (saveAllCommentsToStorage(allComments)) {
+                    inputBox.value = '';
+                    fileInputBox.value = '';
+                    pendingLocalFiles = [];
+                    updatePreview();
+                    renderLocalComments();
+                    
+                    const scrollArea = document.getElementById('commentListArea');
+                    if(scrollArea) {
+                        setTimeout(() => { scrollArea.scrollTop = scrollArea.scrollHeight; }, 100);
+                    }
                 }
             });
         }
@@ -1471,14 +1491,12 @@
                 document.getElementById('detailAgency').textContent = (newAgency === 'adplanters') ? '애드플랜터스' : '노아유니버스';
 
                 if (origTitle && origTitle !== newTitle) {
-                    // 댓글 이관
                     const allComments = loadAllCommentsFromStorage();
                     if (allComments[origTitle]) {
                         allComments[newTitle] = allComments[origTitle];
                         delete allComments[origTitle];
                         saveAllCommentsToStorage(allComments);
                     }
-                    // 조회수/이력 데이터 이관
                     const allViews = loadAllViewsFromStorage();
                     if (allViews[origTitle]) {
                         allViews[newTitle] = allViews[origTitle];
@@ -1494,7 +1512,7 @@
             });
         }
 
-        // 모달 오픈 / 게시글 제목 변경 감시자 (조회수 기록 및 댓글 재로드)
+        // 모달 오픈 / 게시글 제목 변경 감시자
         const detailTitleEl = document.getElementById('detailTitle');
         if (detailTitleEl) {
             const titleObserver = new MutationObserver(() => {
@@ -1521,7 +1539,6 @@
             modalObserver.observe(detailModalEl, { attributes: true, attributeFilter: ['class'] });
         }
 
-        // 원본 이미지 확대 모달
         window.openImageModal = function(src) {
             const modal = document.getElementById('imageModal');
             const img = document.getElementById('modalImgTag');

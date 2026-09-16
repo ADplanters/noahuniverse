@@ -494,7 +494,7 @@
     </div>
 
     <!-- ==================================================================== -->
-    <!-- 게시판 형태 상세 보기 팝업 (댓글 인라인 수정 및 파일 첨부 통합본) -->
+    <!-- 게시판 형태 상세 보기 팝업 (첨부파일 썸네일 미리보기 & 인라인 수정) -->
     <!-- ==================================================================== -->
     <div id="detailModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-2xl p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[95vh] overflow-y-auto flex flex-col">
@@ -530,10 +530,24 @@
                 <div id="detailContent" class="p-4 rounded-xl border border-gray-200 whitespace-pre-wrap text-gray-800 text-sm min-h-[100px] bg-white leading-relaxed"></div>
             </div>
 
-            <!-- 본문 첨부파일 미리보기 (app.js에서 동적 할당) -->
+            <!-- 본문 첨부파일 미리보기 (이미지 썸네일 카드 렌더링) -->
             <div id="detailFileArea" class="mb-6">
                 <p class="font-bold text-gray-900 mb-1.5"><i class="fa-solid fa-paperclip text-hermes mr-1"></i> 첨부파일</p>
-                <div id="detailFileBtn" class="flex flex-wrap gap-3"></div>
+                <div id="detailFileBtn" class="flex flex-wrap gap-3">
+                    <!-- 기본 미리보기 샘플 카드 (스크립트 미동작시도 표시) -->
+                    <div class="flex flex-col items-center bg-gray-50 border border-gray-200 rounded-lg p-2 hover:border-blue-400 transition w-32 cursor-pointer" onclick="openImageModal('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&q=80')">
+                        <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&q=80" alt="20260915_162241.jpg" class="w-full h-20 object-cover rounded mb-1">
+                        <span class="text-[11px] text-gray-600 truncate w-full text-center">📥 20260915_162241.jpg</span>
+                    </div>
+                    <div class="flex flex-col items-center bg-gray-50 border border-gray-200 rounded-lg p-2 hover:border-blue-400 transition w-32 cursor-pointer" onclick="openImageModal('https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=600&q=80')">
+                        <img src="https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=200&q=80" alt="20260915_162525.jpg" class="w-full h-20 object-cover rounded mb-1">
+                        <span class="text-[11px] text-gray-600 truncate w-full text-center">📥 20260915_162525.jpg</span>
+                    </div>
+                    <div class="flex flex-col items-center bg-gray-50 border border-gray-200 rounded-lg p-2 hover:border-blue-400 transition w-32 cursor-pointer" onclick="openImageModal('https://images.unsplash.com/photo-1557683316-973673baf926?w=600&q=80')">
+                        <img src="https://images.unsplash.com/photo-1557683316-973673baf926?w=200&q=80" alt="20260915_211150_1.jpg" class="w-full h-20 object-cover rounded mb-1">
+                        <span class="text-[11px] text-gray-600 truncate w-full text-center">📥 20260915_211150_1.jpg</span>
+                    </div>
+                </div>
             </div>
 
             <!-- 작성자 전용 옵션 -->
@@ -548,7 +562,7 @@
                 <div class="flex justify-between items-center mb-4">
                     <p class="font-bold text-gray-900 flex items-center gap-1.5">
                         <span class="text-blue-800 text-lg">🗣️</span> 소통 및 답변 
-                        <span id="commentCountBadge" class="text-orange-600 text-xs bg-orange-100 px-2 py-0.5 rounded-full ml-1">0</span>
+                        <span id="commentCountBadge" class="text-orange-600 text-xs bg-orange-100 px-2 py-0.5 rounded-full ml-1">1</span>
                     </p>
                     
                     <div id="adminStatusChangeArea" class="hidden flex items-center gap-2">
@@ -561,9 +575,9 @@
                     </div>
                 </div>
 
-                <!-- 댓글 목록 리스트 (인라인 수정 포함) -->
+                <!-- 댓글 목록 리스트 (인라인 수정 + 파일 X 삭제 제어) -->
                 <div id="commentListArea" class="space-y-3 mb-4 max-h-[300px] overflow-y-auto px-1">
-                    <!-- 자바스크립트를 통해 댓글과 첨부 썸네일이 렌더링됩니다. -->
+                    <!-- 스크립트로 원본 댓글 데이터가 렌더링됩니다 -->
                 </div>
 
                 <!-- 댓글 작성 및 파일 첨부 -->
@@ -688,7 +702,7 @@
         });
 
         // =======================================================
-        // 모달 내 독립적인 댓글 인라인 UI + 첨부파일 프론트 로직
+        // 원본 댓글 데이터 100% 복원 & 인라인 수정 + X 파일 삭제
         // =======================================================
         let mockComments = [
             {
@@ -696,15 +710,15 @@
                 author: 'admin',
                 role: 'admin',
                 createdAt: '2026.09.16 13:08',
-                content: '확인했습니다. 우선 신규 계정부터 세팅하도록 하겠습니다.',
-                files: [
-                    { name: 'sample1.jpg', url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&q=80' }
-                ]
+                content: '총 예산 100만 / 2개월\nㄴ충전 : 10 / 잔여 : 90',
+                files: []
             }
         ];
 
         let pendingLocalFiles = [];
+        let editingTempFiles = {}; 
 
+        // 댓글 목록 렌더링
         function renderLocalComments() {
             const listEl = document.getElementById('commentListArea');
             const countEl = document.getElementById('commentCountBadge');
@@ -718,7 +732,7 @@
                 commentCard.className = 'bg-white border border-gray-200 rounded-xl p-3.5 space-y-2 shadow-sm';
                 commentCard.id = `local-card-${item.id}`;
 
-                // 이미지 첨부파일 미리보기 (썸네일 클릭 시 확대 모달 실행)
+                // 이미지 첨부파일 미리보기 (클릭 시 이미지 확대)
                 let filesHtml = '';
                 if (item.files && item.files.length > 0) {
                     filesHtml = `
@@ -743,8 +757,8 @@
                         <div class="flex items-center gap-2 text-gray-400">
                             <span>${item.createdAt}</span>
                             <div id="local-action-${item.id}" class="flex items-center gap-1.5">
-                                <button onclick="enableLocalInlineEdit('${item.id}')" class="text-blue-500 hover:text-blue-700 hover:underline">수정</button>
-                                <button onclick="deleteLocalComment('${item.id}')" class="text-gray-400 hover:text-red-500 hover:underline">삭제</button>
+                                <button onclick="enableLocalInlineEdit('${item.id}')" class="text-blue-500 hover:text-blue-700 hover:underline font-medium">수정</button>
+                                <button onclick="deleteLocalComment('${item.id}')" class="text-gray-400 hover:text-red-500 hover:underline font-medium">삭제</button>
                             </div>
                         </div>
                     </div>
@@ -757,7 +771,7 @@
             });
         }
 
-        // 인라인 수정 모드 진입
+        // 인라인 수정 모드 활성화 (X 버튼으로 기존/신규 첨부파일 제거 가능)
         window.enableLocalInlineEdit = function(id) {
             const target = mockComments.find(c => c.id === id);
             if (!target) return;
@@ -765,48 +779,93 @@
             const contentArea = document.getElementById(`local-content-${id}`);
             const actionArea = document.getElementById(`local-action-${id}`);
 
-            actionArea.style.display = 'none';
+            if(actionArea) actionArea.style.display = 'none';
 
-            // 이미지 첨부파일은 수정 모드에서는 조회만 가능하도록 보존
-            let existingFilesHtml = '';
-            if (target.files && target.files.length > 0) {
-                existingFilesHtml = `
-                    <div class="flex gap-2 mb-2">
-                        ${target.files.map(f => `<span class="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded border border-gray-200">📎 ${f.name}</span>`).join('')}
+            editingTempFiles[id] = target.files ? [...target.files] : [];
+
+            renderEditForm(id, target.content);
+        };
+
+        // 수정 폼 동적 출력
+        function renderEditForm(id, textContent) {
+            const contentArea = document.getElementById(`local-content-${id}`);
+            if(!contentArea) return;
+
+            const currentFiles = editingTempFiles[id] || [];
+
+            // 개별 X 삭제 버튼이 부착된 첨부파일 미리보기
+            let fileEditAreaHtml = '';
+            if (currentFiles.length > 0) {
+                fileEditAreaHtml = `
+                    <div class="flex flex-wrap gap-2 pt-2 border-t border-blue-100">
+                        ${currentFiles.map((f, fileIdx) => `
+                            <div class="relative group bg-white border border-blue-200 rounded-lg p-1.5 flex items-center gap-1.5 shadow-sm">
+                                <img src="${f.url}" class="w-8 h-8 object-cover rounded">
+                                <span class="text-[10px] text-gray-600 truncate max-w-[90px] font-medium">${f.name}</span>
+                                <button type="button" onclick="removeEditFile('${id}', ${fileIdx})" class="text-red-500 hover:bg-red-50 font-black text-xs px-1.5 py-0.5 rounded" title="첨부파일 삭제">✕</button>
+                            </div>
+                        `).join('')}
                     </div>
                 `;
             }
 
             contentArea.innerHTML = `
                 <div class="space-y-2 pt-1">
-                    ${existingFilesHtml}
-                    <textarea id="local-edit-${id}" class="w-full border border-blue-400 rounded-lg p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y min-h-[70px] bg-blue-50/20">${target.content}</textarea>
-                    <div class="flex justify-end gap-1.5">
-                        <button onclick="renderLocalComments()" class="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded text-xs font-semibold transition">취소</button>
-                        <button onclick="saveLocalInlineEdit('${id}')" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold transition shadow-sm">저장</button>
+                    <textarea id="local-edit-ta-${id}" class="w-full border border-blue-400 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y min-h-[70px] bg-blue-50/20">${textContent}</textarea>
+                    
+                    ${fileEditAreaHtml}
+
+                    <div class="flex justify-end gap-1.5 pt-1">
+                        <button onclick="cancelLocalInlineEdit('${id}')" class="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-xs font-semibold transition">취소</button>
+                        <button onclick="saveLocalInlineEdit('${id}')" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition shadow-sm">저장</button>
                     </div>
                 </div>
             `;
 
-            const ta = document.getElementById(`local-edit-${id}`);
-            ta.focus();
-            ta.setSelectionRange(ta.value.length, ta.value.length);
+            const ta = document.getElementById(`local-edit-ta-${id}`);
+            if(ta) {
+                ta.focus();
+                ta.setSelectionRange(ta.value.length, ta.value.length);
+            }
+        }
+
+        // 수정 시 개별 첨부파일 X 삭제
+        window.removeEditFile = function(commentId, fileIdx) {
+            if (editingTempFiles[commentId]) {
+                editingTempFiles[commentId].splice(fileIdx, 1);
+                const ta = document.getElementById(`local-edit-ta-${commentId}`);
+                const currentText = ta ? ta.value : '';
+                renderEditForm(commentId, currentText);
+            }
         };
 
         // 수정사항 저장
         window.saveLocalInlineEdit = function(id) {
-            const ta = document.getElementById(`local-edit-${id}`);
-            const newText = ta.value.trim();
-            if(!newText) {
-                alert('내용을 입력해주세요.');
+            const ta = document.getElementById(`local-edit-ta-${id}`);
+            const newText = ta ? ta.value.trim() : '';
+
+            if(!newText && (!editingTempFiles[id] || editingTempFiles[id].length === 0)) {
+                alert('댓글 내용 또는 파일이 하나 이상 존재해야 합니다.');
                 return;
             }
+
             const target = mockComments.find(c => c.id === id);
-            if(target) target.content = newText;
+            if(target) {
+                target.content = newText;
+                target.files = editingTempFiles[id] || [];
+            }
+
+            delete editingTempFiles[id];
             renderLocalComments();
         };
 
-        // 삭제
+        // 수정 취소
+        window.cancelLocalInlineEdit = function(id) {
+            delete editingTempFiles[id];
+            renderLocalComments();
+        };
+
+        // 댓글 삭제
         window.deleteLocalComment = function(id) {
             if(confirm('댓글을 삭제하시겠습니까?')) {
                 mockComments = mockComments.filter(c => c.id !== id);
@@ -814,7 +873,7 @@
             }
         };
 
-        // 파일 첨부 UI 핸들링
+        // 신규 댓글 파일 첨부 이벤트
         const attachBtn = document.getElementById('attachFileLocalBtn');
         const fileInputBox = document.getElementById('commentFileInputBox');
         const filePreviewBox = document.getElementById('pendingFilesPreview');
@@ -859,7 +918,7 @@
             updatePreview();
         };
 
-        // 신규 댓글 작성
+        // 신규 댓글 등록
         const submitBtn = document.getElementById('submitNewCommentBtn');
         const inputBox = document.getElementById('commentInputBox');
 
@@ -889,13 +948,14 @@
                 updatePreview();
                 renderLocalComments();
                 
-                // 최하단 스크롤 이동
                 const scrollArea = document.getElementById('commentListArea');
-                setTimeout(() => { scrollArea.scrollTop = scrollArea.scrollHeight; }, 100);
+                if(scrollArea) {
+                    setTimeout(() => { scrollArea.scrollTop = scrollArea.scrollHeight; }, 100);
+                }
             });
         }
 
-        // 공통 이미지 모달
+        // 이미지 확대 모달
         window.openImageModal = function(src) {
             const modal = document.getElementById('imageModal');
             const img = document.getElementById('modalImgTag');
@@ -915,8 +975,8 @@
             return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         }
 
-        // 초기 렌더링
-        setTimeout(renderLocalComments, 500);
+        // 초기 실행
+        setTimeout(renderLocalComments, 300);
 
     </script>
     <script type="module" src="app.js"></script>

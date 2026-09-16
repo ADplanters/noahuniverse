@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, getDocs, query, where, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// ★ [완벽 복구] 대표님의 원래 활성 프로젝트(partner-noah) 설정값 ★
+// ★ [완벽 복구] 원래 활성 프로젝트(partner-noah) 설정값 ★
 const firebaseConfig = {
     apiKey: "AIzaSyABMgjiEEqx1b4tBxl5CKQWL_3ifuVxKPI",
     authDomain: "partner-noah.firebaseapp.com",
@@ -25,7 +25,7 @@ let currentEditClientId = null;
 let currentDetailTaskId = null; 
 let currentReplyTaskId = null;
 let currentEditLibId = null; 
-let currentViewLibId = null; // 🌟 상세보기 중인 라이브러리 ID
+let currentViewLibId = null; 
 let isInitialLoginLogged = false;
 let isInitialDeepLinkChecked = false; 
 let tasksMap = {}; 
@@ -264,7 +264,6 @@ safeAddListener('shareLinkBtn', 'click', () => {
     copyToClipboard(shareUrl, "이슈 고유 주소");
 });
 
-// 🌟 [신규 추가] 라이브러리 링크 공유 버튼 클릭
 safeAddListener('shareLibLinkBtn', 'click', () => {
     if (!currentViewLibId) return;
     const shareUrl = `${window.location.origin}${window.location.pathname}?libId=${currentViewLibId}`;
@@ -849,7 +848,6 @@ async function fetchTasks() {
         });
         tbody.innerHTML = rowsHtml;
 
-        // 🌟 [URL 딥링크 감지] 이슈 / 라이브러리 구분 처리
         if (!isInitialDeepLinkChecked) {
             const urlParams = new URLSearchParams(window.location.search);
             const sharedTaskId = urlParams.get('id');
@@ -862,7 +860,6 @@ async function fetchTasks() {
                     alert("요청하신 이슈를 찾을 수 없거나 접근 권한이 없습니다.");
                 }
             } else if (sharedLibId) {
-                // 인사이트 라이브러리 딥링크
                 fetchLibraryItems().then(() => {
                     if (libraryMap[sharedLibId]) {
                         if (libraryContainer) {
@@ -997,9 +994,13 @@ function openDetailModal(taskId) {
     logActivity("상세 조회", `[${task.title}] 상세 내용을 조회했습니다.`);
 }
 
+// 🌟 [핵심 업데이트] 소통 댓글 수정/삭제 기능 완벽 연동
 function renderComments(commentsArr) {
     const list = document.getElementById('commentList');
-    document.getElementById('commentCount').innerText = commentsArr.length;
+    const countEl = document.getElementById('commentCount');
+    if (countEl) countEl.innerText = commentsArr.length;
+    if (!list) return;
+    
     list.innerHTML = '';
     
     if(commentsArr.length === 0) {
@@ -1007,22 +1008,73 @@ function renderComments(commentsArr) {
         return;
     }
 
-    commentsArr.forEach(c => {
-        const isAdmin = c.role === 'admin' || c.role === 'leader';
-        const bgClass = isAdmin ? 'bg-blue-50/50 border-blue-100' : 'bg-gray-50 border-gray-100';
-        const nameColor = isAdmin ? 'text-noah' : 'text-gray-800';
-        const icon = isAdmin ? '<i class="fa-solid fa-crown text-[10px] text-yellow-500 mr-1"></i>' : '';
+    const isAdmin = checkIsAdmin();
+
+    commentsArr.forEach((c, index) => {
+        const isCommentAdmin = c.role === 'admin' || c.role === 'leader';
+        const bgClass = isCommentAdmin ? 'bg-blue-50/50 border-blue-100' : 'bg-gray-50 border-gray-100';
+        const nameColor = isCommentAdmin ? 'text-noah' : 'text-gray-800';
+        const icon = isCommentAdmin ? '<i class="fa-solid fa-crown text-[10px] text-yellow-500 mr-1"></i>' : '';
+
+        // 작성자 본인이거나 최상위 관리자인 경우 수정/삭제 버튼 노출
+        const canManage = (c.author === currentUserName) || isAdmin;
+        const actionBtns = canManage ? `
+            <div class="flex items-center gap-1.5 ml-2">
+                <button type="button" class="edit-comment-btn text-[10px] font-bold text-gray-400 hover:text-blue-600 transition" data-index="${index}">수정</button>
+                <button type="button" class="delete-comment-btn text-[10px] font-bold text-gray-400 hover:text-red-500 transition" data-index="${index}">삭제</button>
+            </div>
+        ` : '';
 
         list.innerHTML += `
-            <div class="${bgClass} border p-3 rounded-xl">
+            <div class="${bgClass} border p-3 rounded-xl relative group">
                 <div class="flex justify-between items-center mb-1">
                     <span class="text-xs font-bold ${nameColor}">${icon}${c.author} <span class="text-[10px] text-gray-400 font-normal">(${c.role})</span></span>
-                    <span class="text-[10px] text-gray-400">${c.date}</span>
+                    <div class="flex items-center gap-1">
+                        <span class="text-[10px] text-gray-400">${c.date}</span>
+                        ${actionBtns}
+                    </div>
                 </div>
                 <p class="text-xs text-gray-700 whitespace-pre-line">${c.text}</p>
             </div>
         `;
     });
+
+    // 🌟 댓글 수정 이벤트 핸들러 바인딩
+    list.querySelectorAll('.edit-comment-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const idx = parseInt(btn.getAttribute('data-index'));
+            const comment = commentsArr[idx];
+            const newText = prompt("댓글 내용을 수정하세요:", comment.text);
+            if (newText !== null && newText.trim() !== "") {
+                commentsArr[idx].text = newText.trim();
+                try {
+                    await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), { comments: commentsArr });
+                    await logActivity("댓글 수정", `[${tasksMap[currentDetailTaskId]?.title}] 댓글 수정 처리`);
+                    renderComments(commentsArr);
+                    fetchTasks();
+                } catch (err) { alert("댓글 수정 실패: " + err.message); }
+            }
+        });
+    });
+
+    // 🌟 댓글 삭제 이벤트 핸들러 바인딩
+    list.querySelectorAll('.delete-comment-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const idx = parseInt(btn.getAttribute('data-index'));
+            if (confirm("댓글을 정말 삭제하시겠습니까?")) {
+                commentsArr.splice(idx, 1);
+                try {
+                    await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), { comments: commentsArr });
+                    await logActivity("댓글 삭제", `[${tasksMap[currentDetailTaskId]?.title}] 댓글 삭제 처리`);
+                    renderComments(commentsArr);
+                    fetchTasks();
+                } catch (err) { alert("댓글 삭제 실패: " + err.message); }
+            }
+        });
+    });
+
     list.scrollTop = list.scrollHeight;
 }
 
@@ -1071,7 +1123,7 @@ safeAddListener('detailDeleteBtn', 'click', async () => {
         try {
             await deleteDoc(doc(db, "crm_tasks", currentDetailTaskId));
             closeDetailModalAction(); 
-            await logActivity("게시글 삭제", `[${tTitle}] 게시글 영구 삭제`);
+            await logActivity("게시글 삭제", `[${task.title}] 게시글 영구 삭제`);
             alert('삭제되었습니다.');
             fetchTasks();
         } catch(e) { alert('삭제 실패: '+e.message); }
@@ -1169,10 +1221,7 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
     } catch(e) { alert("수정 실패: " + e.message); }
 });
 
-// ============================================================================
-// 🌟 인사이트 라이브러리 (HTML 커스텀 페이지 & 딥링크 고유 주소 지원)
-// ============================================================================
-
+// 인사이트 라이브러리 (HTML 커스텀 페이지 & 딥링크 고유 주소 지원)
 async function fetchLibraryItems() {
     const grid = document.getElementById('libraryGrid');
     if (!grid) return;
@@ -1341,14 +1390,12 @@ async function seedDefaultLibraryItems() {
     }
 }
 
-// 🌟 [URL 동기화 적용] 인사이트 라이브러리 HTML 상세보기 모달 오픈
 function openLibraryViewModal(id) {
     const item = libraryMap[id];
     if (!item) return;
 
     currentViewLibId = id;
 
-    // 🌟 URL에 ?libId=아이디 파라미터 자동 동기화 (새로고침 없음)
     const newUrl = `${window.location.pathname}?libId=${id}`;
     window.history.pushState({ path: newUrl }, '', newUrl);
 
@@ -1368,7 +1415,6 @@ function openLibraryViewModal(id) {
     logActivity("라이브러리 열람", `[${item.title}] 가이드북 HTML 열람`);
 }
 
-// 🌟 라이브러리 모달 닫을 때 URL 원상복구
 function closeLibViewModalAction() {
     libraryViewModal.classList.add('hidden');
     currentViewLibId = null;

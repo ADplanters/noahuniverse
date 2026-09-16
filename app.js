@@ -25,6 +25,7 @@ let currentEditClientId = null;
 let currentDetailTaskId = null; 
 let currentReplyTaskId = null;
 let isInitialLoginLogged = false;
+let isInitialDeepLinkChecked = false; // 🌟 딥링크 최초 확인용 변수
 let tasksMap = {}; 
 let cachedClientNames = []; 
 
@@ -62,19 +63,6 @@ function checkIsAdmin() {
     return false;
 }
 
-// 🌟 [공통 함수] 통일된 4가지 상태값에 따른 배지 디자인 자동 반환
-function getStatusBadgeHtml(status) {
-    if(status === '답변 대기' || status === '답변대기' || status === '대기중') {
-        return `<span class="bg-red-50 text-red-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-red-100">답변 대기</span>`;
-    } else if(status === '진행중') {
-        return `<span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-blue-100">진행중</span>`;
-    } else if(status === '작업 완료') {
-        return `<span class="bg-orange-50 text-hermes px-2 py-0.5 rounded-md text-[10px] font-bold border border-orange-200">작업 완료</span>`;
-    } else {
-        return `<span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-gray-200">답변 완료</span>`;
-    }
-}
-
 // 다중 체크박스 UI 렌더링 함수
 async function populateAssignManagerCheckboxes(containerId, selectedManagers = []) {
     const container = document.getElementById(containerId);
@@ -94,7 +82,6 @@ async function populateAssignManagerCheckboxes(containerId, selectedManagers = [
             const u = docSnap.data();
             const roleLabel = u.role === 'admin' ? '최상위 관리자' : (u.role === 'leader' ? '리더' : 'Player');
             const isChecked = selArray.includes(u.name) ? 'checked' : '';
-            
             const themeClass = containerId.includes('edit') ? 'text-blue-600 focus:ring-blue-600' : 'text-hermes focus:ring-hermes';
 
             container.innerHTML += `
@@ -241,27 +228,9 @@ safeAddListener('mobileMenuBtn', 'click', () => {
 safeAddListener('closeSidebarBtn', 'click', closeMobileSidebar);
 safeAddListener('mobileOverlay', 'click', closeMobileSidebar);
 
-// 🌟 신규 등록 모달창을 열 때 상태 드롭다운 강제 통일 및 잠금 해제
 safeAddListener('openModalBtn', 'click', () => {
     ensureClientNamesLoaded();
     createModal.classList.remove('hidden');
-    
-    // HTML에 disabled가 적용되어 클릭이 안되는 상태 창을 강제로 활성화하고 통일된 4개 항목을 삽입
-    const statusEl = document.getElementById('inputStatus');
-    if (statusEl) {
-        statusEl.disabled = false; 
-        statusEl.removeAttribute('disabled'); 
-        statusEl.classList.remove('bg-gray-100', 'cursor-not-allowed');
-        statusEl.classList.add('bg-white');
-        
-        statusEl.innerHTML = `
-            <option value="답변 대기">답변 대기</option>
-            <option value="답변 완료">답변 완료</option>
-            <option value="진행중">진행중</option>
-            <option value="작업 완료">작업 완료</option>
-        `;
-    }
-
     const assignArea = document.getElementById('assignManagerArea');
     const isAdmin = checkIsAdmin();
     if (isAdmin) {
@@ -274,6 +243,48 @@ safeAddListener('openModalBtn', 'click', () => {
 
 safeAddListener('closeModalBtn', 'click', () => createModal.classList.add('hidden'));
 safeAddListener('cancelBtn', 'click', () => createModal.classList.add('hidden'));
+
+// 🌟 [URL 동기화] 상세 모달 닫을 때 파라미터 날리기
+function closeDetailModalAction() {
+    detailModal.classList.add('hidden');
+    const cleanUrl = window.location.pathname;
+    window.history.pushState({}, '', cleanUrl);
+}
+
+safeAddListener('closeDetailModalBtn', 'click', closeDetailModalAction);
+safeAddListener('closeDetailBtn', 'click', closeDetailModalAction);
+
+// 🌟 [링크 복사] 기능 구현
+safeAddListener('shareLinkBtn', 'click', () => {
+    if (!currentDetailTaskId) return;
+    const shareUrl = `${window.location.origin}${window.location.pathname}?id=${currentDetailTaskId}`;
+    
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(shareUrl).then(() => {
+            alert("이슈 고유 주소가 클립보드에 복사되었습니다.\n" + shareUrl);
+        }).catch(() => {
+            fallbackCopyTextToClipboard(shareUrl);
+        });
+    } else {
+        fallbackCopyTextToClipboard(shareUrl);
+    }
+});
+
+function fallbackCopyTextToClipboard(text) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed"; 
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+        document.execCommand('copy');
+        alert("이슈 고유 주소가 클립보드에 복사되었습니다.\n" + text);
+    } catch (err) {
+        alert("복사 실패. 브라우저가 지원하지 않습니다.");
+    }
+    document.body.removeChild(textArea);
+}
 
 safeAddListener('openClientModalBtn', 'click', () => {
     const registerInput = document.getElementById('c_registerName');
@@ -292,8 +303,6 @@ safeAddListener('cancelAssignBtn', 'click', () => assignModal.classList.add('hid
 safeAddListener('closeReplyModalBtn', 'click', () => replyModal.classList.add('hidden'));
 safeAddListener('cancelReplyBtn', 'click', () => replyModal.classList.add('hidden'));
 
-safeAddListener('closeDetailModalBtn', 'click', () => detailModal.classList.add('hidden'));
-safeAddListener('closeDetailBtn', 'click', () => detailModal.classList.add('hidden'));
 safeAddListener('closeEditTaskModalBtn', 'click', () => editTaskModal.classList.add('hidden'));
 safeAddListener('cancelEditTaskBtn', 'click', () => editTaskModal.classList.add('hidden'));
 
@@ -686,9 +695,6 @@ safeAddListener('taskForm', 'submit', async (e) => {
         assignedManagersArr = Array.from(checkboxes).map(cb => cb.value);
     }
 
-    const statusEl = document.getElementById('inputStatus');
-    const selectedStatus = statusEl && statusEl.value ? statusEl.value : "답변 대기";
-
     const newTask = {
         client: document.getElementById('inputClient').value,
         type: document.getElementById('inputType').value,
@@ -697,8 +703,8 @@ safeAddListener('taskForm', 'submit', async (e) => {
         content: document.getElementById('inputContent').value,
         files: filesArr,
         staff: document.getElementById('inputStaff').value,
-        assignedManagers: assignedManagersArr, 
-        status: selectedStatus, 
+        assignedManagers: assignedManagersArr,
+        status: "답변대기", 
         date: dateStr,
         comments: [] 
     };
@@ -783,6 +789,12 @@ async function fetchTasks() {
 
             const fileButton = renderFileButtons(item);
 
+            function getBadge(status) {
+                if(status === '답변대기' || status === '대기중') return `<span class="text-red-500 font-bold border border-red-200 bg-red-50 px-2 py-0.5 rounded text-[11px]">답변대기</span>`;
+                if(status === '진행중') return `<span class="text-blue-500 font-bold border border-blue-200 bg-blue-50 px-2 py-0.5 rounded text-[11px]">진행중</span>`;
+                return `<span class="text-gray-600 font-bold border border-gray-200 bg-gray-100 px-2 py-0.5 rounded text-[11px]">답변완료</span>`;
+            }
+
             const commentCount = item.comments ? item.comments.length : 0;
 
             let assignedStr = "";
@@ -813,13 +825,27 @@ async function fetchTasks() {
                             <span class="text-gray-600 font-medium text-[11px]">${staffDisplay}</span>
                         </div>
                     </td>
-                    <td class="p-3 md:p-4 align-middle text-center">${getStatusBadgeHtml(item.status)}</td>
+                    <td class="p-3 md:p-4 align-middle text-center">${getBadge(item.status)}</td>
                     <td class="p-3 md:p-4 align-middle text-gray-400 text-[11px] font-medium">${item.date || '-'}</td>
                     ${adminActions}
                 </tr>
             `;
         });
         tbody.innerHTML = rowsHtml;
+
+        // 🌟 [URL 파싱 및 팝업 띄우기] 최초 1회만 동작하도록 제어
+        if (!isInitialDeepLinkChecked) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const sharedTaskId = urlParams.get('id');
+            if (sharedTaskId) {
+                if (tasksMap[sharedTaskId]) {
+                    openDetailModal(sharedTaskId);
+                } else {
+                    alert("요청하신 이슈를 찾을 수 없거나 접근 권한이 없습니다.");
+                }
+            }
+            isInitialDeepLinkChecked = true;
+        }
 
     } catch (e) { console.error("Firestore error:", e); }
 }
@@ -859,17 +885,20 @@ if (boardTableEl) {
 
 function updateStats(data) {
     if(document.getElementById('statTotal')) document.getElementById('statTotal').innerText = data.length;
-    if(document.getElementById('statWait')) document.getElementById('statWait').innerText = data.filter(d => d.status === '답변 대기' || d.status === '답변대기' || d.status === '대기중').length;
+    if(document.getElementById('statWait')) document.getElementById('statWait').innerText = data.filter(d => d.status === '답변대기' || d.status === '대기중').length;
     if(document.getElementById('statIng')) document.getElementById('statIng').innerText = data.filter(d => d.status === '진행중').length;
-    if(document.getElementById('statDone')) document.getElementById('statDone').innerText = data.filter(d => d.status === '답변 완료' || d.status === '답변완료' || d.status === '작업 완료' || d.status === '완료').length;
+    if(document.getElementById('statDone')) document.getElementById('statDone').innerText = data.filter(d => d.status === '답변완료' || d.status === '완료').length;
 }
 
-// 🌟 상세 모달 열기 및 상태 변경 항목 통일
+// 🌟 [URL 동기화 추가] 팝업 열 때 주소창에 파라미터 삽입
 function openDetailModal(taskId) {
     const task = tasksMap[taskId];
     if(!task) return;
     
     currentDetailTaskId = taskId;
+    
+    const newUrl = `${window.location.pathname}?id=${taskId}`;
+    window.history.pushState({ path: newUrl }, '', newUrl);
     
     document.getElementById('detailTitle').innerText = task.title || '제목 없음';
     document.getElementById('detailType').innerText = task.type || 'Q&A';
@@ -889,7 +918,9 @@ function openDetailModal(taskId) {
     document.getElementById('detailContent').innerText = task.content || '등록된 상세 내용이 없습니다.';
 
     const statusEl = document.getElementById('detailStatus');
-    if(statusEl) statusEl.innerHTML = getStatusBadgeHtml(task.status);
+    if(task.status === '답변대기' || task.status === '대기중') statusEl.innerHTML = `<span class="bg-red-50 text-red-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-red-100">답변대기</span>`;
+    else if(task.status === '진행중') statusEl.innerHTML = `<span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-blue-100">진행중</span>`;
+    else statusEl.innerHTML = `<span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-gray-200">답변완료</span>`;
 
     const fileBtnArea = document.getElementById('detailFileBtn');
     if ((task.files && task.files.length > 0) || task.fileData) {
@@ -915,23 +946,10 @@ function openDetailModal(taskId) {
         deleteBtn.classList.remove('hidden');
         canShowAction = true;
         document.getElementById('adminStatusChangeArea').classList.remove('hidden');
-        
-        // 과거 DB 상태값을 새 4가지 표준값으로 자동 변환
         let selStatus = task.status;
-        if(selStatus === '대기중' || selStatus === '답변대기') selStatus = '답변 대기';
-        if(selStatus === '완료' || selStatus === '답변완료') selStatus = '답변 완료';
-        
-        const adminSelectEl = document.getElementById('adminStatusSelect');
-        if (adminSelectEl) {
-            // 통일된 4가지 옵션 강제 삽입
-            adminSelectEl.innerHTML = `
-                <option value="답변 대기">답변 대기</option>
-                <option value="답변 완료">답변 완료</option>
-                <option value="진행중">진행중</option>
-                <option value="작업 완료">작업 완료</option>
-            `;
-            adminSelectEl.value = selStatus || '답변 대기';
-        }
+        if(selStatus==='대기중') selStatus='답변대기';
+        if(selStatus==='완료') selStatus='답변완료';
+        document.getElementById('adminStatusSelect').value = selStatus || '답변대기';
     } else {
         deleteBtn.classList.add('hidden');
         document.getElementById('adminStatusChangeArea').classList.add('hidden');
@@ -974,35 +992,6 @@ function renderComments(commentsArr) {
     });
     list.scrollTop = list.scrollHeight;
 }
-
-// 이벤트 위임을 통한 모달 내부 드롭다운 실시간 반영
-document.addEventListener('change', async (e) => {
-    if (e.target && e.target.id === 'adminStatusSelect') {
-        if (!currentDetailTaskId) return;
-        const task = tasksMap[currentDetailTaskId];
-        if (!task) return;
-
-        const newStatus = e.target.value;
-        const statusEl = document.getElementById('detailStatus');
-
-        try {
-            if (statusEl) statusEl.innerHTML = getStatusBadgeHtml(newStatus);
-
-            await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), { 
-                status: newStatus 
-            });
-            task.status = newStatus; 
-
-            await logActivity("상태 변경", `[${task.title}] 게시글 상태를 '${newStatus}'(으)로 변경`);
-            alert(`상태가 '${newStatus}'(으)로 정상 변경되었습니다.`);
-            fetchTasks();
-
-        } catch (err) {
-            console.error("상태 변경 실패:", err);
-            alert("상태 변경 실패: " + err.message);
-        }
-    }
-});
 
 safeAddListener('submitCommentBtn', 'click', async () => {
     if(!currentDetailTaskId) return;
@@ -1048,7 +1037,7 @@ safeAddListener('detailDeleteBtn', 'click', async () => {
     if(confirm('게시글을 영구적으로 삭제하시겠습니까?')) {
         try {
             await deleteDoc(doc(db, "crm_tasks", currentDetailTaskId));
-            document.getElementById('detailModal').classList.add('hidden');
+            closeDetailModalAction(); // 창 닫으며 URL 복구
             await logActivity("게시글 삭제", `[${task.title}] 영구 삭제 완료`);
             alert('삭제되었습니다.');
             fetchTasks();
@@ -1056,7 +1045,6 @@ safeAddListener('detailDeleteBtn', 'click', async () => {
     }
 });
 
-// 🌟 본문 수정 모달 열 때도 항목 4가지 통일
 safeAddListener('detailEditBtn', 'click', async () => {
     if(!currentDetailTaskId) return;
     const task = tasksMap[currentDetailTaskId];
@@ -1066,21 +1054,6 @@ safeAddListener('detailEditBtn', 'click', async () => {
     document.getElementById('editTaskAgency').value = task.agency || 'noah';
     document.getElementById('editTaskTitle').value = task.title || '';
     document.getElementById('editTaskContent').value = task.content || '';
-
-    // 수정 폼의 상태 창에 4가지 옵션 주입 및 값 세팅
-    const editStatusEl = document.getElementById('editTaskStatus');
-    if (editStatusEl) {
-        editStatusEl.innerHTML = `
-            <option value="답변 대기">답변 대기</option>
-            <option value="답변 완료">답변 완료</option>
-            <option value="진행중">진행중</option>
-            <option value="작업 완료">작업 완료</option>
-        `;
-        let selStatus = task.status;
-        if(selStatus === '대기중' || selStatus === '답변대기') selStatus = '답변 대기';
-        if(selStatus === '완료' || selStatus === '답변완료') selStatus = '답변 완료';
-        editStatusEl.value = selStatus || '답변 대기';
-    }
     
     const editAssignArea = document.getElementById('editAssignManagerArea');
     const isAdmin = checkIsAdmin();
@@ -1100,7 +1073,7 @@ safeAddListener('detailEditBtn', 'click', async () => {
         : (task.fileName || '없음');
     document.getElementById('currentAttachedFile').innerText = fileLabel;
     
-    document.getElementById('detailModal').classList.add('hidden');
+    detailModal.classList.add('hidden'); // 주소창은 유지하면서 모달만 교체
     editTaskModal.classList.remove('hidden');
 });
 
@@ -1137,16 +1110,12 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
         finalFilesArr = newFilesArr;
     }
 
-    const editStatusEl = document.getElementById('editTaskStatus');
-    const selectedStatus = editStatusEl && editStatusEl.value ? editStatusEl.value : task.status;
-
     const updatedTask = {
         client: document.getElementById('editTaskClient').value,
         type: document.getElementById('editTaskType').value,
         agency: document.getElementById('editTaskAgency').value,
         title: document.getElementById('editTaskTitle').value,
         content: document.getElementById('editTaskContent').value,
-        status: selectedStatus, // 수정한 폼의 상태값 반영
         files: finalFilesArr
     };
 
@@ -1160,6 +1129,7 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
     try {
         await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), updatedTask);
         editTaskModal.classList.add('hidden');
+        closeDetailModalAction(); // URL 복구 및 상세 닫기 상태
         await logActivity("게시글 수정", `[${updatedTask.title}] 본문 및 담당자 수정 처리`);
         alert("수정되었습니다.");
         fetchTasks();

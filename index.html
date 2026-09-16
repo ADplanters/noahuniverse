@@ -524,7 +524,7 @@
     </div>
 
     <!-- ==================================================================== -->
-    <!-- 게시판 형태 상세 보기 팝업 (조회수 & 최상위 관리자 전용 호버 툴팁 포함) -->
+    <!-- 게시판 형태 상세 보기 팝업 -->
     <!-- ==================================================================== -->
     <div id="detailModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-2xl p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[95vh] overflow-y-auto flex flex-col">
@@ -539,21 +539,23 @@
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
                     
-                    <!-- 🌟 눈 모양 조회수 표시 및 최상위 관리자 전용 호버 툴팁 팝업 -->
+                    <!-- 🌟 눈 모양 조회수 표시 및 최상위 관리자 전용 호버 툴팁 -->
                     <div id="viewCountBadgeWrapper" class="relative inline-block group">
                         <button type="button" id="viewCountBadgeBtn" class="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-[10px] sm:text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer">
                             <i class="fa-regular fa-eye text-blue-600"></i>
                             <span id="detailViewCountNum">0</span>
                         </button>
 
-                        <!-- 최상위 관리자 전용 최근 10명 조회 이력 툴팁 -->
-                        <div id="viewersTooltip" class="hidden absolute right-0 top-full mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-3 z-50 text-xs">
-                            <div class="font-bold text-gray-900 border-b border-gray-100 pb-1.5 mb-2 flex items-center justify-between">
-                                <span class="flex items-center gap-1 text-blue-900"><i class="fa-solid fa-users-viewfinder text-blue-600"></i> 최근 조회자 (최대 10명)</span>
-                                <span class="text-[10px] font-normal text-gray-400">Admin Only</span>
-                            </div>
-                            <div id="viewersListContent" class="space-y-1.5 max-h-48 overflow-y-auto">
-                                <!-- JS로 최근 10명 이력이 출력됩니다 -->
+                        <!-- 최상위 관리자 전용 최근 10명 조회 이력 툴팁 (CSS 트랜지션 강제 렌더링 유지) -->
+                        <div id="viewersTooltip" class="invisible opacity-0 group-hover:visible group-hover:opacity-100 absolute right-0 top-full pt-2 w-72 z-50 transition-all duration-200">
+                            <div class="bg-white rounded-xl shadow-2xl border border-gray-200 p-3 text-xs">
+                                <div class="font-bold text-gray-900 border-b border-gray-100 pb-1.5 mb-2 flex items-center justify-between">
+                                    <span class="flex items-center gap-1 text-blue-900"><i class="fa-solid fa-users-viewfinder text-blue-600"></i> 최근 조회자 (최대 10명)</span>
+                                    <span class="text-[10px] font-normal text-gray-400">Admin Only</span>
+                                </div>
+                                <div id="viewersListContent" class="space-y-1.5 max-h-48 overflow-y-auto">
+                                    <!-- JS로 렌더링 -->
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -588,8 +590,8 @@
                 </div>
             </div>
 
-            <!-- 본문/제목 수정 버튼 영역 -->
-            <div id="authorActionArea" class="flex justify-end gap-2 mb-6">
+            <!-- 작성자 전용 옵션 -->
+            <div id="authorActionArea" class="flex justify-end gap-2 mb-6 hidden">
                 <button id="detailEditBtn" type="button" class="px-3.5 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white border border-blue-200 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-xs">
                     <i class="fa-solid fa-pen-to-square"></i> 게시글/제목 수정
                 </button>
@@ -880,7 +882,7 @@
         }
 
         // =======================================================
-        // 🌟 게시글 조회수 및 최근 10명 조회 이력 (Admin 전용)
+        // 🌟 게시글 조회수 및 최근 10명 조회 이력 (디바운싱 중복 차단 완벽 적용)
         // =======================================================
         const VIEWS_STORAGE_KEY = 'noah_post_views_v1';
 
@@ -912,8 +914,20 @@
             return roleText.includes('Admin') || roleText.includes('최상위') || nameText.toLowerCase().includes('admin');
         }
 
+        let lastRecordData = { title: '', time: 0 };
+
         function recordPostView(postTitle) {
             if (!postTitle || postTitle === '게시글 제목 영역') return;
+
+            const nowTime = Date.now();
+            
+            // 디바운스 로직 (1초 이내 동일 게시글 중복 호출 방지)
+            if (lastRecordData.title === postTitle && (nowTime - lastRecordData.time) < 1000) {
+                return;
+            }
+            
+            lastRecordData.title = postTitle;
+            lastRecordData.time = nowTime;
 
             const allViews = loadAllViewsFromStorage();
             if (!allViews[postTitle]) {
@@ -1019,6 +1033,7 @@
                             </div>
                         </div>
                     </div>
+                    <!-- comment-text 클래스를 순수 텍스트 영역으로 한정하여 상위 공백 팽창 차단 -->
                     <div id="local-content-${item.id}" class="text-xs text-gray-800 leading-normal mt-0.5">
                         <div class="comment-text">${escapeLocalHtml(item.content)}</div>
                         ${filesHtml}
@@ -1102,7 +1117,7 @@
                         if (!editingTempFiles[id]) editingTempFiles[id] = [];
                         editingTempFiles[id].push({
                             name: file.name,
-                            url: evt.target.result,
+                            url: evt.target.result, 
                             type: file.type
                         });
                         processCount++;
@@ -1402,7 +1417,7 @@
             });
         }
 
-        // 모달 오픈 / 게시글 제목 변경 감시자 (조회수 기록 및 댓글 재로드)
+        // 모달 오픈 / 게시글 제목 변경 감시자
         const detailTitleEl = document.getElementById('detailTitle');
         if (detailTitleEl) {
             const titleObserver = new MutationObserver(() => {
@@ -1453,7 +1468,7 @@
         setTimeout(() => {
             renderLocalComments();
             const currentTitle = document.getElementById('detailTitle').textContent.trim();
-            if (currentTitle) updateViewCountUI(currentTitle);
+            if (currentTitle && currentTitle !== '게시글 제목 영역') updateViewCountUI(currentTitle);
         }, 300);
 
     </script>

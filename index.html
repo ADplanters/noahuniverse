@@ -149,7 +149,7 @@
             <div class="p-4 border-t border-gray-100 flex flex-col gap-3">
                 <div class="flex items-center gap-3 overflow-hidden px-1">
                     <div class="w-9 h-9 rounded-full bg-hermes-light text-hermes flex items-center justify-center text-sm font-bold flex-shrink-0"><i class="fa-solid fa-user-check"></i></div>
-                    <div class="truncate"><p class="text-xs font-bold text-gray-800 truncate" id="currentUserName">사용자</p><p class="text-[10px] text-hermes font-bold truncate" id="currentUserRoleName">직책</p></div>
+                    <div class="truncate"><p class="text-xs font-bold text-gray-800 truncate" id="currentUserName">admin</p><p class="text-[10px] text-hermes font-bold truncate" id="currentUserRoleName">최상위 관리자 (Admin)</p></div>
                 </div>
                 <button id="logoutBtn" class="w-full flex items-center justify-center gap-2 bg-gray-50 hover:bg-red-50 text-gray-600 hover:text-red-500 border border-gray-200 rounded-xl py-2.5 text-xs font-bold transition duration-200 shadow-sm"><i class="fa-solid fa-right-from-bracket"></i> 로그아웃</button>
             </div>
@@ -438,7 +438,7 @@
         </div>
     </div>
 
-    <!-- 등록된 게시글 수정 모달 (제목 및 본문 전체 수정) -->
+    <!-- 등록된 게시글 수정 모달 -->
     <div id="editTaskModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-lg p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-5 border-b pb-3">
@@ -524,7 +524,7 @@
     </div>
 
     <!-- ==================================================================== -->
-    <!-- 게시판 형태 상세 보기 팝업 -->
+    <!-- 게시판 형태 상세 보기 팝업 (조회수 & 최상위 관리자 전용 호버 툴팁 포함) -->
     <!-- ==================================================================== -->
     <div id="detailModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-2xl p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[95vh] overflow-y-auto flex flex-col">
@@ -538,6 +538,26 @@
                     <h3 id="detailTitle" class="text-lg md:text-xl font-black text-gray-900 leading-tight">게시글 제목 영역</h3>
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
+                    
+                    <!-- 🌟 눈 모양 조회수 표시 및 최상위 관리자 전용 호버 툴팁 팝업 -->
+                    <div id="viewCountBadgeWrapper" class="relative inline-block group">
+                        <button type="button" id="viewCountBadgeBtn" class="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-[10px] sm:text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer">
+                            <i class="fa-regular fa-eye text-blue-600"></i>
+                            <span id="detailViewCountNum">0</span>
+                        </button>
+
+                        <!-- 최상위 관리자 전용 최근 10명 조회 이력 툴팁 -->
+                        <div id="viewersTooltip" class="hidden absolute right-0 top-full mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-3 z-50 text-xs">
+                            <div class="font-bold text-gray-900 border-b border-gray-100 pb-1.5 mb-2 flex items-center justify-between">
+                                <span class="flex items-center gap-1 text-blue-900"><i class="fa-solid fa-users-viewfinder text-blue-600"></i> 최근 조회자 (최대 10명)</span>
+                                <span class="text-[10px] font-normal text-gray-400">Admin Only</span>
+                            </div>
+                            <div id="viewersListContent" class="space-y-1.5 max-h-48 overflow-y-auto">
+                                <!-- JS로 최근 10명 이력이 출력됩니다 -->
+                            </div>
+                        </div>
+                    </div>
+
                     <button id="shareLinkBtn" type="button" class="px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 text-hermes border border-orange-200 rounded-lg text-[10px] sm:text-xs font-bold transition flex items-center gap-1 shadow-sm" title="고유 URL 복사">
                         <i class="fa-solid fa-share-nodes"></i> <span class="hidden sm:inline">링크 복사</span>
                     </button>
@@ -568,7 +588,7 @@
                 </div>
             </div>
 
-            <!-- 🌟 본문/제목 수정 버튼 영역 (수정 옵션 상시 노출) -->
+            <!-- 본문/제목 수정 버튼 영역 -->
             <div id="authorActionArea" class="flex justify-end gap-2 mb-6">
                 <button id="detailEditBtn" type="button" class="px-3.5 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white border border-blue-200 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-xs">
                     <i class="fa-solid fa-pen-to-square"></i> 게시글/제목 수정
@@ -602,7 +622,7 @@
                     <!-- 스크립트로 해당 게시글 고유 댓글 데이터가 렌더링됩니다 -->
                 </div>
 
-                <!-- 댓글 작성 및 파일 첨부 (드래그 앤 드롭 영역 포함) -->
+                <!-- 댓글 작성 및 파일 첨부 -->
                 <div class="space-y-2">
                     <div id="pendingFilesPreview" class="flex flex-wrap gap-2 hidden"></div>
                     <div class="flex gap-2 items-stretch">
@@ -825,7 +845,7 @@
         }
 
         // =======================================================
-        // 게시글별 고유 키(PostKey) 추출 및 영구 저장소 동기화
+        // 게시글별 고유 키(PostKey) 추출 및 댓글 데이터
         // =======================================================
         function getPostKey() {
             const titleEl = document.getElementById('detailTitle');
@@ -857,6 +877,101 @@
 
         function saveAllCommentsToStorage(allData) {
             localStorage.setItem('noah_comments_data_v3', JSON.stringify(allData));
+        }
+
+        // =======================================================
+        // 🌟 게시글 조회수 및 최근 10명 조회 이력 (Admin 전용)
+        // =======================================================
+        const VIEWS_STORAGE_KEY = 'noah_post_views_v1';
+
+        function loadAllViewsFromStorage() {
+            const saved = localStorage.getItem(VIEWS_STORAGE_KEY);
+            if (saved) {
+                try { return JSON.parse(saved); } catch(e) {}
+            }
+            return {
+                "노아 유니버스 컴퍼니 광고계정 운영 내용*": [
+                    { user: 'admin (최상위 관리자)', time: '2026.09.16 18:51' },
+                    { user: '애드플랜터스*', time: '2026.09.16 17:10' }
+                ],
+                "코웨이 메타 광고 계정 초기 세팅": [
+                    { user: 'admin (최상위 관리자)', time: '2026.09.16 13:08' }
+                ]
+            };
+        }
+
+        function saveAllViewsToStorage(allViews) {
+            localStorage.setItem(VIEWS_STORAGE_KEY, JSON.stringify(allViews));
+        }
+
+        function isTopAdmin() {
+            const roleEl = document.getElementById('currentUserRoleName');
+            const nameEl = document.getElementById('currentUserName');
+            const roleText = roleEl ? roleEl.textContent : '';
+            const nameText = nameEl ? nameEl.textContent : '';
+            return roleText.includes('Admin') || roleText.includes('최상위') || nameText.toLowerCase().includes('admin');
+        }
+
+        function recordPostView(postTitle) {
+            if (!postTitle || postTitle === '게시글 제목 영역') return;
+
+            const allViews = loadAllViewsFromStorage();
+            if (!allViews[postTitle]) {
+                allViews[postTitle] = [];
+            }
+
+            const nameEl = document.getElementById('currentUserName');
+            const roleEl = document.getElementById('currentUserRoleName');
+            const userName = nameEl ? nameEl.textContent.trim() : '사용자';
+            const userRole = roleEl ? roleEl.textContent.trim() : '';
+            const displayName = userRole ? `${userName} (${userRole})` : userName;
+
+            const now = new Date();
+            const timeStr = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+            // 최근 10명 이력 배열 맨 앞에 추가
+            allViews[postTitle].unshift({ user: displayName, time: timeStr });
+            if (allViews[postTitle].length > 10) {
+                allViews[postTitle] = allViews[postTitle].slice(0, 10);
+            }
+
+            saveAllViewsToStorage(allViews);
+            updateViewCountUI(postTitle);
+        }
+
+        function updateViewCountUI(postTitle) {
+            const allViews = loadAllViewsFromStorage();
+            const viewsList = allViews[postTitle] || [];
+            
+            const countNumEl = document.getElementById('detailViewCountNum');
+            if (countNumEl) {
+                countNumEl.textContent = viewsList.length;
+            }
+
+            // 최상위 관리자 전용 호버 툴팁 리스트 갱신
+            const listContentEl = document.getElementById('viewersListContent');
+            const tooltipBox = document.getElementById('viewersTooltip');
+            
+            if (listContentEl && tooltipBox) {
+                if (!isTopAdmin()) {
+                    listContentEl.innerHTML = `<p class="text-gray-400 py-1 text-center font-medium">최상위 관리자만 조회 이력을 확인할 수 있습니다.</p>`;
+                    return;
+                }
+
+                if (viewsList.length === 0) {
+                    listContentEl.innerHTML = `<p class="text-gray-400 py-1 text-center font-medium">최근 조회 이력이 없습니다.</p>`;
+                } else {
+                    listContentEl.innerHTML = viewsList.map((item, idx) => `
+                        <div class="flex items-center justify-between text-[11px] py-1 border-b border-gray-50 last:border-0">
+                            <div class="flex items-center gap-1.5 font-bold text-gray-800 truncate max-w-[150px]">
+                                <span class="text-[10px] text-blue-500 font-normal">${idx + 1}.</span>
+                                <span class="truncate">${escapeLocalHtml(item.user)}</span>
+                            </div>
+                            <span class="text-[10px] text-gray-400 shrink-0 font-medium">${item.time}</span>
+                        </div>
+                    `).join('');
+                }
+            }
         }
 
         let pendingLocalFiles = [];
@@ -987,7 +1102,7 @@
                         if (!editingTempFiles[id]) editingTempFiles[id] = [];
                         editingTempFiles[id].push({
                             name: file.name,
-                            url: evt.target.result, 
+                            url: evt.target.result,
                             type: file.type
                         });
                         processCount++;
@@ -1214,9 +1329,7 @@
             });
         }
 
-        // =======================================================
-        // 🌟 게시글 본문/제목 수정 기능 (editTaskModal 핸들링)
-        // =======================================================
+        // 게시글 본문/제목 수정 기능
         const detailEditBtn = document.getElementById('detailEditBtn');
         const editTaskModal = document.getElementById('editTaskModal');
         const editTaskForm = document.getElementById('editTaskForm');
@@ -1235,9 +1348,7 @@
                 document.getElementById('editTaskClient').value = currentClient;
                 document.getElementById('editTaskType').value = currentType;
 
-                // 기존 제목 저장 (댓글 이관용)
                 editTaskForm.dataset.originalTitle = currentTitle;
-
                 editTaskModal.classList.remove('hidden');
             });
         }
@@ -1261,34 +1372,45 @@
                     return;
                 }
 
-                // 1. 상세 보기 모달 즉시 반영
                 document.getElementById('detailTitle').textContent = newTitle;
                 document.getElementById('detailContent').textContent = newContent;
                 document.getElementById('detailClient').textContent = newClient;
                 document.getElementById('detailType').textContent = newType;
                 document.getElementById('detailAgency').textContent = (newAgency === 'adplanters') ? '애드플랜터스' : '노아유니버스';
 
-                // 2. 제목 변경 시 댓글 데이터 새로운 제목 키로 이관
                 if (origTitle && origTitle !== newTitle) {
+                    // 댓글 이관
                     const allComments = loadAllCommentsFromStorage();
                     if (allComments[origTitle]) {
                         allComments[newTitle] = allComments[origTitle];
                         delete allComments[origTitle];
                         saveAllCommentsToStorage(allComments);
                     }
+                    // 조회수/이력 데이터 이관
+                    const allViews = loadAllViewsFromStorage();
+                    if (allViews[origTitle]) {
+                        allViews[newTitle] = allViews[origTitle];
+                        delete allViews[origTitle];
+                        saveAllViewsToStorage(allViews);
+                    }
                 }
 
                 editTaskModal.classList.add('hidden');
                 alert('게시글 제목 및 본물이 성공적으로 수정되었습니다.');
                 renderLocalComments();
+                updateViewCountUI(newTitle);
             });
         }
 
-        // 모달 오픈 / 게시글 변경 감시자
+        // 모달 오픈 / 게시글 제목 변경 감시자 (조회수 기록 및 댓글 재로드)
         const detailTitleEl = document.getElementById('detailTitle');
         if (detailTitleEl) {
             const titleObserver = new MutationObserver(() => {
-                renderLocalComments();
+                const currentTitle = detailTitleEl.textContent.trim();
+                if (currentTitle && currentTitle !== '게시글 제목 영역') {
+                    recordPostView(currentTitle);
+                    renderLocalComments();
+                }
             });
             titleObserver.observe(detailTitleEl, { childList: true, characterData: true, subtree: true });
         }
@@ -1297,7 +1419,11 @@
         if (detailModalEl) {
             const modalObserver = new MutationObserver(() => {
                 if (!detailModalEl.classList.contains('hidden')) {
-                    renderLocalComments();
+                    const currentTitle = document.getElementById('detailTitle').textContent.trim();
+                    if (currentTitle && currentTitle !== '게시글 제목 영역') {
+                        recordPostView(currentTitle);
+                        renderLocalComments();
+                    }
                 }
             });
             modalObserver.observe(detailModalEl, { attributes: true, attributeFilter: ['class'] });
@@ -1324,7 +1450,11 @@
         }
 
         // 초기 실행
-        setTimeout(renderLocalComments, 300);
+        setTimeout(() => {
+            renderLocalComments();
+            const currentTitle = document.getElementById('detailTitle').textContent.trim();
+            if (currentTitle) updateViewCountUI(currentTitle);
+        }, 300);
 
     </script>
     <script type="module" src="app.js"></script>

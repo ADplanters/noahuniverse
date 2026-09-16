@@ -545,12 +545,12 @@
             </div>
 
             <!-- ===================== 소통 및 댓글(답변) 영역 ===================== -->
-            <div class="border-t pt-5 bg-gray-50/50 -mx-5 md:-mx-6 -mb-5 md:-mb-6 px-5 md:px-6 pb-5 md:pb-6 rounded-b-2xl">
+            <div class="border-t pt-4 bg-gray-50/50 -mx-5 md:-mx-6 -mb-5 md:-mb-6 px-5 md:px-6 pb-5 md:pb-6 rounded-b-2xl">
                 
-                <div class="flex justify-between items-center mb-4">
-                    <p class="font-bold text-gray-900 flex items-center gap-1.5">
-                        <span class="text-blue-800 text-lg">🗣️</span> 소통 및 답변 
-                        <span id="commentCountBadge" class="text-orange-600 text-xs bg-orange-100 px-2 py-0.5 rounded-full ml-1">1</span>
+                <div class="flex justify-between items-center mb-3">
+                    <p class="font-bold text-gray-900 flex items-center gap-1.5 text-xs sm:text-sm">
+                        <span class="text-blue-800 text-base">🗣️</span> 소통 및 답변 
+                        <span id="commentCountBadge" class="text-orange-600 text-xs bg-orange-100 px-2 py-0.5 rounded-full font-bold ml-1">1</span>
                     </p>
                     
                     <div id="adminStatusChangeArea" class="hidden flex items-center gap-2">
@@ -563,8 +563,8 @@
                     </div>
                 </div>
 
-                <!-- 댓글 목록 리스트 -->
-                <div id="commentListArea" class="space-y-3 mb-4 max-h-[300px] overflow-y-auto px-1">
+                <!-- 댓글 목록 리스트 (스크롤바 없이 세로 폭 내용에 맞게 자동 밀착) -->
+                <div id="commentListArea" class="space-y-2.5 mb-3 max-h-[350px] overflow-y-auto px-0.5">
                     <!-- 스크립트로 원본 댓글 데이터가 렌더링됩니다 -->
                 </div>
 
@@ -573,18 +573,18 @@
                     <div id="pendingFilesPreview" class="flex flex-wrap gap-2 hidden"></div>
                     <div class="flex gap-2 items-stretch">
                         <div class="relative flex-1">
-                            <textarea id="commentInputBox" rows="3" placeholder="댓글 내용을 입력하거나 파일을 드래그하여 올려주세요." class="w-full border border-gray-300 rounded-xl p-3 pb-8 text-xs focus:outline-none focus:ring-2 focus:ring-slate-800 resize-none bg-white shadow-inner transition-all"></textarea>
+                            <textarea id="commentInputBox" rows="2" placeholder="댓글 내용을 입력하거나 파일을 드래그하여 올려주세요." class="w-full border border-gray-300 rounded-xl p-2.5 pb-7 text-xs focus:outline-none focus:ring-2 focus:ring-slate-800 resize-none bg-white shadow-inner transition-all min-h-[58px]"></textarea>
                             
                             <!-- 첨부파일 버튼 (이미지 및 문서/PDF 포함) -->
-                            <div class="absolute bottom-2.5 left-3 flex items-center gap-2">
+                            <div class="absolute bottom-2 left-2.5 flex items-center gap-2">
                                 <input type="file" id="commentFileInputBox" multiple accept="*" class="hidden">
-                                <button type="button" id="attachFileLocalBtn" class="flex items-center gap-1 text-[11px] text-gray-500 hover:text-blue-600 font-medium bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded border border-gray-300 transition">
-                                    <i class="fa-solid fa-paperclip text-xs"></i> 파일 첨부
+                                <button type="button" id="attachFileLocalBtn" class="flex items-center gap-1 text-[11px] text-gray-600 hover:text-blue-600 font-semibold bg-gray-100 hover:bg-gray-200 px-2 py-0.5 rounded border border-gray-300 transition">
+                                    <i class="fa-solid fa-paperclip text-[10px]"></i> 파일 첨부
                                 </button>
-                                <span id="attachedCountLabel" class="text-[10px] text-blue-600 font-semibold hidden"></span>
+                                <span id="attachedCountLabel" class="text-[10px] text-blue-600 font-bold hidden"></span>
                             </div>
                         </div>
-                        <button id="submitNewCommentBtn" class="bg-slate-900 hover:bg-slate-800 text-white rounded-xl px-5 text-xs font-bold transition shadow-md flex items-center justify-center shrink-0">등록</button>
+                        <button id="submitNewCommentBtn" class="bg-slate-900 hover:bg-slate-800 text-white rounded-xl px-4 text-xs font-bold transition shadow-md flex items-center justify-center shrink-0 min-h-[58px]">등록</button>
                     </div>
                 </div>
             </div>
@@ -748,24 +748,24 @@
             let visualContent = '';
             
             if (isImg) {
-                visualContent = `<img src="${file.url}" alt="${file.name}" class="w-full h-14 object-cover rounded mb-1 bg-gray-100">`;
+                visualContent = `<img src="${file.url}" alt="${file.name}" class="w-full h-11 object-cover rounded mb-0.5 bg-gray-100">`;
             } else {
                 const isPdf = /\.pdf/i.test(file.name);
                 const iconClass = isPdf ? 'fa-file-pdf text-red-500' : 'fa-file-lines text-blue-500';
-                visualContent = `<div class="w-full h-14 bg-gray-100 rounded mb-1 flex items-center justify-center text-xl"><i class="fa-solid ${iconClass}"></i></div>`;
+                visualContent = `<div class="w-full h-11 bg-gray-100 rounded mb-0.5 flex items-center justify-center text-lg"><i class="fa-solid ${iconClass}"></i></div>`;
             }
 
             const deleteBtnHtml = options.canDelete ? 
-                `<button type="button" onclick="${options.onRemove}" class="absolute -top-1.5 -right-1.5 bg-red-500 text-white hover:bg-red-600 font-bold text-[10px] w-4 h-4 rounded-full flex items-center justify-center shadow z-10" title="파일 삭제">✕</button>` : '';
+                `<button type="button" onclick="${options.onRemove}" class="absolute -top-1 -right-1 bg-red-500 text-white hover:bg-red-600 font-bold text-[9px] w-3.5 h-3.5 rounded-full flex items-center justify-center shadow z-10" title="삭제">✕</button>` : '';
 
             const clickAction = isImg ? `onclick="openImageModal('${file.url}')"` : `onclick="window.open('${file.url}', '_blank')"`;
 
             return `
-                <div class="relative group bg-gray-50 border border-gray-200 rounded-lg p-1.5 w-24 hover:border-blue-400 transition cursor-pointer flex flex-col items-center shadow-sm">
+                <div class="relative group bg-gray-50 border border-gray-200 rounded-lg p-1 w-20 hover:border-blue-400 transition cursor-pointer flex flex-col items-center shadow-xs shrink-0">
                     ${deleteBtnHtml}
                     <div class="w-full text-center" ${clickAction}>
                         ${visualContent}
-                        <span class="text-[10px] text-gray-600 truncate w-full block font-medium">${file.name}</span>
+                        <span class="text-[9px] text-gray-600 truncate w-full block font-medium leading-tight">${file.name}</span>
                     </div>
                 </div>
             `;
@@ -799,34 +799,34 @@
 
             mockComments.forEach(item => {
                 const commentCard = document.createElement('div');
-                commentCard.className = 'bg-white border border-gray-200 rounded-xl p-3.5 space-y-2 shadow-sm';
+                commentCard.className = 'bg-white border border-gray-200 rounded-xl p-3 space-y-1.5 shadow-sm h-auto block';
                 commentCard.id = `local-card-${item.id}`;
 
                 let filesHtml = '';
                 if (item.files && item.files.length > 0) {
                     filesHtml = `
-                        <div class="flex flex-wrap gap-2 pt-2 border-t border-gray-100 mt-2">
+                        <div class="flex flex-wrap gap-2 pt-1.5 border-t border-gray-100 mt-1.5">
                             ${item.files.map(file => renderFileCardHtml(file)).join('')}
                         </div>
                     `;
                 }
 
                 commentCard.innerHTML = `
-                    <div class="flex justify-between items-center text-[11px]">
+                    <div class="flex justify-between items-center text-[11px] leading-tight">
                         <div class="flex items-center gap-1.5 font-semibold text-gray-700">
                             <span class="text-amber-500">👑</span>
-                            <span class="text-gray-900">${item.author}</span>
+                            <span class="text-gray-900 font-bold">${item.author}</span>
                             <span class="text-gray-400 font-normal">(${item.role})</span>
                         </div>
                         <div class="flex items-center gap-2 text-gray-400">
-                            <span>${item.createdAt}</span>
+                            <span class="text-[10px]">${item.createdAt}</span>
                             <div id="local-action-${item.id}" class="flex items-center gap-1.5">
-                                <button onclick="enableLocalInlineEdit('${item.id}')" class="text-blue-500 hover:text-blue-700 hover:underline font-medium">수정</button>
-                                <button onclick="deleteLocalComment('${item.id}')" class="text-gray-400 hover:text-red-500 hover:underline font-medium">삭제</button>
+                                <button onclick="enableLocalInlineEdit('${item.id}')" class="text-blue-500 hover:text-blue-700 hover:underline font-medium text-[11px]">수정</button>
+                                <button onclick="deleteLocalComment('${item.id}')" class="text-gray-400 hover:text-red-500 hover:underline font-medium text-[11px]">삭제</button>
                             </div>
                         </div>
                     </div>
-                    <div id="local-content-${item.id}" class="text-xs text-gray-800 leading-relaxed comment-text mt-1">
+                    <div id="local-content-${item.id}" class="text-xs text-gray-800 leading-normal comment-text mt-0.5">
                         ${escapeLocalHtml(item.content)}
                         ${filesHtml}
                     </div>
@@ -848,7 +848,7 @@
             renderEditForm(id, target.content);
         };
 
-        // 🌟 수정 폼 동적 출력 (높이 튐 완전 차단 autoResizeTextarea + 드래그 앤 드롭 지원)
+        // 🌟 수정 폼 동적 출력 (높이 튐 차단 autoResizeTextarea + 드래그 앤 드롭 지원)
         function renderEditForm(id, textContent) {
             const contentArea = document.getElementById(`local-content-${id}`);
             if(!contentArea) return;
@@ -858,40 +858,39 @@
             let fileEditAreaHtml = '';
             if (currentFiles.length > 0) {
                 fileEditAreaHtml = `
-                    <div class="flex flex-wrap gap-2 pt-1.5 mt-1 border-t border-gray-100">
+                    <div class="flex flex-wrap gap-1.5 pt-1.5 mt-1 border-t border-gray-100">
                         ${currentFiles.map((f, fileIdx) => renderFileCardHtml(f, { canDelete: true, onRemove: `removeEditFile('${id}', ${fileIdx})` })).join('')}
                     </div>
                 `;
             }
 
             contentArea.innerHTML = `
-                <div class="pt-1 edit-drop-zone transition-colors rounded-lg p-1" id="edit-drop-zone-${id}"
+                <div class="py-0.5 edit-drop-zone transition-colors rounded-lg" id="edit-drop-zone-${id}"
                      ondragover="handleEditDragOver(event, '${id}')"
                      ondragleave="handleEditDragLeave(event, '${id}')"
                      ondrop="handleEditDrop(event, '${id}')">
                     
-                    <!-- 높이가 유연하게 밀착되는 textarea (style inline으로 높이 확정) -->
                     <textarea id="local-edit-ta-${id}" 
                         oninput="autoResizeTextarea(this)"
-                        style="height: 38px; min-height: 38px; max-height: 200px;"
-                        class="w-full border border-blue-400 rounded-lg p-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-white leading-normal overflow-hidden block box-border transition-all"
+                        class="w-full border border-blue-400 rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none bg-white leading-relaxed overflow-hidden block box-border transition-all m-0"
+                        style="height: 38px; min-height: 38px; max-height: 180px;"
                         rows="1">${textContent}</textarea>
                     
                     ${fileEditAreaHtml}
 
-                    <div class="flex justify-between items-center pt-1.5 mt-1.5 border-t border-gray-100">
-                        <div class="flex items-center gap-2">
+                    <div class="flex justify-between items-center pt-1.5 mt-1 border-t border-gray-100">
+                        <div class="flex items-center gap-1.5">
                             <input type="file" id="editFileInputBox-${id}" multiple accept="*" class="hidden" onchange="handleEditFileUpload('${id}', this)">
                             <button type="button" onclick="document.getElementById('editFileInputBox-${id}').click()" 
-                                    class="flex items-center gap-1 text-[11px] text-gray-600 hover:text-blue-600 font-medium px-2.5 py-1 rounded-md border border-gray-300 hover:bg-gray-50 transition shadow-sm">
-                                <i class="fa-solid fa-paperclip text-[10px]"></i> 파일 첨부
+                                    class="flex items-center gap-1 text-[10px] text-gray-600 hover:text-blue-600 font-medium px-2 py-0.5 rounded border border-gray-300 hover:bg-gray-50 transition">
+                                <i class="fa-solid fa-paperclip text-[9px]"></i> 파일 첨부
                             </button>
-                            <span class="text-[10px] text-gray-400 hidden sm:inline">(드래그&드롭 가능)</span>
+                            <span class="text-[9px] text-gray-400 hidden sm:inline">(드래그 가능)</span>
                         </div>
 
-                        <div class="flex gap-1.5">
-                            <button onclick="cancelLocalInlineEdit('${id}')" class="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-bold transition">취소</button>
-                            <button onclick="saveLocalInlineEdit('${id}')" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition shadow-sm">저장</button>
+                        <div class="flex gap-1">
+                            <button onclick="cancelLocalInlineEdit('${id}')" class="px-2.5 py-0.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md text-[11px] font-bold transition">취소</button>
+                            <button onclick="saveLocalInlineEdit('${id}')" class="px-2.5 py-0.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-[11px] font-bold transition shadow-sm">저장</button>
                         </div>
                     </div>
                 </div>
@@ -905,14 +904,14 @@
             }
         }
 
-        // 🌟 Textarea 높이 조절 헬퍼 함수 (0px 리스트 후 scrollHeight 기반 밀착 설정)
+        // Textarea 높이 조절 헬퍼 함수
         function autoResizeTextarea(ta) {
-            ta.style.height = '0px';
-            const newHeight = Math.max(38, ta.scrollHeight);
-            ta.style.height = newHeight + 'px';
+            ta.style.height = 'auto';
+            const calculatedHeight = Math.max(38, Math.min(180, ta.scrollHeight));
+            ta.style.height = calculatedHeight + 'px';
         }
 
-        // 🌟 수정 모드 드래그 앤 드롭 핸들러
+        // 수정 모드 드래그 앤 드롭 핸들러
         window.handleEditDragOver = function(e, id) {
             e.preventDefault();
             e.stopPropagation();
@@ -1007,7 +1006,7 @@
             }
         };
 
-        // 🌟 신규 댓글 파일 첨부 및 드래그 앤 드롭 이벤트
+        // 신규 댓글 파일 첨부 및 드래그 앤 드롭 이벤트
         const attachBtn = document.getElementById('attachFileLocalBtn');
         const fileInputBox = document.getElementById('commentFileInputBox');
         const filePreviewBox = document.getElementById('pendingFilesPreview');

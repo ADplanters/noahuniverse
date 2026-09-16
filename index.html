@@ -41,6 +41,24 @@
             white-space: pre-wrap;
             word-break: break-word;
         }
+
+        /* =======================================================
+           🌟 테이블 셀 세로 줄바꿈 및 글자 찌그러짐 방지 전역 스타일
+           ======================================================= */
+        #boardTable td, #boardTable th,
+        #clientsTable td, #clientsTable th {
+            vertical-align: middle;
+        }
+
+        /* 클라이언트(1열), 분류(2열), 상태(6열), 등록일(7열), 관리(8열) 세로 줄바꿈 방지 */
+        #boardTable td:nth-child(1),
+        #boardTable td:nth-child(2),
+        #boardTable td:nth-child(6),
+        #boardTable td:nth-child(7),
+        #boardTable td:nth-child(8),
+        #clientsTable td {
+            white-space: nowrap !important;
+        }
     </style>
 </head>
 <body class="bg-grid-pattern text-gray-800 font-sans min-h-screen relative flex flex-col justify-between overflow-x-hidden">
@@ -163,10 +181,17 @@
                     <button id="openClientModalBtn" class="bg-hermes hover:bg-hermes-hover text-white text-xs font-bold px-3 py-2 md:px-4 md:py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5"><i class="fa-solid fa-plus"></i> <span class="hidden sm:inline">신규 클라이언트 </span>추가</button>
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse whitespace-nowrap">
+                    <table class="w-full text-left border-collapse min-w-[950px]">
                         <thead>
                             <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
-                                <th class="p-3 md:p-4 font-bold">상호명</th><th class="p-3 md:p-4 font-bold">URL (홈/인스타)</th><th class="p-3 md:p-4 font-bold">메타광고 계정 (ID/PW)</th><th class="p-3 md:p-4 font-bold">월 예산</th><th class="p-3 md:p-4 font-bold">작업/광고 시작일</th><th class="p-3 md:p-4 font-bold">등록자</th><th class="p-3 md:p-4 font-bold">연결된 담당자</th><th class="p-3 md:p-4 font-bold text-center admin-only-col">관리(ADMIN)</th>
+                                <th class="p-3 md:p-4 font-bold whitespace-nowrap">상호명</th>
+                                <th class="p-3 md:p-4 font-bold">URL (홈/인스타)</th>
+                                <th class="p-3 md:p-4 font-bold">메타광고 계정 (ID/PW)</th>
+                                <th class="p-3 md:p-4 font-bold">월 예산</th>
+                                <th class="p-3 md:p-4 font-bold">작업/광고 시작일</th>
+                                <th class="p-3 md:p-4 font-bold">등록자</th>
+                                <th class="p-3 md:p-4 font-bold">연결된 담당자</th>
+                                <th class="p-3 md:p-4 font-bold text-center admin-only-col whitespace-nowrap">관리(ADMIN)</th>
                             </tr>
                         </thead>
                         <tbody id="clientsTable" class="text-sm divide-y divide-gray-100"></tbody>
@@ -175,17 +200,24 @@
                 <div id="emptyClients" class="hidden py-12 md:py-16 text-center flex-col items-center justify-center"><i class="fa-solid fa-folder-open text-3xl md:text-4xl text-gray-300 mb-3"></i><p class="text-gray-500 font-medium text-xs md:text-sm">조회 가능한 클라이언트 데이터가 없습니다.</p></div>
             </div>
 
-            <!-- 뷰 3. 이슈/요청 리스트 -->
+            <!-- 뷰 3. 이슈/요청 리스트 (레이아웃 보호 적용) -->
             <div id="tasksContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8">
                 <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-white">
                     <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-table-list text-hermes mr-2"></i> 업무 이슈/요청 리스트</h2>
                     <button id="openModalBtn" class="bg-hermes hover:bg-hermes-hover text-white text-xs font-bold px-3 py-2 md:px-4 md:py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5"><i class="fa-solid fa-plus"></i> <span class="hidden sm:inline">신규 이슈 </span>등록</button>
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse whitespace-nowrap md:whitespace-normal">
+                    <table class="w-full text-left border-collapse min-w-[950px]">
                         <thead>
                             <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
-                                <th class="p-3 md:p-4 font-bold w-[15%]">클라이언트</th><th class="p-3 md:p-4 font-bold w-[10%]">분류</th><th class="p-3 md:p-4 font-bold w-[40%]">제목 (클릭 시 상세 보기 및 댓글)</th><th class="p-3 md:p-4 font-bold w-[15%]">첨부파일</th><th class="p-3 md:p-4 font-bold w-[10%]">작성자 / 담당자</th><th class="p-3 md:p-4 font-bold text-center w-[10%]">상태</th><th class="p-3 md:p-4 font-bold">등록일</th><th class="p-3 md:p-4 font-bold text-center admin-only-col">관리(ADMIN)</th>
+                                <th class="p-3 md:p-4 font-bold whitespace-nowrap">클라이언트</th>
+                                <th class="p-3 md:p-4 font-bold whitespace-nowrap">분류</th>
+                                <th class="p-3 md:p-4 font-bold">제목 (클릭 시 상세 보기 및 댓글)</th>
+                                <th class="p-3 md:p-4 font-bold">첨부파일</th>
+                                <th class="p-3 md:p-4 font-bold">작성자 / 담당자</th>
+                                <th class="p-3 md:p-4 font-bold text-center whitespace-nowrap">상태</th>
+                                <th class="p-3 md:p-4 font-bold whitespace-nowrap">등록일</th>
+                                <th class="p-3 md:p-4 font-bold text-center whitespace-nowrap admin-only-col">관리(ADMIN)</th>
                             </tr>
                         </thead>
                         <tbody id="boardTable" class="text-sm divide-y divide-gray-100"></tbody>
@@ -563,7 +595,7 @@
                     </div>
                 </div>
 
-                <!-- 댓글 목록 리스트 (스크롤바 없이 세로 폭 내용에 맞게 자동 밀착) -->
+                <!-- 댓글 목록 리스트 -->
                 <div id="commentListArea" class="space-y-2.5 mb-3 max-h-[350px] overflow-y-auto px-0.5">
                     <!-- 스크립트로 원본 댓글 데이터가 렌더링됩니다 -->
                 </div>
@@ -858,7 +890,7 @@
             let fileEditAreaHtml = '';
             if (currentFiles.length > 0) {
                 fileEditAreaHtml = `
-                    <div class="flex flex-wrap gap-1.5 pt-1.5 mt-1 border-t border-gray-100">
+                    <div class="flex flex-wrap gap-1.5 pt-1 mt-1 border-t border-gray-100">
                         ${currentFiles.map((f, fileIdx) => renderFileCardHtml(f, { canDelete: true, onRemove: `removeEditFile('${id}', ${fileIdx})` })).join('')}
                     </div>
                 `;
@@ -872,13 +904,13 @@
                     
                     <textarea id="local-edit-ta-${id}" 
                         oninput="autoResizeTextarea(this)"
-                        class="w-full border border-blue-400 rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none bg-white leading-relaxed overflow-hidden block box-border transition-all m-0"
-                        style="height: 38px; min-height: 38px; max-height: 180px;"
+                        class="w-full border border-blue-400 rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none bg-white leading-normal overflow-hidden block box-border transition-all m-0"
+                        style="height: 38px; min-height: 38px;"
                         rows="1">${textContent}</textarea>
                     
                     ${fileEditAreaHtml}
 
-                    <div class="flex justify-between items-center pt-1.5 mt-1 border-t border-gray-100">
+                    <div class="flex justify-between items-center pt-1 mt-1 border-t border-gray-100">
                         <div class="flex items-center gap-1.5">
                             <input type="file" id="editFileInputBox-${id}" multiple accept="*" class="hidden" onchange="handleEditFileUpload('${id}', this)">
                             <button type="button" onclick="document.getElementById('editFileInputBox-${id}').click()" 
@@ -904,11 +936,11 @@
             }
         }
 
-        // Textarea 높이 조절 헬퍼 함수
+        // 🌟 정밀 Textarea 높이 맞춤 함수 (임시 0px 설정 후 scrollHeight 자동 정렬)
         function autoResizeTextarea(ta) {
-            ta.style.height = 'auto';
-            const calculatedHeight = Math.max(38, Math.min(180, ta.scrollHeight));
-            ta.style.height = calculatedHeight + 'px';
+            ta.style.height = '0px';
+            const calcHeight = Math.max(38, ta.scrollHeight);
+            ta.style.height = calcHeight + 'px';
         }
 
         // 수정 모드 드래그 앤 드롭 핸들러

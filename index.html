@@ -115,6 +115,7 @@
             </button>
         </div>
 
+        <!-- 고정 메뉴 사이드바 -->
         <aside id="sidebar" class="w-64 bg-white/95 backdrop-blur-md border-r border-gray-200 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 h-full z-40 shadow-xl md:shadow-sm transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
             <div class="p-5 md:p-6 flex items-center justify-between border-b border-gray-100">
                 <div class="text-xl font-black tracking-tighter">
@@ -154,9 +155,9 @@
             </div>
         </aside>
 
-        <!-- 메인 콘텐츠 영역 -->
-        <main class="md:ml-64 flex-1 flex flex-col min-h-screen relative z-0 p-4 md:px-8 md:py-6 w-full">
-            <header class="flex justify-between items-center mb-6 md:mb-8 bg-white/80 p-4 md:p-6 rounded-2xl border border-gray-200 shadow-sm backdrop-blur-sm">
+        <!-- 🌟 메인 콘텐츠 영역 (반응형 정밀 너비 보정 md:w-[calc(100%-16rem)] 적용) -->
+        <main class="w-full md:ml-64 md:w-[calc(100%-16rem)] flex-1 flex flex-col min-h-screen relative z-0 p-4 md:p-6 lg:p-8 min-w-0 overflow-x-hidden">
+            <header class="flex justify-between items-center mb-6 md:mb-8 bg-white/80 p-4 md:p-6 rounded-2xl border border-gray-200 shadow-sm backdrop-blur-sm w-full">
                 <div>
                     <h1 class="text-xl md:text-2xl font-black text-gray-900" id="pageTitle">ADplanters x Noah 파트너십 관리 보드</h1>
                     <p class="text-xs md:text-sm text-gray-500 mt-1" id="pageDesc">양사의 성공적인 프로젝트와 동반 성장을 이끄는 통합 비즈니스 협업 공간입니다.</p>
@@ -164,7 +165,7 @@
             </header>
 
             <!-- 뷰 1. 통계 -->
-            <div id="statsContainer" class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
+            <div id="statsContainer" class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8 w-full">
                 <div class="bg-white p-4 md:p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between"><div><p class="text-xs font-bold text-gray-500 mb-1">총 이슈 항목</p><p class="text-xl md:text-2xl font-black text-gray-900" id="statTotal">0<span class="text-xs font-medium text-gray-500 ml-1">개</span></p></div><div class="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-hermes-light text-hermes flex items-center justify-center text-lg md:text-xl"><i class="fa-solid fa-building"></i></div></div>
                 <div class="bg-white p-4 md:p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between"><div><p class="text-xs font-bold text-gray-500 mb-1">대기중 이슈</p><p class="text-xl md:text-2xl font-black text-red-500" id="statWait">0<span class="text-xs font-medium text-gray-500 ml-1">건</span></p></div><div class="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-red-50 text-red-500 flex items-center justify-center text-lg md:text-xl"><i class="fa-solid fa-circle-question"></i></div></div>
                 <div class="bg-white p-4 md:p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between"><div><p class="text-xs font-bold text-gray-500 mb-1">진행중 업무</p><p class="text-xl md:text-2xl font-black text-noah" id="statIng">0<span class="text-xs font-medium text-gray-500 ml-1">건</span></p></div><div class="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-noah-light text-noah flex items-center justify-center text-lg md:text-xl"><i class="fa-solid fa-spinner"></i></div></div>
@@ -172,12 +173,12 @@
             </div>
 
             <!-- 뷰 2. 클라이언트 관리 리스트 -->
-            <div id="clientsContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8">
-                <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-white">
+            <div id="clientsContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8 w-full min-w-0">
+                <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-white flex-wrap gap-2">
                     <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-address-book text-hermes mr-2"></i> 클라이언트 리스트</h2>
-                    <button id="openClientModalBtn" class="bg-hermes hover:bg-hermes-hover text-white text-xs font-bold px-3 py-2 md:px-4 md:py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5"><i class="fa-solid fa-plus"></i> <span class="hidden sm:inline">신규 클라이언트 </span>추가</button>
+                    <button id="openClientModalBtn" class="bg-hermes hover:bg-hermes-hover text-white text-xs font-bold px-3 py-2 md:px-4 md:py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5 shrink-0"><i class="fa-solid fa-plus"></i> <span class="inline">신규 클라이언트 추가</span></button>
                 </div>
-                <div class="overflow-x-auto">
+                <div class="w-full overflow-x-auto">
                     <table class="w-full text-left border-collapse min-w-[950px]">
                         <thead>
                             <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
@@ -198,12 +199,12 @@
             </div>
 
             <!-- 뷰 3. 이슈/요청 리스트 -->
-            <div id="tasksContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8">
-                <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-white">
+            <div id="tasksContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8 w-full min-w-0">
+                <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-white flex-wrap gap-2">
                     <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-table-list text-hermes mr-2"></i> 업무 이슈/요청 리스트</h2>
-                    <button id="openModalBtn" class="bg-hermes hover:bg-hermes-hover text-white text-xs font-bold px-3 py-2 md:px-4 md:py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5"><i class="fa-solid fa-plus"></i> <span class="hidden sm:inline">신규 이슈 </span>등록</button>
+                    <button id="openModalBtn" class="bg-hermes hover:bg-hermes-hover text-white text-xs font-bold px-3 py-2 md:px-4 md:py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5 shrink-0"><i class="fa-solid fa-plus"></i> <span class="inline">신규 이슈 등록</span></button>
                 </div>
-                <div class="overflow-x-auto">
+                <div class="w-full overflow-x-auto">
                     <table class="w-full text-left border-collapse min-w-[950px]">
                         <thead>
                             <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
@@ -224,27 +225,27 @@
             </div>
 
             <!-- 뷰 4. 인사이트 라이브러리 컨테이너 -->
-            <div id="libraryContainer" class="hidden flex-1 mb-6 md:mb-8 animate-fade-in">
+            <div id="libraryContainer" class="hidden flex-1 mb-6 md:mb-8 animate-fade-in w-full">
                 <div class="flex flex-col sm:flex-row justify-between sm:items-end gap-4 mb-6">
                     <div>
                         <h2 class="text-xl md:text-2xl font-black text-gray-900"><i class="fa-solid fa-book-open-reader text-hermes mr-2"></i> 인사이트 라이브러리</h2>
                         <p class="text-xs text-gray-500 mt-1.5 font-medium">성공적인 비즈니스를 위한 전문 마케팅 가이드와 리소스를 제공합니다.</p>
                     </div>
-                    <button id="openLibraryModalBtn" class="admin-only-col hidden bg-hermes hover:bg-hermes-hover text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5 self-start sm:self-auto">
+                    <button id="openLibraryModalBtn" class="admin-only-col hidden bg-hermes hover:bg-hermes-hover text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5 self-start sm:self-auto shrink-0">
                         <i class="fa-solid fa-plus"></i> 콘텐츠 작성 (ADMIN)
                     </button>
                 </div>
                 
-                <div id="libraryGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                <div id="libraryGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 w-full">
                 </div>
             </div>
 
             <!-- 뷰 5. 멤버 및 권한 관리 (어드민 전용) -->
-            <div id="membersContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8">
+            <div id="membersContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8 w-full min-w-0">
                 <div class="p-4 md:p-5 border-b border-gray-100 bg-white">
                     <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-users-gear text-hermes mr-2"></i> 전체 멤버 및 권한 관리</h2>
                 </div>
-                <div class="overflow-x-auto">
+                <div class="w-full overflow-x-auto">
                     <table class="w-full text-left border-collapse whitespace-nowrap">
                         <thead>
                             <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
@@ -257,11 +258,11 @@
             </div>
 
             <!-- 뷰 6. 신규 가입 승인 대기 목록 (어드민 전용) -->
-            <div id="approvalsContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8">
+            <div id="approvalsContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8 w-full min-w-0">
                 <div class="p-4 md:p-5 border-b border-gray-100 bg-white">
                     <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-user-shield text-hermes mr-2"></i> 신규 가입 승인 대기 목록</h2>
                 </div>
-                <div class="overflow-x-auto">
+                <div class="w-full overflow-x-auto">
                     <table class="w-full text-left border-collapse whitespace-nowrap">
                         <thead>
                             <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
@@ -275,7 +276,7 @@
             </div>
 
             <!-- 뷰 7. 접속 및 작업 이력 로그 (어드민 전용) -->
-            <div id="logsContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8">
+            <div id="logsContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8 w-full min-w-0">
                 <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-white flex-wrap gap-3">
                     <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-clock-rotate-left text-hermes mr-2"></i> 시스템 접속 및 작업 이력</h2>
                     <div class="flex items-center gap-2">
@@ -283,7 +284,7 @@
                         <select id="logUserFilter" class="text-xs border border-gray-300 rounded-lg p-1.5 focus:border-hermes outline-none cursor-pointer"><option value="all">전체 기록 보기</option></select>
                     </div>
                 </div>
-                <div class="overflow-x-auto">
+                <div class="w-full overflow-x-auto">
                     <table class="w-full text-left border-collapse whitespace-nowrap md:whitespace-normal">
                         <thead>
                             <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
@@ -597,7 +598,7 @@
                     <!-- 스크립트로 원본 댓글 데이터가 렌더링됩니다 -->
                 </div>
 
-                <!-- 댓글 작성 및 파일 첨부 -->
+                <!-- 댓글 작성 및 파일 첨부 (드래그 앤 드롭 영역 포함) -->
                 <div class="space-y-2">
                     <div id="pendingFilesPreview" class="flex flex-wrap gap-2 hidden"></div>
                     <div class="flex gap-2 items-stretch">
@@ -717,9 +718,7 @@
                 container.innerHTML = html;
             }
 
-            // =======================================================
-            // 🌟 모달 영역 밖(배경) 클릭 및 ESC 키로 모달 닫기
-            // =======================================================
+            // 모달 영역 밖(배경) 클릭 및 ESC 키로 모달 닫기
             const detailModal = document.getElementById('detailModal');
             if (detailModal) {
                 detailModal.addEventListener('click', (e) => {
@@ -740,9 +739,7 @@
                 }
             });
 
-            // =======================================================
             // 본문 첨부파일 동적 썸네일 변환 감시자 (MutationObserver)
-            // =======================================================
             const detailFileContainer = document.getElementById('detailFileBtn');
             if (detailFileContainer) {
                 const processAttachments = () => {
@@ -787,9 +784,7 @@
             }
         });
 
-        // =======================================================
         // 파일 판별 및 UI 렌더링 헬퍼 함수
-        // =======================================================
         function isImageFile(file) {
             if (file.type && file.type.startsWith('image/')) return true;
             return /\.(jpg|jpeg|png|gif|webp|bmp)/i.test(file.name || file.url || '');
@@ -878,6 +873,7 @@
                             </div>
                         </div>
                     </div>
+                    <!-- comment-text 클래스를 순수 텍스트 영역으로 한정하여 상위 공백 감화 차단 -->
                     <div id="local-content-${item.id}" class="text-xs text-gray-800 leading-normal mt-0.5">
                         <div class="comment-text">${escapeLocalHtml(item.content)}</div>
                         ${filesHtml}
@@ -900,7 +896,7 @@
             renderEditForm(id, target.content);
         };
 
-        // 수정 폼 동적 출력
+        // 🌟 수정 폼 동적 출력 (한 줄 HTML 스트링으로 여백 팽창을 완벽히 제거)
         function renderEditForm(id, textContent) {
             const contentArea = document.getElementById(`local-content-${id}`);
             if(!contentArea) return;
@@ -912,6 +908,7 @@
                 fileEditAreaHtml = `<div class="flex flex-wrap gap-1.5 pt-1.5 mt-1 border-t border-gray-100">${currentFiles.map((f, fileIdx) => renderFileCardHtml(f, { canDelete: true, onRemove: `removeEditFile('${id}', ${fileIdx})` })).join('')}</div>`;
             }
 
+            // HTML 개행 공백문자를 완전히 제거한 한 줄 템플릿
             contentArea.innerHTML = `<div class="edit-drop-zone transition-colors rounded-lg" id="edit-drop-zone-${id}" ondragover="handleEditDragOver(event, '${id}')" ondragleave="handleEditDragLeave(event, '${id}')" ondrop="handleEditDrop(event, '${id}')"><textarea id="local-edit-ta-${id}" oninput="autoResizeTextarea(this)" class="w-full border border-blue-400 rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none bg-white leading-normal overflow-hidden block box-border transition-all m-0" rows="1">${textContent}</textarea>${fileEditAreaHtml}<div class="flex justify-between items-center pt-1.5 mt-1 border-t border-gray-100"><div class="flex items-center gap-1.5"><input type="file" id="editFileInputBox-${id}" multiple accept="*" class="hidden" onchange="handleEditFileUpload('${id}', this)"><button type="button" onclick="document.getElementById('editFileInputBox-${id}').click()" class="flex items-center gap-1 text-[10px] text-gray-600 hover:text-blue-600 font-medium px-2 py-0.5 rounded border border-gray-300 hover:bg-gray-50 transition"><i class="fa-solid fa-paperclip text-[9px]"></i> 파일 첨부</button><span class="text-[9px] text-gray-400 hidden sm:inline">(드래그 가능)</span></div><div class="flex gap-1"><button onclick="cancelLocalInlineEdit('${id}')" class="px-2.5 py-0.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md text-[11px] font-bold transition">취소</button><button onclick="saveLocalInlineEdit('${id}')" class="px-2.5 py-0.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-[11px] font-bold transition shadow-sm">저장</button></div></div></div>`;
 
             const ta = document.getElementById(`local-edit-ta-${id}`);

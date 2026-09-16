@@ -127,10 +127,7 @@
             <div class="p-4 border-t border-gray-100 flex flex-col gap-3">
                 <div class="flex items-center gap-3 overflow-hidden px-1">
                     <div class="w-9 h-9 rounded-full bg-hermes-light text-hermes flex items-center justify-center text-sm font-bold flex-shrink-0"><i class="fa-solid fa-user-check"></i></div>
-                    <div class="truncate">
-                        <p class="text-xs font-bold text-gray-800 truncate" id="currentUserName">사용자</p>
-                        <p class="text-[10px] text-hermes font-bold truncate" id="currentUserRoleName">직책</p>
-                    </div>
+                    <div class="truncate"><p class="text-xs font-bold text-gray-800 truncate" id="currentUserName">사용자</p><p class="text-[10px] text-hermes font-bold truncate" id="currentUserRoleName">직책</p></div>
                 </div>
                 <button id="logoutBtn" class="w-full flex items-center justify-center gap-2 bg-gray-50 hover:bg-red-50 text-gray-600 hover:text-red-500 border border-gray-200 rounded-xl py-2.5 text-xs font-bold transition duration-200 shadow-sm"><i class="fa-solid fa-right-from-bracket"></i> 로그아웃</button>
             </div>
@@ -191,22 +188,19 @@
                 <div id="emptyState" class="hidden py-12 md:py-16 text-center flex-col items-center justify-center"><i class="fa-solid fa-folder-open text-3xl md:text-4xl text-gray-300 mb-3"></i><p class="text-gray-500 font-medium text-xs md:text-sm">데이터가 없습니다.</p></div>
             </div>
 
-            <!-- 🌟 뷰 4. 인사이트 라이브러리 컨테이너 (동적 그리드) -->
+            <!-- 뷰 4. 인사이트 라이브러리 컨테이너 -->
             <div id="libraryContainer" class="hidden flex-1 mb-6 md:mb-8 animate-fade-in">
                 <div class="flex flex-col sm:flex-row justify-between sm:items-end gap-4 mb-6">
                     <div>
                         <h2 class="text-xl md:text-2xl font-black text-gray-900"><i class="fa-solid fa-book-open-reader text-hermes mr-2"></i> 인사이트 라이브러리</h2>
                         <p class="text-xs text-gray-500 mt-1.5 font-medium">성공적인 비즈니스를 위한 전문 마케팅 가이드와 리소스를 제공합니다.</p>
                     </div>
-                    <!-- 관리자 전용 새 리소스 작성 버튼 -->
                     <button id="openLibraryModalBtn" class="admin-only-col hidden bg-hermes hover:bg-hermes-hover text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5 self-start sm:self-auto">
                         <i class="fa-solid fa-plus"></i> 콘텐츠 작성 (ADMIN)
                     </button>
                 </div>
                 
-                <!-- JS 동적 카드가 뿌려질 그리드 레이아웃 -->
                 <div id="libraryGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                    <!-- JS에서 fetchLibraryItems()가 뿌려줍니다 -->
                 </div>
             </div>
 
@@ -559,7 +553,7 @@
         </div>
     </div>
 
-    <!-- 🌟 인사이트 라이브러리 HTML 상세보기 모달 (신규) -->
+    <!-- 🌟 인사이트 라이브러리 HTML 상세보기 모달 (링크 공유 버튼 반영) -->
     <div id="libraryViewModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-4xl p-5 md:p-8 shadow-2xl border border-gray-100 max-h-[95vh] overflow-y-auto flex flex-col">
             <div class="flex justify-between items-start mb-4 border-b pb-4">
@@ -567,10 +561,15 @@
                     <span id="libViewCategory" class="inline-block px-2.5 py-1 bg-orange-50 text-hermes text-[11px] font-bold rounded-md border border-orange-100 mb-2"></span>
                     <h3 id="libViewTitle" class="text-xl md:text-2xl font-black text-gray-900 leading-tight"></h3>
                 </div>
-                <button id="closeLibViewModalBtn" class="text-gray-400 hover:text-gray-600 p-1"><i class="fa-solid fa-xmark text-2xl"></i></button>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <!-- 🌟 라이브러리 전용 고유 URL 공유 버튼 -->
+                    <button id="shareLibLinkBtn" type="button" class="px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 text-hermes border border-orange-200 rounded-lg text-[10px] sm:text-xs font-bold transition flex items-center gap-1 shadow-sm" title="고유 URL 복사">
+                        <i class="fa-solid fa-share-nodes"></i> <span class="hidden sm:inline">링크 복사</span>
+                    </button>
+                    <button id="closeLibViewModalBtn" class="text-gray-400 hover:text-gray-600 p-1"><i class="fa-solid fa-xmark text-2xl"></i></button>
+                </div>
             </div>
             
-            <!-- HTML 렌더링 본문 영역 -->
             <div id="libViewHtmlContent" class="prose max-w-none text-sm text-gray-800 leading-relaxed min-h-[200px] mb-6 border-b pb-6"></div>
             
             <div class="flex justify-between items-center mt-auto">
@@ -582,7 +581,7 @@
         </div>
     </div>
 
-    <!-- 🌟 인사이트 라이브러리 작성/수정 모달 (Admin 전용 / 신규) -->
+    <!-- 인사이트 라이브러리 작성/수정 모달 (Admin 전용) -->
     <div id="libraryEditModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-2xl p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-5 border-b pb-3">

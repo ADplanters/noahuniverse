@@ -24,11 +24,12 @@ let currentAssignClientId = null;
 let currentEditClientId = null;
 let currentDetailTaskId = null; 
 let currentReplyTaskId = null;
-let currentEditLibId = null; // 🌟 수정 중인 라이브러리 아이템 ID
+let currentEditLibId = null; 
+let currentViewLibId = null; // 🌟 상세보기 중인 라이브러리 ID
 let isInitialLoginLogged = false;
 let isInitialDeepLinkChecked = false; 
 let tasksMap = {}; 
-let libraryMap = {}; // 🌟 라이브러리 데이터 로컬 캐시
+let libraryMap = {}; 
 let cachedClientNames = []; 
 
 const loginSection = document.getElementById('loginSection');
@@ -55,7 +56,6 @@ const assignModal = document.getElementById('assignModal');
 const replyModal = document.getElementById('replyModal');
 const detailModal = document.getElementById('detailModal');
 
-// 🌟 인사이트 라이브러리 전용 모달 매핑
 const libraryViewModal = document.getElementById('libraryViewModal');
 const libraryEditModal = document.getElementById('libraryEditModal');
 
@@ -261,17 +261,27 @@ safeAddListener('closeDetailBtn', 'click', closeDetailModalAction);
 safeAddListener('shareLinkBtn', 'click', () => {
     if (!currentDetailTaskId) return;
     const shareUrl = `${window.location.origin}${window.location.pathname}?id=${currentDetailTaskId}`;
-    
-    if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(shareUrl).then(() => {
-            alert("이슈 고유 주소가 클립보드에 복사되었습니다.\n\n" + shareUrl);
-        }).catch(() => { fallbackCopyTextToClipboard(shareUrl); });
-    } else {
-        fallbackCopyTextToClipboard(shareUrl);
-    }
+    copyToClipboard(shareUrl, "이슈 고유 주소");
 });
 
-function fallbackCopyTextToClipboard(text) {
+// 🌟 [신규 추가] 라이브러리 링크 공유 버튼 클릭
+safeAddListener('shareLibLinkBtn', 'click', () => {
+    if (!currentViewLibId) return;
+    const shareUrl = `${window.location.origin}${window.location.pathname}?libId=${currentViewLibId}`;
+    copyToClipboard(shareUrl, "인사이트 라이브러리 고유 주소");
+});
+
+function copyToClipboard(text, label = "링크") {
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => {
+            alert(`${label}가 클립보드에 복사되었습니다.\n\n` + text);
+        }).catch(() => { fallbackCopyTextToClipboard(text, label); });
+    } else {
+        fallbackCopyTextToClipboard(text, label);
+    }
+}
+
+function fallbackCopyTextToClipboard(text, label) {
     const textArea = document.createElement("textarea");
     textArea.value = text;
     textArea.style.position = "fixed"; 
@@ -280,7 +290,7 @@ function fallbackCopyTextToClipboard(text) {
     textArea.select();
     try {
         document.execCommand('copy');
-        alert("이슈 고유 주소가 복사되었습니다.\n\n" + text);
+        alert(`${label}가 복사되었습니다.\n\n` + text);
     } catch (err) { alert("복사 실패. 브라우저가 지원하지 않습니다."); }
     document.body.removeChild(textArea);
 }
@@ -324,7 +334,6 @@ safeAddListener('closePendingBtn', 'click', () => {
     signOut(auth); 
 });
 
-// 🌟 [라우터] 메뉴 전환
 navItems.forEach(item => {
     item.addEventListener('click', async (e) => {
         e.preventDefault();
@@ -358,7 +367,7 @@ navItems.forEach(item => {
             fetchTasks();
         } else if (menu === 'library') {
             if(libraryContainer) libraryContainer.classList.remove('hidden');
-            fetchLibraryItems(); // 🌟 라이브러리 목록 불러오기
+            fetchLibraryItems();
         } else if (menu === 'members') {
             if(membersContainer) membersContainer.classList.remove('hidden');
             fetchMembers();
@@ -436,7 +445,6 @@ function showDashboard(user) {
         const oldStyle = document.getElementById('adminStyle');
         if(oldStyle) oldStyle.remove();
         
-        // Admin 전용 버튼 표시
         const openLibBtn = document.getElementById('openLibraryModalBtn');
         if(openLibBtn) openLibBtn.classList.remove('hidden');
     } else {
@@ -841,15 +849,34 @@ async function fetchTasks() {
         });
         tbody.innerHTML = rowsHtml;
 
+        // 🌟 [URL 딥링크 감지] 이슈 / 라이브러리 구분 처리
         if (!isInitialDeepLinkChecked) {
             const urlParams = new URLSearchParams(window.location.search);
             const sharedTaskId = urlParams.get('id');
+            const sharedLibId = urlParams.get('libId');
+
             if (sharedTaskId) {
                 if (tasksMap[sharedTaskId]) {
                     openDetailModal(sharedTaskId);
                 } else {
                     alert("요청하신 이슈를 찾을 수 없거나 접근 권한이 없습니다.");
                 }
+            } else if (sharedLibId) {
+                // 인사이트 라이브러리 딥링크
+                fetchLibraryItems().then(() => {
+                    if (libraryMap[sharedLibId]) {
+                        if (libraryContainer) {
+                            if(statsContainer) statsContainer.classList.add('hidden');
+                            if(tasksContainer) tasksContainer.classList.add('hidden');
+                            if(clientsContainer) clientsContainer.classList.add('hidden');
+                            if(membersContainer) membersContainer.classList.add('hidden');
+                            if(approvalsContainer) approvalsContainer.classList.add('hidden');
+                            if(logsContainer) logsContainer.classList.add('hidden');
+                            libraryContainer.classList.remove('hidden');
+                        }
+                        openLibraryViewModal(sharedLibId);
+                    }
+                });
             }
             isInitialDeepLinkChecked = true;
         }
@@ -1044,7 +1071,7 @@ safeAddListener('detailDeleteBtn', 'click', async () => {
         try {
             await deleteDoc(doc(db, "crm_tasks", currentDetailTaskId));
             closeDetailModalAction(); 
-            await logActivity("게시글 삭제", `[${task.title}] 영구 삭제 완료`);
+            await logActivity("게시글 삭제", `[${tTitle}] 게시글 영구 삭제`);
             alert('삭제되었습니다.');
             fetchTasks();
         } catch(e) { alert('삭제 실패: '+e.message); }
@@ -1143,10 +1170,9 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
 });
 
 // ============================================================================
-// 🌟 [신규 추가] 인사이트 라이브러리 (HTML 커스텀 페이지 & DB CRUD 관리)
+// 🌟 인사이트 라이브러리 (HTML 커스텀 페이지 & 딥링크 고유 주소 지원)
 // ============================================================================
 
-// 라이브러리 아이템 불러오기 (초기 데이터 시드 자동 생성 포함)
 async function fetchLibraryItems() {
     const grid = document.getElementById('libraryGrid');
     if (!grid) return;
@@ -1157,7 +1183,6 @@ async function fetchLibraryItems() {
         libraryMap = {};
         let libList = [];
 
-        // DB가 비어있는 경우 최초 시드 데이터 자동 등록
         if (querySnapshot.empty) {
             await seedDefaultLibraryItems();
             return fetchLibraryItems();
@@ -1169,7 +1194,6 @@ async function fetchLibraryItems() {
             libraryMap[docSnap.id] = item;
         });
 
-        // 생성일 정렬
         libList.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
         grid.innerHTML = '';
@@ -1211,7 +1235,6 @@ async function fetchLibraryItems() {
             `;
         });
 
-        // 카드 클릭 시 HTML 열람 모달 오픈 이벤트 연결
         document.querySelectorAll('.lib-card-trigger').forEach(card => {
             card.addEventListener('click', (e) => {
                 if (e.target.closest('.edit-lib-btn') || e.target.closest('.delete-lib-btn') || e.target.closest('a')) return;
@@ -1220,7 +1243,6 @@ async function fetchLibraryItems() {
             });
         });
 
-        // 관리자 전용 수정 버튼 이벤트
         document.querySelectorAll('.edit-lib-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -1229,7 +1251,6 @@ async function fetchLibraryItems() {
             });
         });
 
-        // 관리자 전용 삭제 버튼 이벤트
         document.querySelectorAll('.delete-lib-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
@@ -1251,7 +1272,6 @@ async function fetchLibraryItems() {
     }
 }
 
-// 초기 기본 시드 데이터 자동 로딩
 async function seedDefaultLibraryItems() {
     const seeds = [
         {
@@ -1321,15 +1341,19 @@ async function seedDefaultLibraryItems() {
     }
 }
 
-// HTML 상세 보기 모달 오픈
+// 🌟 [URL 동기화 적용] 인사이트 라이브러리 HTML 상세보기 모달 오픈
 function openLibraryViewModal(id) {
     const item = libraryMap[id];
     if (!item) return;
 
+    currentViewLibId = id;
+
+    // 🌟 URL에 ?libId=아이디 파라미터 자동 동기화 (새로고침 없음)
+    const newUrl = `${window.location.pathname}?libId=${id}`;
+    window.history.pushState({ path: newUrl }, '', newUrl);
+
     document.getElementById('libViewCategory').innerText = item.category || '가이드';
     document.getElementById('libViewTitle').innerText = item.title;
-    
-    // 🌟 커스텀 HTML 파싱 렌더링
     document.getElementById('libViewHtmlContent').innerHTML = item.htmlContent || '<p>등록된 상세 내용이 없습니다.</p>';
 
     const pdfBtn = document.getElementById('libViewPdfBtn');
@@ -1344,7 +1368,14 @@ function openLibraryViewModal(id) {
     logActivity("라이브러리 열람", `[${item.title}] 가이드북 HTML 열람`);
 }
 
-// 관리자 작성/수정 모달 오픈
+// 🌟 라이브러리 모달 닫을 때 URL 원상복구
+function closeLibViewModalAction() {
+    libraryViewModal.classList.add('hidden');
+    currentViewLibId = null;
+    const cleanUrl = window.location.pathname;
+    window.history.pushState({}, '', cleanUrl);
+}
+
 function openLibraryEditModal(id = null) {
     currentEditLibId = id;
     const form = document.getElementById('libraryForm');
@@ -1363,14 +1394,12 @@ function openLibraryEditModal(id = null) {
     libraryEditModal.classList.remove('hidden');
 }
 
-// 라이브러리 모달 이벤트 바인딩
 safeAddListener('openLibraryModalBtn', 'click', () => openLibraryEditModal(null));
-safeAddListener('closeLibViewModalBtn', 'click', () => libraryViewModal.classList.add('hidden'));
-safeAddListener('closeLibViewBtn', 'click', () => libraryViewModal.classList.add('hidden'));
+safeAddListener('closeLibViewModalBtn', 'click', closeLibViewModalAction);
+safeAddListener('closeLibViewBtn', 'click', closeLibViewModalAction);
 safeAddListener('closeLibEditModalBtn', 'click', () => libraryEditModal.classList.add('hidden'));
 safeAddListener('cancelLibEditBtn', 'click', () => libraryEditModal.classList.add('hidden'));
 
-// 라이브러리 저장 이벤트 핸들러
 safeAddListener('libraryForm', 'submit', async (e) => {
     e.preventDefault();
     const payload = {

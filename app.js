@@ -24,9 +24,11 @@ let currentAssignClientId = null;
 let currentEditClientId = null;
 let currentDetailTaskId = null; 
 let currentReplyTaskId = null;
+let currentEditLibId = null; // 🌟 수정 중인 라이브러리 아이템 ID
 let isInitialLoginLogged = false;
-let isInitialDeepLinkChecked = false; // 🌟 딥링크 1회만 체크하기 위한 스위치
+let isInitialDeepLinkChecked = false; 
 let tasksMap = {}; 
+let libraryMap = {}; // 🌟 라이브러리 데이터 로컬 캐시
 let cachedClientNames = []; 
 
 const loginSection = document.getElementById('loginSection');
@@ -39,7 +41,7 @@ const clientsContainer = document.getElementById('clientsContainer');
 const membersContainer = document.getElementById('membersContainer');
 const approvalsContainer = document.getElementById('approvalsContainer');
 const logsContainer = document.getElementById('logsContainer');
-const libraryContainer = document.getElementById('libraryContainer'); // 🌟 라이브러리 컨테이너 변수
+const libraryContainer = document.getElementById('libraryContainer'); 
 
 const navItems = document.querySelectorAll('.nav-item');
 const sidebar = document.getElementById('sidebar');
@@ -53,6 +55,10 @@ const assignModal = document.getElementById('assignModal');
 const replyModal = document.getElementById('replyModal');
 const detailModal = document.getElementById('detailModal');
 
+// 🌟 인사이트 라이브러리 전용 모달 매핑
+const libraryViewModal = document.getElementById('libraryViewModal');
+const libraryEditModal = document.getElementById('libraryEditModal');
+
 function safeAddListener(id, eventType, callback) {
     const el = document.getElementById(id);
     if (el) el.addEventListener(eventType, callback);
@@ -64,7 +70,7 @@ function checkIsAdmin() {
     return false;
 }
 
-// 🌟 체크박스 리스트 동적 렌더링 (단일 및 다중 선택 100% 호환)
+// 다중 체크박스 UI 렌더링 함수
 async function populateAssignManagerCheckboxes(containerId, selectedManagers = []) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -243,7 +249,6 @@ safeAddListener('openModalBtn', 'click', () => {
 safeAddListener('closeModalBtn', 'click', () => createModal.classList.add('hidden'));
 safeAddListener('cancelBtn', 'click', () => createModal.classList.add('hidden'));
 
-// 🌟 [URL 동기화 복구] 창을 닫을 때 파라미터 날리기
 function closeDetailModalAction() {
     detailModal.classList.add('hidden');
     const cleanUrl = window.location.pathname;
@@ -253,7 +258,6 @@ function closeDetailModalAction() {
 safeAddListener('closeDetailModalBtn', 'click', closeDetailModalAction);
 safeAddListener('closeDetailBtn', 'click', closeDetailModalAction);
 
-// 🌟 [공유 링크 복사 기능]
 safeAddListener('shareLinkBtn', 'click', () => {
     if (!currentDetailTaskId) return;
     const shareUrl = `${window.location.origin}${window.location.pathname}?id=${currentDetailTaskId}`;
@@ -320,7 +324,7 @@ safeAddListener('closePendingBtn', 'click', () => {
     signOut(auth); 
 });
 
-// 🌟 [라우터 업데이트] 라이브러리 컨테이너 On/Off 연동
+// 🌟 [라우터] 메뉴 전환
 navItems.forEach(item => {
     item.addEventListener('click', async (e) => {
         e.preventDefault();
@@ -332,7 +336,6 @@ navItems.forEach(item => {
         });
         e.currentTarget.className = "nav-item flex items-center gap-3 bg-hermes text-white px-4 py-3 rounded-lg font-bold shadow-md shadow-orange-200/50 transition";
 
-        // 숨김
         if(statsContainer) statsContainer.classList.add('hidden');
         if(tasksContainer) tasksContainer.classList.add('hidden');
         if(clientsContainer) clientsContainer.classList.add('hidden');
@@ -343,7 +346,6 @@ navItems.forEach(item => {
 
         if(menu !== 'logout') logActivity("메뉴 이동", `[${menuTitle}] 화면을 조회했습니다.`);
 
-        // 노출
         if (menu === 'dashboard') {
             if(statsContainer) statsContainer.classList.remove('hidden');
             if(tasksContainer) tasksContainer.classList.remove('hidden');
@@ -356,6 +358,7 @@ navItems.forEach(item => {
             fetchTasks();
         } else if (menu === 'library') {
             if(libraryContainer) libraryContainer.classList.remove('hidden');
+            fetchLibraryItems(); // 🌟 라이브러리 목록 불러오기
         } else if (menu === 'members') {
             if(membersContainer) membersContainer.classList.remove('hidden');
             fetchMembers();
@@ -432,6 +435,10 @@ function showDashboard(user) {
         if(adminMenu) adminMenu.classList.remove('hidden');
         const oldStyle = document.getElementById('adminStyle');
         if(oldStyle) oldStyle.remove();
+        
+        // Admin 전용 버튼 표시
+        const openLibBtn = document.getElementById('openLibraryModalBtn');
+        if(openLibBtn) openLibBtn.classList.remove('hidden');
     } else {
         const adminMenu = document.getElementById('adminMenuSection');
         if(adminMenu) adminMenu.classList.add('hidden');
@@ -834,7 +841,6 @@ async function fetchTasks() {
         });
         tbody.innerHTML = rowsHtml;
 
-        // 🌟 [URL 파라미터 감지 및 자동 오픈] - 최초 로드 1회만 동작
         if (!isInitialDeepLinkChecked) {
             const urlParams = new URLSearchParams(window.location.search);
             const sharedTaskId = urlParams.get('id');
@@ -897,7 +903,6 @@ function openDetailModal(taskId) {
     
     currentDetailTaskId = taskId;
     
-    // 🌟 URL 변경 동기화 (딥링크)
     const newUrl = `${window.location.pathname}?id=${taskId}`;
     window.history.pushState({ path: newUrl }, '', newUrl);
 
@@ -1038,7 +1043,7 @@ safeAddListener('detailDeleteBtn', 'click', async () => {
     if(confirm('게시글을 영구적으로 삭제하시겠습니까?')) {
         try {
             await deleteDoc(doc(db, "crm_tasks", currentDetailTaskId));
-            closeDetailModalAction(); // 창 닫으며 URL 복구
+            closeDetailModalAction(); 
             await logActivity("게시글 삭제", `[${task.title}] 영구 삭제 완료`);
             alert('삭제되었습니다.');
             fetchTasks();
@@ -1130,11 +1135,269 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
     try {
         await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), updatedTask);
         editTaskModal.classList.add('hidden');
-        closeDetailModalAction(); // URL 복구
+        closeDetailModalAction(); 
         await logActivity("게시글 수정", `[${updatedTask.title}] 본문 및 담당자 수정 처리`);
         alert("수정되었습니다.");
         fetchTasks();
     } catch(e) { alert("수정 실패: " + e.message); }
+});
+
+// ============================================================================
+// 🌟 [신규 추가] 인사이트 라이브러리 (HTML 커스텀 페이지 & DB CRUD 관리)
+// ============================================================================
+
+// 라이브러리 아이템 불러오기 (초기 데이터 시드 자동 생성 포함)
+async function fetchLibraryItems() {
+    const grid = document.getElementById('libraryGrid');
+    if (!grid) return;
+    grid.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin text-hermes mr-2"></i> 라이브러리 데이터를 로딩 중입니다...</div>';
+
+    try {
+        const querySnapshot = await getDocs(collection(db, "crm_library"));
+        libraryMap = {};
+        let libList = [];
+
+        // DB가 비어있는 경우 최초 시드 데이터 자동 등록
+        if (querySnapshot.empty) {
+            await seedDefaultLibraryItems();
+            return fetchLibraryItems();
+        }
+
+        querySnapshot.forEach(docSnap => {
+            const item = { id: docSnap.id, ...docSnap.data() };
+            libList.push(item);
+            libraryMap[docSnap.id] = item;
+        });
+
+        // 생성일 정렬
+        libList.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        grid.innerHTML = '';
+        const isAdmin = checkIsAdmin();
+
+        libList.forEach(item => {
+            const adminBtns = isAdmin ? `
+                <div class="flex items-center gap-1.5 ml-auto">
+                    <button class="edit-lib-btn text-[11px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-600 hover:text-white px-2 py-1 rounded transition" data-id="${item.id}">수정</button>
+                    <button class="delete-lib-btn text-[11px] font-bold text-red-500 bg-red-50 hover:bg-red-500 hover:text-white px-2 py-1 rounded transition" data-id="${item.id}" data-title="${item.title}">삭제</button>
+                </div>
+            ` : '';
+
+            const pdfBtn = item.pdfUrl ? `
+                <a href="${item.pdfUrl}" target="_blank" download class="px-3 py-1.5 bg-gray-50 hover:bg-hermes hover:text-white text-hermes text-xs font-bold rounded-lg border border-gray-200 transition shadow-sm flex items-center gap-1.5">
+                    <i class="fa-solid fa-download"></i> PDF
+                </a>
+            ` : '';
+
+            grid.innerHTML += `
+                <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 group flex flex-col cursor-pointer lib-card-trigger" data-id="${item.id}">
+                    <div class="h-36 bg-gray-50 relative overflow-hidden flex items-center justify-center border-b border-gray-100">
+                        <div class="absolute inset-0 bg-gradient-to-br from-orange-100/30 to-transparent"></div>
+                        <i class="${item.iconClass || 'fa-solid fa-file-lines text-hermes'} text-5xl group-hover:scale-110 transition duration-300"></i>
+                    </div>
+                    <div class="p-5 flex-1 flex flex-col">
+                        <div class="mb-3 flex items-center justify-between">
+                            <span class="inline-block px-2.5 py-1 bg-orange-50 text-hermes text-[10px] font-bold rounded-md border border-orange-100">${item.category || '가이드'}</span>
+                            ${adminBtns}
+                        </div>
+                        <h3 class="font-black text-gray-900 mb-2 leading-snug group-hover:text-hermes transition">${item.title}</h3>
+                        <p class="text-xs text-gray-500 mb-5 line-clamp-2 leading-relaxed flex-1">${item.desc}</p>
+                        <div class="flex justify-between items-center border-t border-gray-100 pt-4 mt-auto">
+                            <button class="text-xs font-bold text-gray-600 hover:text-hermes transition flex items-center gap-1.5"><i class="fa-solid fa-book-open"></i> HTML 열람</button>
+                            ${pdfBtn}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        // 카드 클릭 시 HTML 열람 모달 오픈 이벤트 연결
+        document.querySelectorAll('.lib-card-trigger').forEach(card => {
+            card.addEventListener('click', (e) => {
+                if (e.target.closest('.edit-lib-btn') || e.target.closest('.delete-lib-btn') || e.target.closest('a')) return;
+                const libId = card.getAttribute('data-id');
+                openLibraryViewModal(libId);
+            });
+        });
+
+        // 관리자 전용 수정 버튼 이벤트
+        document.querySelectorAll('.edit-lib-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const libId = btn.getAttribute('data-id');
+                openLibraryEditModal(libId);
+            });
+        });
+
+        // 관리자 전용 삭제 버튼 이벤트
+        document.querySelectorAll('.delete-lib-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const libId = btn.getAttribute('data-id');
+                const title = btn.getAttribute('data-title');
+                if (confirm(`정말 [${title}] 콘텐츠를 삭제하시겠습니까?`)) {
+                    try {
+                        await deleteDoc(doc(db, "crm_library", libId));
+                        alert('삭제되었습니다.');
+                        fetchLibraryItems();
+                    } catch(err) { alert('삭제 실패: ' + err.message); }
+                }
+            });
+        });
+
+    } catch (e) {
+        console.error("Library fetch error:", e);
+        grid.innerHTML = '<div class="col-span-full text-center py-12 text-red-500 font-bold">라이브러리 데이터를 불러오지 못했습니다.</div>';
+    }
+}
+
+// 초기 기본 시드 데이터 자동 로딩
+async function seedDefaultLibraryItems() {
+    const seeds = [
+        {
+            category: "퍼포먼스 마케팅",
+            iconClass: "fa-brands fa-meta text-blue-600",
+            title: "메타(Meta) 광고 100% 활용 가이드",
+            desc: "페이스북과 인스타그램 스폰서드 광고의 장점과 머신러닝 최적화 원리, 타겟팅 기법을 담은 필수 지침서입니다.",
+            pdfUrl: "",
+            htmlContent: `
+                <div class="space-y-4">
+                    <h2 class="text-xl font-bold text-gray-900 border-b pb-2">1. 왜 머신러닝 기반 메타광고인가?</h2>
+                    <p>메타(Meta) 광고는 단순 타겟팅을 넘어 AI 알고리즘이 구매 가능성이 가장 높은 잠재고객을 찾아내는 강력한 솔루션입니다.</p>
+                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 my-3">
+                        <h4 class="font-bold text-blue-900 mb-1">💡 핵심 성과 공식</h4>
+                        <p class="text-xs text-blue-800">고품질 소재(이미지/숏폼) + 타겟 세분화 + 메타 픽셀 데이터 연동 = ROAS 극대화</p>
+                    </div>
+                    <h2 class="text-xl font-bold text-gray-900 border-b pb-2 mt-6">2. 성공을 위한 3단계 세팅법</h2>
+                    <ul class="list-disc pl-5 space-y-1 text-xs text-gray-700">
+                        <li>맞춤 타겟(Custom Audience) 및 유사 타겟(Lookalike) 설계</li>
+                        <li>소재 A/B 테스트를 통한 반응률 최상 조합 추출</li>
+                        <li>랜딩페이지 전환 추적 픽셀 실시간 피드백 루프 구축</li>
+                    </ul>
+                </div>
+            `,
+            createdAt: new Date().toISOString()
+        },
+        {
+            category: "웹 기획/개발",
+            iconClass: "fa-solid fa-laptop-code text-gray-800",
+            title: "매출을 부르는 홈페이지 제작의 이유",
+            desc: "단순한 온라인 명함을 넘어, 방문한 고객을 설득하고 실제 전환(DB 수집/결제)을 이끌어내는 랜딩페이지 구축 전략 리포트.",
+            pdfUrl: "",
+            htmlContent: `
+                <div class="space-y-4">
+                    <h2 class="text-xl font-bold text-gray-900 border-b pb-2">온라인 이탈률을 70% 낮추는 랜딩페이지의 조건</h2>
+                    <p>아무리 광고비를 많이 써도, 도착한 웹사이트가 부실하면 고객은 3초 만에 이탈합니다.</p>
+                    <div class="bg-orange-50 p-4 rounded-xl border border-orange-200 my-3">
+                        <h4 class="font-bold text-hermes mb-1">🔥 필수 구성 요소</h4>
+                        <p class="text-xs text-gray-700">1. 직관적인 메인 카피라이팅<br>2. 고객 후기 및 신뢰 자산(인증서/특허)<br>3. 즉각적인 문의하기(CTA) 버튼 배치</p>
+                    </div>
+                </div>
+            `,
+            createdAt: new Date().toISOString()
+        },
+        {
+            category: "SEO 최적화",
+            iconClass: "fa-solid fa-map-location-dot text-green-600",
+            title: "네이버 스마트플레이스 1페이지 노출 원리",
+            desc: "트래픽, 체류시간, 저장하기 등 네이버 알고리즘이 사랑하는 플레이스 세팅 및 관리 핵심 노하우.",
+            pdfUrl: "",
+            htmlContent: `
+                <div class="space-y-4">
+                    <h2 class="text-xl font-bold text-gray-900 border-b pb-2">스마트플레이스 상위노출 핵심 지표 분석</h2>
+                    <p>네이버 지도 검색 최상단 노출은 오프라인 매장 및 지역 기반 비즈니스 매출의 80%를 결정짓습니다.</p>
+                    <div class="bg-green-50 p-4 rounded-xl border border-green-200 my-3">
+                        <h4 class="font-bold text-green-900 mb-1">📌 지수 상승 4대 요소</h4>
+                        <p class="text-xs text-green-800">대표 키워드 세팅 + 영수증/방문자 리뷰 + 사용자 저장/길찾기 유입 + 최신 소식 업데이트</p>
+                    </div>
+                </div>
+            `,
+            createdAt: new Date().toISOString()
+        }
+    ];
+
+    for (const seed of seeds) {
+        await addDoc(collection(db, "crm_library"), seed);
+    }
+}
+
+// HTML 상세 보기 모달 오픈
+function openLibraryViewModal(id) {
+    const item = libraryMap[id];
+    if (!item) return;
+
+    document.getElementById('libViewCategory').innerText = item.category || '가이드';
+    document.getElementById('libViewTitle').innerText = item.title;
+    
+    // 🌟 커스텀 HTML 파싱 렌더링
+    document.getElementById('libViewHtmlContent').innerHTML = item.htmlContent || '<p>등록된 상세 내용이 없습니다.</p>';
+
+    const pdfBtn = document.getElementById('libViewPdfBtn');
+    if (item.pdfUrl) {
+        pdfBtn.href = item.pdfUrl;
+        pdfBtn.classList.remove('hidden');
+    } else {
+        pdfBtn.classList.add('hidden');
+    }
+
+    libraryViewModal.classList.remove('hidden');
+    logActivity("라이브러리 열람", `[${item.title}] 가이드북 HTML 열람`);
+}
+
+// 관리자 작성/수정 모달 오픈
+function openLibraryEditModal(id = null) {
+    currentEditLibId = id;
+    const form = document.getElementById('libraryForm');
+    form.reset();
+
+    if (id && libraryMap[id]) {
+        const item = libraryMap[id];
+        document.getElementById('libFormCategory').value = item.category || '';
+        document.getElementById('libFormIcon').value = item.iconClass || '';
+        document.getElementById('libFormTitle').value = item.title || '';
+        document.getElementById('libFormDesc').value = item.desc || '';
+        document.getElementById('libFormPdfUrl').value = item.pdfUrl || '';
+        document.getElementById('libFormHtmlContent').value = item.htmlContent || '';
+    }
+
+    libraryEditModal.classList.remove('hidden');
+}
+
+// 라이브러리 모달 이벤트 바인딩
+safeAddListener('openLibraryModalBtn', 'click', () => openLibraryEditModal(null));
+safeAddListener('closeLibViewModalBtn', 'click', () => libraryViewModal.classList.add('hidden'));
+safeAddListener('closeLibViewBtn', 'click', () => libraryViewModal.classList.add('hidden'));
+safeAddListener('closeLibEditModalBtn', 'click', () => libraryEditModal.classList.add('hidden'));
+safeAddListener('cancelLibEditBtn', 'click', () => libraryEditModal.classList.add('hidden'));
+
+// 라이브러리 저장 이벤트 핸들러
+safeAddListener('libraryForm', 'submit', async (e) => {
+    e.preventDefault();
+    const payload = {
+        category: document.getElementById('libFormCategory').value.trim(),
+        iconClass: document.getElementById('libFormIcon').value.trim() || 'fa-solid fa-file-lines text-hermes',
+        title: document.getElementById('libFormTitle').value.trim(),
+        desc: document.getElementById('libFormDesc').value.trim(),
+        pdfUrl: document.getElementById('libFormPdfUrl').value.trim(),
+        htmlContent: document.getElementById('libFormHtmlContent').value,
+        createdAt: new Date().toISOString()
+    };
+
+    try {
+        if (currentEditLibId) {
+            await updateDoc(doc(db, "crm_library", currentEditLibId), payload);
+            await logActivity("라이브러리 수정", `[${payload.title}] 가이드북 수정`);
+            alert("수정되었습니다.");
+        } else {
+            await addDoc(collection(db, "crm_library"), payload);
+            await logActivity("라이브러리 등록", `[${payload.title}] 신규 가이드북 생성`);
+            alert("등록되었습니다.");
+        }
+        libraryEditModal.classList.add('hidden');
+        fetchLibraryItems();
+    } catch(err) {
+        alert("저장 실패: " + err.message);
+    }
 });
 
 // 멤버 관리 (Admin 전용)

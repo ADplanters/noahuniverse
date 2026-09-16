@@ -575,11 +575,11 @@
                         <div class="relative flex-1">
                             <textarea id="commentInputBox" rows="3" placeholder="댓글 내용을 입력해 주세요." class="w-full border border-gray-300 rounded-xl p-3 pb-8 text-xs focus:outline-none focus:ring-2 focus:ring-slate-800 resize-none bg-white shadow-inner"></textarea>
                             
-                            <!-- 첨부파일 버튼 -->
+                            <!-- 첨부파일 버튼 (이미지 및 문서/PDF 포함) -->
                             <div class="absolute bottom-2.5 left-3 flex items-center gap-2">
-                                <input type="file" id="commentFileInputBox" multiple accept="image/*" class="hidden">
+                                <input type="file" id="commentFileInputBox" multiple accept="*" class="hidden">
                                 <button type="button" id="attachFileLocalBtn" class="flex items-center gap-1 text-[11px] text-gray-500 hover:text-blue-600 font-medium bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded border border-gray-300 transition">
-                                    📷 이미지 첨부
+                                    <i class="fa-solid fa-paperclip text-xs"></i> 파일 첨부
                                 </button>
                                 <span id="attachedCountLabel" class="text-[10px] text-blue-600 font-semibold hidden"></span>
                             </div>
@@ -736,7 +736,43 @@
         });
 
         // =======================================================
-        // 원본 댓글 데이터 복원 & 인라인 수정 + X 파일 삭제 + 수정시 파일 첨부
+        // 파일 판별 및 UI 렌더링 헬퍼 함수 (이미지/PDF/문서 통합 처리)
+        // =======================================================
+        function isImageFile(file) {
+            if (file.type && file.type.startsWith('image/')) return true;
+            return /\.(jpg|jpeg|png|gif|webp|bmp)/i.test(file.name || file.url || '');
+        }
+
+        function renderFileCardHtml(file, options = { canDelete: false, onRemove: '' }) {
+            const isImg = isImageFile(file);
+            let visualContent = '';
+            
+            if (isImg) {
+                visualContent = `<img src="${file.url}" alt="${file.name}" class="w-full h-14 object-cover rounded mb-1 bg-gray-100">`;
+            } else {
+                const isPdf = /\.pdf/i.test(file.name);
+                const iconClass = isPdf ? 'fa-file-pdf text-red-500' : 'fa-file-lines text-blue-500';
+                visualContent = `<div class="w-full h-14 bg-gray-100 rounded mb-1 flex items-center justify-center text-xl"><i class="fa-solid ${iconClass}"></i></div>`;
+            }
+
+            const deleteBtnHtml = options.canDelete ? 
+                `<button type="button" onclick="${options.onRemove}" class="absolute -top-1.5 -right-1.5 bg-red-500 text-white hover:bg-red-600 font-bold text-[10px] w-4 h-4 rounded-full flex items-center justify-center shadow z-10" title="파일 삭제">✕</button>` : '';
+
+            const clickAction = isImg ? `onclick="openImageModal('${file.url}')"` : `onclick="window.open('${file.url}', '_blank')"`;
+
+            return `
+                <div class="relative group bg-gray-50 border border-gray-200 rounded-lg p-1.5 w-24 hover:border-blue-400 transition cursor-pointer flex flex-col items-center shadow-sm">
+                    ${deleteBtnHtml}
+                    <div class="w-full text-center" ${clickAction}>
+                        ${visualContent}
+                        <span class="text-[10px] text-gray-600 truncate w-full block font-medium">${file.name}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // =======================================================
+        // 원본 댓글 데이터 복원 & 인라인 수정 + X 파일 삭제 + 수정시 파일 추가
         // =======================================================
         let mockComments = [
             {
@@ -770,12 +806,7 @@
                 if (item.files && item.files.length > 0) {
                     filesHtml = `
                         <div class="flex flex-wrap gap-2 pt-2 border-t border-gray-100 mt-2">
-                            ${item.files.map(file => `
-                                <div class="flex flex-col items-center bg-gray-50 border border-gray-200 rounded-lg p-1.5 w-24 hover:border-blue-400 transition cursor-pointer" onclick="openImageModal('${file.url}')">
-                                    <img src="${file.url}" alt="${file.name}" class="w-full h-16 object-cover rounded mb-1">
-                                    <span class="text-[10px] text-gray-500 truncate w-full text-center">${file.name}</span>
-                                </div>
-                            `).join('')}
+                            ${item.files.map(file => renderFileCardHtml(file)).join('')}
                         </div>
                     `;
                 }
@@ -817,7 +848,7 @@
             renderEditForm(id, target.content);
         };
 
-        // 🌟 수정 폼 동적 출력 (textarea 자동 높이 조절 + 이미지 첨부 버튼 + X 삭제)
+        // 🌟 수정 폼 동적 출력 (자동 높이 맞춤 textarea + 파일 추가/삭제 + 컴팩트 버튼)
         function renderEditForm(id, textContent) {
             const contentArea = document.getElementById(`local-content-${id}`);
             if(!contentArea) return;
@@ -827,39 +858,32 @@
             let fileEditAreaHtml = '';
             if (currentFiles.length > 0) {
                 fileEditAreaHtml = `
-                    <div class="flex flex-wrap gap-2 pt-2 border-t border-blue-100">
-                        ${currentFiles.map((f, fileIdx) => `
-                            <div class="relative group bg-white border border-blue-200 rounded-lg p-1.5 flex items-center gap-1.5 shadow-sm">
-                                <img src="${f.url}" class="w-8 h-8 object-cover rounded cursor-pointer" onclick="openImageModal('${f.url}')" title="확대 보기">
-                                <span class="text-[10px] text-gray-600 truncate max-w-[90px] font-medium">${f.name}</span>
-                                <button type="button" onclick="removeEditFile('${id}', ${fileIdx})" class="text-red-500 hover:bg-red-50 font-black text-xs px-1.5 py-0.5 rounded" title="첨부파일 삭제">✕</button>
-                            </div>
-                        `).join('')}
+                    <div class="flex flex-wrap gap-2 pt-2 border-t border-gray-100">
+                        ${currentFiles.map((f, fileIdx) => renderFileCardHtml(f, { canDelete: true, onRemove: `removeEditFile('${id}', ${fileIdx})` })).join('')}
                     </div>
                 `;
             }
 
             contentArea.innerHTML = `
                 <div class="space-y-2 pt-1">
-                    <!-- textarea 입력에 따른 세로 높이 자동 맞춤 조절 -->
                     <textarea id="local-edit-ta-${id}" 
                         oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
-                        class="w-full border border-blue-400 rounded-xl p-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-blue-50/20 leading-relaxed overflow-hidden">${textContent}</textarea>
+                        class="w-full border border-blue-400 rounded-lg p-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-white leading-relaxed overflow-hidden"
+                        rows="2">${textContent}</textarea>
                     
                     ${fileEditAreaHtml}
 
-                    <div class="flex justify-between items-center pt-1">
-                        <!-- 수정 모드에서도 이미지 파일 추가 지원 -->
+                    <div class="flex justify-between items-center pt-1 border-t border-gray-100 mt-2">
                         <div class="flex items-center gap-2">
-                            <input type="file" id="editFileInputBox-${id}" multiple accept="image/*" class="hidden" onchange="handleEditFileUpload('${id}', this)">
-                            <button type="button" onclick="document.getElementById('editFileInputBox-${id}').click()" class="flex items-center gap-1 text-[11px] text-blue-600 hover:bg-blue-50 font-medium px-2 py-1 rounded border border-blue-300 transition">
-                                📷 이미지 추가
+                            <input type="file" id="editFileInputBox-${id}" multiple accept="*" class="hidden" onchange="handleEditFileUpload('${id}', this)">
+                            <button type="button" onclick="document.getElementById('editFileInputBox-${id}').click()" class="flex items-center gap-1 text-[11px] text-gray-600 hover:text-blue-600 font-medium px-2 py-1 rounded border border-gray-300 hover:bg-gray-50 transition">
+                                <i class="fa-solid fa-paperclip text-xs"></i> 파일 추가
                             </button>
                         </div>
 
                         <div class="flex gap-1.5">
-                            <button onclick="cancelLocalInlineEdit('${id}')" class="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-xs font-semibold transition">취소</button>
-                            <button onclick="saveLocalInlineEdit('${id}')" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition shadow-sm">저장</button>
+                            <button onclick="cancelLocalInlineEdit('${id}')" class="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-bold transition">취소</button>
+                            <button onclick="saveLocalInlineEdit('${id}')" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition shadow-sm">저장</button>
                         </div>
                     </div>
                 </div>
@@ -878,10 +902,12 @@
         window.handleEditFileUpload = function(commentId, inputEl) {
             const files = Array.from(inputEl.files);
             files.forEach(file => {
-                if (file.type.startsWith('image/')) {
-                    if (!editingTempFiles[commentId]) editingTempFiles[commentId] = [];
-                    editingTempFiles[commentId].push({ name: file.name, url: URL.createObjectURL(file) });
-                }
+                if (!editingTempFiles[commentId]) editingTempFiles[commentId] = [];
+                editingTempFiles[commentId].push({ 
+                    name: file.name, 
+                    url: URL.createObjectURL(file),
+                    type: file.type 
+                });
             });
             const ta = document.getElementById(`local-edit-ta-${commentId}`);
             renderEditForm(commentId, ta ? ta.value : '');
@@ -931,7 +957,7 @@
             }
         };
 
-        // 신규 댓글 파일 첨부 이벤트
+        // 신규 댓글 파일 첨부 이벤트 (PDF 및 일반 문서 파일 포함)
         const attachBtn = document.getElementById('attachFileLocalBtn');
         const fileInputBox = document.getElementById('commentFileInputBox');
         const filePreviewBox = document.getElementById('pendingFilesPreview');
@@ -943,9 +969,11 @@
             fileInputBox.addEventListener('change', (e) => {
                 const files = Array.from(e.target.files);
                 files.forEach(file => {
-                    if (file.type.startsWith('image/')) {
-                        pendingLocalFiles.push({ name: file.name, url: URL.createObjectURL(file) });
-                    }
+                    pendingLocalFiles.push({ 
+                        name: file.name, 
+                        url: URL.createObjectURL(file),
+                        type: file.type 
+                    });
                 });
                 updatePreview();
             });
@@ -957,13 +985,9 @@
                 countLabel.classList.remove('hidden');
                 countLabel.textContent = `${pendingLocalFiles.length}개 선택됨`;
 
-                filePreviewBox.innerHTML = pendingLocalFiles.map((file, idx) => `
-                    <div class="relative group border border-blue-300 rounded p-1 bg-white flex items-center gap-1.5 shadow-sm">
-                        <img src="${file.url}" class="w-8 h-8 object-cover rounded cursor-pointer" onclick="openImageModal('${file.url}')">
-                        <span class="text-[10px] text-gray-600 truncate max-w-[80px] font-medium">${file.name}</span>
-                        <button type="button" onclick="removePendingLocalFile(${idx})" class="text-red-500 hover:bg-red-50 font-bold text-xs px-1.5 rounded">✕</button>
-                    </div>
-                `).join('');
+                filePreviewBox.innerHTML = pendingLocalFiles.map((file, idx) => 
+                    renderFileCardHtml(file, { canDelete: true, onRemove: `removePendingLocalFile(${idx})` })
+                ).join('');
             } else {
                 filePreviewBox.classList.add('hidden');
                 countLabel.classList.add('hidden');
@@ -984,7 +1008,7 @@
             submitBtn.addEventListener('click', () => {
                 const text = inputBox.value.trim();
                 if (!text && pendingLocalFiles.length === 0) {
-                    alert('내용이나 이미지를 입력해 주세요.');
+                    alert('내용이나 파일 등록을 완료해 주세요.');
                     return;
                 }
 

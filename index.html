@@ -316,13 +316,11 @@
                     <input type="text" id="inputClient" required placeholder="예: 노아피부과" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none">
                 </div>
 
-                <!-- 🌟 등록 다중 선택 지원 담당자 지정 영역 -->
                 <div id="assignManagerArea" class="hidden">
                     <label class="block text-xs font-bold text-gray-700 mb-1">
                         <i class="fa-solid fa-user-gear text-hermes mr-1"></i> 담당자 지정 (최상위 관리자 전용 / 다중 선택 가능)
                     </label>
                     <div id="createAssignManagerList" class="flex flex-col gap-2 max-h-32 overflow-y-auto p-2 bg-orange-50/30 border border-orange-200 rounded-lg">
-                        <!-- JS가 다중 체크박스를 채웁니다 -->
                     </div>
                 </div>
 
@@ -379,7 +377,7 @@
         </div>
     </div>
 
-    <!-- 🌟 등록된 게시글 수정 모달 (완벽 갱신 본) -->
+    <!-- 등록된 게시글 수정 모달 -->
     <div id="editTaskModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-lg p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-5 border-b pb-3">
@@ -389,24 +387,21 @@
             <form id="editTaskForm" class="space-y-4">
                 <div>
                     <label class="block text-xs font-bold text-gray-700 mb-1">클라이언트명</label>
-                    <input type="text" id="editTaskClient" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none">
+                    <input type="text" id="editTaskClient" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-blue-600 outline-none">
                 </div>
 
-                <!-- 🌟 수정 다중 선택 지원 담당자 지정 영역 (div 영역으로 완벽 전환) -->
                 <div id="editAssignManagerArea" class="hidden">
                     <label class="block text-xs font-bold text-gray-700 mb-1">
                         <i class="fa-solid fa-user-gear text-blue-600 mr-1"></i> 담당자 변경 (최상위 관리자 전용 / 다중 선택 가능)
                     </label>
-                    <!-- <select> 태그를 완전히 삭제하고, 체크박스를 담을 <div>로 변경 -->
                     <div id="editAssignManagerList" class="flex flex-col gap-2 max-h-32 overflow-y-auto p-2 bg-blue-50/30 border border-blue-200 rounded-lg">
-                        <!-- JS가 다중 체크박스를 채웁니다 -->
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
                         <label class="block text-xs font-bold text-gray-700 mb-1">분류</label>
-                        <select id="editTaskType" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none">
+                        <select id="editTaskType" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-blue-600 outline-none">
                             <option value="Q&A">Q&A</option>
                             <option value="보고서">보고서</option>
                             <option value="디자인">디자인</option>
@@ -415,7 +410,7 @@
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-700 mb-1">소속 구문</label>
-                        <select id="editTaskAgency" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none">
+                        <select id="editTaskAgency" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-blue-600 outline-none">
                             <option value="noah">노아유니버스</option>
                             <option value="adplanters">애드플랜터스</option>
                         </select>
@@ -423,20 +418,17 @@
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-gray-700 mb-1">제목</label>
-                    <input type="text" id="editTaskTitle" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none">
+                    <input type="text" id="editTaskTitle" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-blue-600 outline-none">
                 </div>
-                
                 <div>
                     <label class="block text-xs font-bold text-gray-700 mb-1">상세 내용</label>
-                    <textarea id="editTaskContent" rows="4" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none resize-none"></textarea>
+                    <textarea id="editTaskContent" rows="4" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-blue-600 outline-none resize-none"></textarea>
                 </div>
-
                 <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1"><i class="fa-solid fa-paperclip text-hermes mr-1"></i> 첨부파일 교체 (파일당 1MB 미만, 다중 선택 가능)</label>
-                    <input type="file" id="editTaskFile" multiple class="w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-hermes-light file:text-hermes hover:file:bg-orange-200 cursor-pointer border border-gray-200 rounded-lg p-1.5">
+                    <label class="block text-xs font-bold text-gray-700 mb-1"><i class="fa-solid fa-paperclip text-blue-600 mr-1"></i> 첨부파일 교체 (파일당 1MB 미만, 다중 선택 가능)</label>
+                    <input type="file" id="editTaskFile" multiple class="w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100 cursor-pointer border border-gray-200 rounded-lg p-1.5">
                     <p class="text-[10px] text-gray-400 mt-1">* 기존 파일: <span id="currentAttachedFile" class="font-bold text-blue-500">없음</span></p>
                 </div>
-
                 <div class="flex justify-end gap-2 pt-4 border-t mt-4">
                     <button type="button" id="cancelEditTaskBtn" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-xs font-bold">취소</button>
                     <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md">수정 완료</button>
@@ -470,7 +462,7 @@
         </div>
     </div>
 
-    <!-- 게시판 형태 상세 보기 팝업 -->
+    <!-- 🌟 게시판 형태 상세 보기 팝업 (링크 공유 버튼 추가 완료) -->
     <div id="detailModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-2xl p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[95vh] overflow-y-auto flex flex-col">
             <div class="flex justify-between items-start mb-4 border-b pb-4">
@@ -481,7 +473,14 @@
                     </div>
                     <h3 id="detailTitle" class="text-lg md:text-xl font-black text-gray-900 leading-tight"></h3>
                 </div>
-                <button id="closeDetailModalBtn" class="text-gray-400 hover:text-gray-600 p-1 flex-shrink-0"><i class="fa-solid fa-xmark text-xl"></i></button>
+                
+                <!-- 🌟 [신규 반영] 고유 URL 공유 링크 복사 버튼 -->
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <button id="shareLinkBtn" type="button" class="px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 text-hermes border border-orange-200 rounded-lg text-[10px] sm:text-xs font-bold transition flex items-center gap-1 shadow-sm" title="고유 URL 복사">
+                        <i class="fa-solid fa-share-nodes"></i> <span class="hidden sm:inline">링크 복사</span>
+                    </button>
+                    <button id="closeDetailModalBtn" class="text-gray-400 hover:text-gray-600 p-1 flex-shrink-0"><i class="fa-solid fa-xmark text-xl"></i></button>
+                </div>
             </div>
 
             <div class="grid grid-cols-2 gap-2 bg-gray-50 p-3 rounded-xl border border-gray-100 text-xs mb-4">

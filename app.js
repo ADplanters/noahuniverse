@@ -25,7 +25,7 @@ let currentEditClientId = null;
 let currentDetailTaskId = null; 
 let currentReplyTaskId = null;
 let isInitialLoginLogged = false;
-let isInitialDeepLinkChecked = false; // 🌟 딥링크 최초 확인용 변수
+let isInitialDeepLinkChecked = false; // 🌟 딥링크 1회만 체크하기 위한 스위치
 let tasksMap = {}; 
 let cachedClientNames = []; 
 
@@ -39,6 +39,7 @@ const clientsContainer = document.getElementById('clientsContainer');
 const membersContainer = document.getElementById('membersContainer');
 const approvalsContainer = document.getElementById('approvalsContainer');
 const logsContainer = document.getElementById('logsContainer');
+const libraryContainer = document.getElementById('libraryContainer'); // 🌟 라이브러리 컨테이너 변수
 
 const navItems = document.querySelectorAll('.nav-item');
 const sidebar = document.getElementById('sidebar');
@@ -63,7 +64,7 @@ function checkIsAdmin() {
     return false;
 }
 
-// 다중 체크박스 UI 렌더링 함수
+// 🌟 체크박스 리스트 동적 렌더링 (단일 및 다중 선택 100% 호환)
 async function populateAssignManagerCheckboxes(containerId, selectedManagers = []) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -91,9 +92,7 @@ async function populateAssignManagerCheckboxes(containerId, selectedManagers = [
                 </label>
             `;
         });
-    } catch (e) {
-        console.error("담당자 목록 로드 실패:", e);
-    }
+    } catch (e) { console.error("담당자 목록 로드 실패:", e); }
 }
 
 async function ensureClientNamesLoaded() {
@@ -244,7 +243,7 @@ safeAddListener('openModalBtn', 'click', () => {
 safeAddListener('closeModalBtn', 'click', () => createModal.classList.add('hidden'));
 safeAddListener('cancelBtn', 'click', () => createModal.classList.add('hidden'));
 
-// 🌟 [URL 동기화] 상세 모달 닫을 때 파라미터 날리기
+// 🌟 [URL 동기화 복구] 창을 닫을 때 파라미터 날리기
 function closeDetailModalAction() {
     detailModal.classList.add('hidden');
     const cleanUrl = window.location.pathname;
@@ -254,17 +253,15 @@ function closeDetailModalAction() {
 safeAddListener('closeDetailModalBtn', 'click', closeDetailModalAction);
 safeAddListener('closeDetailBtn', 'click', closeDetailModalAction);
 
-// 🌟 [링크 복사] 기능 구현
+// 🌟 [공유 링크 복사 기능]
 safeAddListener('shareLinkBtn', 'click', () => {
     if (!currentDetailTaskId) return;
     const shareUrl = `${window.location.origin}${window.location.pathname}?id=${currentDetailTaskId}`;
     
     if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(shareUrl).then(() => {
-            alert("이슈 고유 주소가 클립보드에 복사되었습니다.\n" + shareUrl);
-        }).catch(() => {
-            fallbackCopyTextToClipboard(shareUrl);
-        });
+            alert("이슈 고유 주소가 클립보드에 복사되었습니다.\n\n" + shareUrl);
+        }).catch(() => { fallbackCopyTextToClipboard(shareUrl); });
     } else {
         fallbackCopyTextToClipboard(shareUrl);
     }
@@ -279,10 +276,8 @@ function fallbackCopyTextToClipboard(text) {
     textArea.select();
     try {
         document.execCommand('copy');
-        alert("이슈 고유 주소가 클립보드에 복사되었습니다.\n" + text);
-    } catch (err) {
-        alert("복사 실패. 브라우저가 지원하지 않습니다.");
-    }
+        alert("이슈 고유 주소가 복사되었습니다.\n\n" + text);
+    } catch (err) { alert("복사 실패. 브라우저가 지원하지 않습니다."); }
     document.body.removeChild(textArea);
 }
 
@@ -325,6 +320,7 @@ safeAddListener('closePendingBtn', 'click', () => {
     signOut(auth); 
 });
 
+// 🌟 [라우터 업데이트] 라이브러리 컨테이너 On/Off 연동
 navItems.forEach(item => {
     item.addEventListener('click', async (e) => {
         e.preventDefault();
@@ -336,15 +332,18 @@ navItems.forEach(item => {
         });
         e.currentTarget.className = "nav-item flex items-center gap-3 bg-hermes text-white px-4 py-3 rounded-lg font-bold shadow-md shadow-orange-200/50 transition";
 
+        // 숨김
         if(statsContainer) statsContainer.classList.add('hidden');
         if(tasksContainer) tasksContainer.classList.add('hidden');
         if(clientsContainer) clientsContainer.classList.add('hidden');
         if(membersContainer) membersContainer.classList.add('hidden');
         if(approvalsContainer) approvalsContainer.classList.add('hidden');
         if(logsContainer) logsContainer.classList.add('hidden');
+        if(libraryContainer) libraryContainer.classList.add('hidden');
 
         if(menu !== 'logout') logActivity("메뉴 이동", `[${menuTitle}] 화면을 조회했습니다.`);
 
+        // 노출
         if (menu === 'dashboard') {
             if(statsContainer) statsContainer.classList.remove('hidden');
             if(tasksContainer) tasksContainer.classList.remove('hidden');
@@ -355,6 +354,8 @@ navItems.forEach(item => {
         } else if (menu === 'inquiries') {
             if(tasksContainer) tasksContainer.classList.remove('hidden');
             fetchTasks();
+        } else if (menu === 'library') {
+            if(libraryContainer) libraryContainer.classList.remove('hidden');
         } else if (menu === 'members') {
             if(membersContainer) membersContainer.classList.remove('hidden');
             fetchMembers();
@@ -833,7 +834,7 @@ async function fetchTasks() {
         });
         tbody.innerHTML = rowsHtml;
 
-        // 🌟 [URL 파싱 및 팝업 띄우기] 최초 1회만 동작하도록 제어
+        // 🌟 [URL 파라미터 감지 및 자동 오픈] - 최초 로드 1회만 동작
         if (!isInitialDeepLinkChecked) {
             const urlParams = new URLSearchParams(window.location.search);
             const sharedTaskId = urlParams.get('id');
@@ -890,16 +891,16 @@ function updateStats(data) {
     if(document.getElementById('statDone')) document.getElementById('statDone').innerText = data.filter(d => d.status === '답변완료' || d.status === '완료').length;
 }
 
-// 🌟 [URL 동기화 추가] 팝업 열 때 주소창에 파라미터 삽입
 function openDetailModal(taskId) {
     const task = tasksMap[taskId];
     if(!task) return;
     
     currentDetailTaskId = taskId;
     
+    // 🌟 URL 변경 동기화 (딥링크)
     const newUrl = `${window.location.pathname}?id=${taskId}`;
     window.history.pushState({ path: newUrl }, '', newUrl);
-    
+
     document.getElementById('detailTitle').innerText = task.title || '제목 없음';
     document.getElementById('detailType').innerText = task.type || 'Q&A';
     document.getElementById('detailClient').innerText = task.client || '-';
@@ -1073,7 +1074,7 @@ safeAddListener('detailEditBtn', 'click', async () => {
         : (task.fileName || '없음');
     document.getElementById('currentAttachedFile').innerText = fileLabel;
     
-    detailModal.classList.add('hidden'); // 주소창은 유지하면서 모달만 교체
+    detailModal.classList.add('hidden');
     editTaskModal.classList.remove('hidden');
 });
 
@@ -1129,7 +1130,7 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
     try {
         await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), updatedTask);
         editTaskModal.classList.add('hidden');
-        closeDetailModalAction(); // URL 복구 및 상세 닫기 상태
+        closeDetailModalAction(); // URL 복구
         await logActivity("게시글 수정", `[${updatedTask.title}] 본문 및 담당자 수정 처리`);
         alert("수정되었습니다.");
         fetchTasks();

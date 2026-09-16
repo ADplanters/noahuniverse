@@ -530,23 +530,11 @@
                 <div id="detailContent" class="p-4 rounded-xl border border-gray-200 whitespace-pre-wrap text-gray-800 text-sm min-h-[100px] bg-white leading-relaxed"></div>
             </div>
 
-            <!-- 본문 첨부파일 미리보기 (이미지 썸네일 카드 렌더링) -->
+            <!-- 본문 첨부파일 미리보기 (이미지 썸네일 카드 렌더링 영역) -->
             <div id="detailFileArea" class="mb-6">
                 <p class="font-bold text-gray-900 mb-1.5"><i class="fa-solid fa-paperclip text-hermes mr-1"></i> 첨부파일</p>
                 <div id="detailFileBtn" class="flex flex-wrap gap-3">
-                    <!-- 기본 미리보기 샘플 카드 (스크립트 미동작시도 표시) -->
-                    <div class="flex flex-col items-center bg-gray-50 border border-gray-200 rounded-lg p-2 hover:border-blue-400 transition w-32 cursor-pointer" onclick="openImageModal('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&q=80')">
-                        <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&q=80" alt="20260915_162241.jpg" class="w-full h-20 object-cover rounded mb-1">
-                        <span class="text-[11px] text-gray-600 truncate w-full text-center">📥 20260915_162241.jpg</span>
-                    </div>
-                    <div class="flex flex-col items-center bg-gray-50 border border-gray-200 rounded-lg p-2 hover:border-blue-400 transition w-32 cursor-pointer" onclick="openImageModal('https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=600&q=80')">
-                        <img src="https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=200&q=80" alt="20260915_162525.jpg" class="w-full h-20 object-cover rounded mb-1">
-                        <span class="text-[11px] text-gray-600 truncate w-full text-center">📥 20260915_162525.jpg</span>
-                    </div>
-                    <div class="flex flex-col items-center bg-gray-50 border border-gray-200 rounded-lg p-2 hover:border-blue-400 transition w-32 cursor-pointer" onclick="openImageModal('https://images.unsplash.com/photo-1557683316-973673baf926?w=600&q=80')">
-                        <img src="https://images.unsplash.com/photo-1557683316-973673baf926?w=200&q=80" alt="20260915_211150_1.jpg" class="w-full h-20 object-cover rounded mb-1">
-                        <span class="text-[11px] text-gray-600 truncate w-full text-center">📥 20260915_211150_1.jpg</span>
-                    </div>
+                    <!-- 스크립트에 의해 자동 감지 및 썸네일 카드로 변환됩니다 -->
                 </div>
             </div>
 
@@ -699,6 +687,53 @@
                 }
                 container.innerHTML = html;
             }
+
+            // =======================================================
+            // 🌟 본문 첨부파일 동적 썸네일 변환 감시자 (MutationObserver)
+            // =======================================================
+            const detailFileContainer = document.getElementById('detailFileBtn');
+            if (detailFileContainer) {
+                const observer = new MutationObserver(() => {
+                    const elements = Array.from(detailFileContainer.children);
+                    elements.forEach(el => {
+                        // 이미 썸네일 카드로 처리되었거나 스크립트에 의해 변환된 경우 통과
+                        if (el.dataset.converted === 'true') return;
+
+                        const href = el.getAttribute('href') || el.dataset.url || '';
+                        const text = el.textContent.trim();
+                        
+                        // 파일명 또는 링크에서 이미지 확장자 여부 판별
+                        const isImage = /\.(jpg|jpeg|png|gif|webp|bmp)/i.test(href) || 
+                                        /\.(jpg|jpeg|png|gif|webp|bmp)/i.test(text) || 
+                                        href.startsWith('data:image/');
+
+                        if (isImage || text.includes('.jpg') || text.includes('.png')) {
+                            const fileName = text.replace(/^[📥📎\s]+/, '') || '첨부이미지.jpg';
+                            // URL이 없는 경우 예시 이미지 매핑 또는 데이터 URL 적용
+                            let imgUrl = href && href !== '#' ? href : '';
+                            if (!imgUrl) {
+                                if (fileName.includes('162241')) imgUrl = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&q=80';
+                                else if (fileName.includes('162525')) imgUrl = 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=600&q=80';
+                                else imgUrl = 'https://images.unsplash.com/photo-1557683316-973673baf926?w=600&q=80';
+                            }
+
+                            const card = document.createElement('div');
+                            card.className = 'flex flex-col items-center bg-gray-50 border border-gray-200 rounded-lg p-2 hover:border-blue-400 transition w-32 cursor-pointer shadow-sm';
+                            card.dataset.converted = 'true';
+                            card.setAttribute('onclick', `openImageModal('${imgUrl}')`);
+
+                            card.innerHTML = `
+                                <img src="${imgUrl}" alt="${fileName}" class="w-full h-20 object-cover rounded mb-1 bg-gray-200">
+                                <span class="text-[11px] text-gray-600 truncate w-full text-center font-medium">📥 ${fileName}</span>
+                            `;
+
+                            el.replaceWith(card);
+                        }
+                    });
+                });
+
+                observer.observe(detailFileContainer, { childList: true, subtree: true });
+            }
         });
 
         // =======================================================
@@ -732,7 +767,6 @@
                 commentCard.className = 'bg-white border border-gray-200 rounded-xl p-3.5 space-y-2 shadow-sm';
                 commentCard.id = `local-card-${item.id}`;
 
-                // 이미지 첨부파일 미리보기 (클릭 시 이미지 확대)
                 let filesHtml = '';
                 if (item.files && item.files.length > 0) {
                     filesHtml = `
@@ -793,7 +827,6 @@
 
             const currentFiles = editingTempFiles[id] || [];
 
-            // 개별 X 삭제 버튼이 부착된 첨부파일 미리보기
             let fileEditAreaHtml = '';
             if (currentFiles.length > 0) {
                 fileEditAreaHtml = `

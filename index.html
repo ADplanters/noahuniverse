@@ -563,7 +563,7 @@
                     </div>
                 </div>
 
-                <!-- 댓글 목록 리스트 (인라인 수정 + 파일 X 삭제 제어) -->
+                <!-- 댓글 목록 리스트 -->
                 <div id="commentListArea" class="space-y-3 mb-4 max-h-[300px] overflow-y-auto px-1">
                     <!-- 스크립트로 원본 댓글 데이터가 렌더링됩니다 -->
                 </div>
@@ -693,23 +693,20 @@
             // =======================================================
             const detailFileContainer = document.getElementById('detailFileBtn');
             if (detailFileContainer) {
-                const observer = new MutationObserver(() => {
+                const processAttachments = () => {
                     const elements = Array.from(detailFileContainer.children);
                     elements.forEach(el => {
-                        // 이미 썸네일 카드로 처리되었거나 스크립트에 의해 변환된 경우 통과
                         if (el.dataset.converted === 'true') return;
 
                         const href = el.getAttribute('href') || el.dataset.url || '';
                         const text = el.textContent.trim();
                         
-                        // 파일명 또는 링크에서 이미지 확장자 여부 판별
                         const isImage = /\.(jpg|jpeg|png|gif|webp|bmp)/i.test(href) || 
                                         /\.(jpg|jpeg|png|gif|webp|bmp)/i.test(text) || 
                                         href.startsWith('data:image/');
 
                         if (isImage || text.includes('.jpg') || text.includes('.png')) {
                             const fileName = text.replace(/^[📥📎\s]+/, '') || '첨부이미지.jpg';
-                            // URL이 없는 경우 예시 이미지 매핑 또는 데이터 URL 적용
                             let imgUrl = href && href !== '#' ? href : '';
                             if (!imgUrl) {
                                 if (fileName.includes('162241')) imgUrl = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&q=80';
@@ -730,14 +727,16 @@
                             el.replaceWith(card);
                         }
                     });
-                });
+                };
 
+                const observer = new MutationObserver(processAttachments);
                 observer.observe(detailFileContainer, { childList: true, subtree: true });
+                processAttachments(); // 최초 실행
             }
         });
 
         // =======================================================
-        // 원본 댓글 데이터 100% 복원 & 인라인 수정 + X 파일 삭제
+        // 원본 댓글 데이터 복원 & 인라인 수정 + X 파일 삭제 + 수정시 파일 첨부
         // =======================================================
         let mockComments = [
             {
@@ -805,14 +804,12 @@
             });
         }
 
-        // 인라인 수정 모드 활성화 (X 버튼으로 기존/신규 첨부파일 제거 가능)
+        // 인라인 수정 모드 활성화
         window.enableLocalInlineEdit = function(id) {
             const target = mockComments.find(c => c.id === id);
             if (!target) return;
 
-            const contentArea = document.getElementById(`local-content-${id}`);
             const actionArea = document.getElementById(`local-action-${id}`);
-
             if(actionArea) actionArea.style.display = 'none';
 
             editingTempFiles[id] = target.files ? [...target.files] : [];
@@ -820,7 +817,7 @@
             renderEditForm(id, target.content);
         };
 
-        // 수정 폼 동적 출력
+        // 🌟 수정 폼 동적 출력 (textarea 자동 높이 조절 + 이미지 첨부 버튼 + X 삭제)
         function renderEditForm(id, textContent) {
             const contentArea = document.getElementById(`local-content-${id}`);
             if(!contentArea) return;
@@ -833,7 +830,7 @@
                     <div class="flex flex-wrap gap-2 pt-2 border-t border-blue-100">
                         ${currentFiles.map((f, fileIdx) => `
                             <div class="relative group bg-white border border-blue-200 rounded-lg p-1.5 flex items-center gap-1.5 shadow-sm">
-                                <img src="${f.url}" class="w-8 h-8 object-cover rounded">
+                                <img src="${f.url}" class="w-8 h-8 object-cover rounded cursor-pointer" onclick="openImageModal('${f.url}')" title="확대 보기">
                                 <span class="text-[10px] text-gray-600 truncate max-w-[90px] font-medium">${f.name}</span>
                                 <button type="button" onclick="removeEditFile('${id}', ${fileIdx})" class="text-red-500 hover:bg-red-50 font-black text-xs px-1.5 py-0.5 rounded" title="첨부파일 삭제">✕</button>
                             </div>
@@ -844,23 +841,51 @@
 
             contentArea.innerHTML = `
                 <div class="space-y-2 pt-1">
-                    <textarea id="local-edit-ta-${id}" class="w-full border border-blue-400 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y min-h-[70px] bg-blue-50/20">${textContent}</textarea>
+                    <!-- textarea 입력에 따른 세로 높이 자동 맞춤 조절 -->
+                    <textarea id="local-edit-ta-${id}" 
+                        oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+                        class="w-full border border-blue-400 rounded-xl p-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-blue-50/20 leading-relaxed overflow-hidden">${textContent}</textarea>
                     
                     ${fileEditAreaHtml}
 
-                    <div class="flex justify-end gap-1.5 pt-1">
-                        <button onclick="cancelLocalInlineEdit('${id}')" class="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-xs font-semibold transition">취소</button>
-                        <button onclick="saveLocalInlineEdit('${id}')" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition shadow-sm">저장</button>
+                    <div class="flex justify-between items-center pt-1">
+                        <!-- 수정 모드에서도 이미지 파일 추가 지원 -->
+                        <div class="flex items-center gap-2">
+                            <input type="file" id="editFileInputBox-${id}" multiple accept="image/*" class="hidden" onchange="handleEditFileUpload('${id}', this)">
+                            <button type="button" onclick="document.getElementById('editFileInputBox-${id}').click()" class="flex items-center gap-1 text-[11px] text-blue-600 hover:bg-blue-50 font-medium px-2 py-1 rounded border border-blue-300 transition">
+                                📷 이미지 추가
+                            </button>
+                        </div>
+
+                        <div class="flex gap-1.5">
+                            <button onclick="cancelLocalInlineEdit('${id}')" class="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-xs font-semibold transition">취소</button>
+                            <button onclick="saveLocalInlineEdit('${id}')" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition shadow-sm">저장</button>
+                        </div>
                     </div>
                 </div>
             `;
 
             const ta = document.getElementById(`local-edit-ta-${id}`);
             if(ta) {
+                ta.style.height = 'auto';
+                ta.style.height = ta.scrollHeight + 'px';
                 ta.focus();
                 ta.setSelectionRange(ta.value.length, ta.value.length);
             }
         }
+
+        // 수정 중 파일 업로드 처리
+        window.handleEditFileUpload = function(commentId, inputEl) {
+            const files = Array.from(inputEl.files);
+            files.forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    if (!editingTempFiles[commentId]) editingTempFiles[commentId] = [];
+                    editingTempFiles[commentId].push({ name: file.name, url: URL.createObjectURL(file) });
+                }
+            });
+            const ta = document.getElementById(`local-edit-ta-${commentId}`);
+            renderEditForm(commentId, ta ? ta.value : '');
+        };
 
         // 수정 시 개별 첨부파일 X 삭제
         window.removeEditFile = function(commentId, fileIdx) {
@@ -934,7 +959,7 @@
 
                 filePreviewBox.innerHTML = pendingLocalFiles.map((file, idx) => `
                     <div class="relative group border border-blue-300 rounded p-1 bg-white flex items-center gap-1.5 shadow-sm">
-                        <img src="${file.url}" class="w-8 h-8 object-cover rounded">
+                        <img src="${file.url}" class="w-8 h-8 object-cover rounded cursor-pointer" onclick="openImageModal('${file.url}')">
                         <span class="text-[10px] text-gray-600 truncate max-w-[80px] font-medium">${file.name}</span>
                         <button type="button" onclick="removePendingLocalFile(${idx})" class="text-red-500 hover:bg-red-50 font-bold text-xs px-1.5 rounded">✕</button>
                     </div>
@@ -988,7 +1013,7 @@
             });
         }
 
-        // 이미지 확대 모달
+        // 원본 이미지 확대 모달
         window.openImageModal = function(src) {
             const modal = document.getElementById('imageModal');
             const img = document.getElementById('modalImgTag');

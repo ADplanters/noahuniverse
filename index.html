@@ -597,7 +597,7 @@
                     <!-- 스크립트로 원본 댓글 데이터가 렌더링됩니다 -->
                 </div>
 
-                <!-- 댓글 작성 및 파일 첨부 (드래그 앤 드롭 영역 포함) -->
+                <!-- 댓글 작성 및 파일 첨부 -->
                 <div class="space-y-2">
                     <div id="pendingFilesPreview" class="flex flex-wrap gap-2 hidden"></div>
                     <div class="flex gap-2 items-stretch">
@@ -718,6 +718,29 @@
             }
 
             // =======================================================
+            // 🌟 모달 영역 밖(배경) 클릭 및 ESC 키로 모달 닫기
+            // =======================================================
+            const detailModal = document.getElementById('detailModal');
+            if (detailModal) {
+                detailModal.addEventListener('click', (e) => {
+                    if (e.target === detailModal) {
+                        detailModal.classList.add('hidden');
+                    }
+                });
+            }
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    const detailM = document.getElementById('detailModal');
+                    const imageM = document.getElementById('imageModal');
+                    const libM = document.getElementById('libraryViewModal');
+                    if (detailM && !detailM.classList.contains('hidden')) detailM.classList.add('hidden');
+                    if (imageM && !imageM.classList.contains('hidden')) imageM.classList.add('hidden');
+                    if (libM && !libM.classList.contains('hidden')) libM.classList.add('hidden');
+                }
+            });
+
+            // =======================================================
             // 본문 첨부파일 동적 썸네일 변환 감시자 (MutationObserver)
             // =======================================================
             const detailFileContainer = document.getElementById('detailFileBtn');
@@ -765,7 +788,7 @@
         });
 
         // =======================================================
-        // 파일 판별 및 UI 렌더링 헬퍼 함수 (이미지/PDF/문서 통합 처리)
+        // 파일 판별 및 UI 렌더링 헬퍼 함수
         // =======================================================
         function isImageFile(file) {
             if (file.type && file.type.startsWith('image/')) return true;
@@ -855,7 +878,6 @@
                             </div>
                         </div>
                     </div>
-                    <!-- comment-text 클래스를 순수 텍스트 영역으로 한정하여 상위 공백 감화 차단 -->
                     <div id="local-content-${item.id}" class="text-xs text-gray-800 leading-normal mt-0.5">
                         <div class="comment-text">${escapeLocalHtml(item.content)}</div>
                         ${filesHtml}
@@ -878,7 +900,7 @@
             renderEditForm(id, target.content);
         };
 
-        // 🌟 수정 폼 동적 출력 (한 줄 HTML 스트링으로 여백 팽창을 완벽히 제거)
+        // 수정 폼 동적 출력
         function renderEditForm(id, textContent) {
             const contentArea = document.getElementById(`local-content-${id}`);
             if(!contentArea) return;
@@ -890,7 +912,6 @@
                 fileEditAreaHtml = `<div class="flex flex-wrap gap-1.5 pt-1.5 mt-1 border-t border-gray-100">${currentFiles.map((f, fileIdx) => renderFileCardHtml(f, { canDelete: true, onRemove: `removeEditFile('${id}', ${fileIdx})` })).join('')}</div>`;
             }
 
-            // HTML 개행 공백문자를 완전히 제거한 한 줄 템플릿
             contentArea.innerHTML = `<div class="edit-drop-zone transition-colors rounded-lg" id="edit-drop-zone-${id}" ondragover="handleEditDragOver(event, '${id}')" ondragleave="handleEditDragLeave(event, '${id}')" ondrop="handleEditDrop(event, '${id}')"><textarea id="local-edit-ta-${id}" oninput="autoResizeTextarea(this)" class="w-full border border-blue-400 rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none bg-white leading-normal overflow-hidden block box-border transition-all m-0" rows="1">${textContent}</textarea>${fileEditAreaHtml}<div class="flex justify-between items-center pt-1.5 mt-1 border-t border-gray-100"><div class="flex items-center gap-1.5"><input type="file" id="editFileInputBox-${id}" multiple accept="*" class="hidden" onchange="handleEditFileUpload('${id}', this)"><button type="button" onclick="document.getElementById('editFileInputBox-${id}').click()" class="flex items-center gap-1 text-[10px] text-gray-600 hover:text-blue-600 font-medium px-2 py-0.5 rounded border border-gray-300 hover:bg-gray-50 transition"><i class="fa-solid fa-paperclip text-[9px]"></i> 파일 첨부</button><span class="text-[9px] text-gray-400 hidden sm:inline">(드래그 가능)</span></div><div class="flex gap-1"><button onclick="cancelLocalInlineEdit('${id}')" class="px-2.5 py-0.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md text-[11px] font-bold transition">취소</button><button onclick="saveLocalInlineEdit('${id}')" class="px-2.5 py-0.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-[11px] font-bold transition shadow-sm">저장</button></div></div></div>`;
 
             const ta = document.getElementById(`local-edit-ta-${id}`);

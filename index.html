@@ -115,7 +115,6 @@
             </button>
         </div>
 
-        <!-- 고정 메뉴 사이드바 -->
         <aside id="sidebar" class="w-64 bg-white/95 backdrop-blur-md border-r border-gray-200 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 h-full z-40 shadow-xl md:shadow-sm transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
             <div class="p-5 md:p-6 flex items-center justify-between border-b border-gray-100">
                 <div class="text-xl font-black tracking-tighter">
@@ -155,7 +154,7 @@
             </div>
         </aside>
 
-        <!-- 🌟 메인 콘텐츠 영역 (반응형 정밀 너비 보정 md:w-[calc(100%-16rem)] 적용) -->
+        <!-- 메인 콘텐츠 영역 -->
         <main class="w-full md:ml-64 md:w-[calc(100%-16rem)] flex-1 flex flex-col min-h-screen relative z-0 p-4 md:p-6 lg:p-8 min-w-0 overflow-x-hidden">
             <header class="flex justify-between items-center mb-6 md:mb-8 bg-white/80 p-4 md:p-6 rounded-2xl border border-gray-200 shadow-sm backdrop-blur-sm w-full">
                 <div>
@@ -598,7 +597,7 @@
                     <!-- 스크립트로 원본 댓글 데이터가 렌더링됩니다 -->
                 </div>
 
-                <!-- 댓글 작성 및 파일 첨부 (드래그 앤 드롭 영역 포함) -->
+                <!-- 댓글 작성 및 파일 첨부 -->
                 <div class="space-y-2">
                     <div id="pendingFilesPreview" class="flex flex-wrap gap-2 hidden"></div>
                     <div class="flex gap-2 items-stretch">
@@ -819,19 +818,34 @@
         }
 
         // =======================================================
-        // 원본 댓글 데이터 복원 & 인라인 수정 + X 파일 삭제 + 드래그 앤 드롭
+        // 🌟 영구 저장소(localStorage) 로드 및 동기화 지원
         // =======================================================
-        let mockComments = [
-            {
-                id: 'comment-1',
-                author: 'admin',
-                role: 'admin',
-                createdAt: '2026.09.16 13:08',
-                content: '총 예산 100만 / 2개월\nㄴ충전 : 10 / 잔여 : 90',
-                files: []
+        function loadCommentsFromStorage() {
+            const saved = localStorage.getItem('noah_comments_data');
+            if (saved) {
+                try {
+                    return JSON.parse(saved);
+                } catch(e) {
+                    console.error('댓글 로드 실패:', e);
+                }
             }
-        ];
+            return [
+                {
+                    id: 'comment-1',
+                    author: 'admin',
+                    role: 'admin',
+                    createdAt: '2026.09.16 13:08',
+                    content: '총 예산 100만 / 2개월\nㄴ충전 : 10 / 잔여 : 90',
+                    files: []
+                }
+            ];
+        }
 
+        function saveCommentsToStorage() {
+            localStorage.setItem('noah_comments_data', JSON.stringify(mockComments));
+        }
+
+        let mockComments = loadCommentsFromStorage();
         let pendingLocalFiles = [];
         let editingTempFiles = {}; 
 
@@ -873,7 +887,6 @@
                             </div>
                         </div>
                     </div>
-                    <!-- comment-text 클래스를 순수 텍스트 영역으로 한정하여 상위 공백 감화 차단 -->
                     <div id="local-content-${item.id}" class="text-xs text-gray-800 leading-normal mt-0.5">
                         <div class="comment-text">${escapeLocalHtml(item.content)}</div>
                         ${filesHtml}
@@ -896,7 +909,7 @@
             renderEditForm(id, target.content);
         };
 
-        // 🌟 수정 폼 동적 출력 (한 줄 HTML 스트링으로 여백 팽창을 완벽히 제거)
+        // 수정 폼 동적 출력
         function renderEditForm(id, textContent) {
             const contentArea = document.getElementById(`local-content-${id}`);
             if(!contentArea) return;
@@ -908,7 +921,6 @@
                 fileEditAreaHtml = `<div class="flex flex-wrap gap-1.5 pt-1.5 mt-1 border-t border-gray-100">${currentFiles.map((f, fileIdx) => renderFileCardHtml(f, { canDelete: true, onRemove: `removeEditFile('${id}', ${fileIdx})` })).join('')}</div>`;
             }
 
-            // HTML 개행 공백문자를 완전히 제거한 한 줄 템플릿
             contentArea.innerHTML = `<div class="edit-drop-zone transition-colors rounded-lg" id="edit-drop-zone-${id}" ondragover="handleEditDragOver(event, '${id}')" ondragleave="handleEditDragLeave(event, '${id}')" ondrop="handleEditDrop(event, '${id}')"><textarea id="local-edit-ta-${id}" oninput="autoResizeTextarea(this)" class="w-full border border-blue-400 rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none bg-white leading-normal overflow-hidden block box-border transition-all m-0" rows="1">${textContent}</textarea>${fileEditAreaHtml}<div class="flex justify-between items-center pt-1.5 mt-1 border-t border-gray-100"><div class="flex items-center gap-1.5"><input type="file" id="editFileInputBox-${id}" multiple accept="*" class="hidden" onchange="handleEditFileUpload('${id}', this)"><button type="button" onclick="document.getElementById('editFileInputBox-${id}').click()" class="flex items-center gap-1 text-[10px] text-gray-600 hover:text-blue-600 font-medium px-2 py-0.5 rounded border border-gray-300 hover:bg-gray-50 transition"><i class="fa-solid fa-paperclip text-[9px]"></i> 파일 첨부</button><span class="text-[9px] text-gray-400 hidden sm:inline">(드래그 가능)</span></div><div class="flex gap-1"><button onclick="cancelLocalInlineEdit('${id}')" class="px-2.5 py-0.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md text-[11px] font-bold transition">취소</button><button onclick="saveLocalInlineEdit('${id}')" class="px-2.5 py-0.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-[11px] font-bold transition shadow-sm">저장</button></div></div></div>`;
 
             const ta = document.getElementById(`local-edit-ta-${id}`);
@@ -948,32 +960,48 @@
 
             const files = Array.from(e.dataTransfer.files);
             if (files && files.length > 0) {
+                let processCount = 0;
                 files.forEach(file => {
-                    if (!editingTempFiles[id]) editingTempFiles[id] = [];
-                    editingTempFiles[id].push({
-                        name: file.name,
-                        url: URL.createObjectURL(file),
-                        type: file.type
-                    });
+                    const reader = new FileReader();
+                    reader.onload = (evt) => {
+                        if (!editingTempFiles[id]) editingTempFiles[id] = [];
+                        editingTempFiles[id].push({
+                            name: file.name,
+                            url: evt.target.result, // Base64 영구 데이터 저장
+                            type: file.type
+                        });
+                        processCount++;
+                        if (processCount === files.length) {
+                            const ta = document.getElementById(`local-edit-ta-${id}`);
+                            renderEditForm(id, ta ? ta.value : '');
+                        }
+                    };
+                    reader.readAsDataURL(file);
                 });
-                const ta = document.getElementById(`local-edit-ta-${id}`);
-                renderEditForm(id, ta ? ta.value : '');
             }
         };
 
-        // 수정 중 파일 선택창 업로드 처리
+        // 수정 중 파일 선택창 업로드 처리 (Base64 변환)
         window.handleEditFileUpload = function(commentId, inputEl) {
             const files = Array.from(inputEl.files);
+            let processCount = 0;
             files.forEach(file => {
-                if (!editingTempFiles[commentId]) editingTempFiles[commentId] = [];
-                editingTempFiles[commentId].push({ 
-                    name: file.name, 
-                    url: URL.createObjectURL(file),
-                    type: file.type 
-                });
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    if (!editingTempFiles[commentId]) editingTempFiles[commentId] = [];
+                    editingTempFiles[commentId].push({ 
+                        name: file.name, 
+                        url: evt.target.result, // Base64 영구 데이터 저장
+                        type: file.type 
+                    });
+                    processCount++;
+                    if (processCount === files.length) {
+                        const ta = document.getElementById(`local-edit-ta-${commentId}`);
+                        renderEditForm(commentId, ta ? ta.value : '');
+                    }
+                };
+                reader.readAsDataURL(file);
             });
-            const ta = document.getElementById(`local-edit-ta-${commentId}`);
-            renderEditForm(commentId, ta ? ta.value : '');
         };
 
         // 수정 시 개별 첨부파일 X 삭제
@@ -1003,6 +1031,7 @@
             }
 
             delete editingTempFiles[id];
+            saveCommentsToStorage(); // localStorage 영구 동기화
             renderLocalComments();
         };
 
@@ -1016,11 +1045,12 @@
         window.deleteLocalComment = function(id) {
             if(confirm('댓글을 삭제하시겠습니까?')) {
                 mockComments = mockComments.filter(c => c.id !== id);
+                saveCommentsToStorage(); // localStorage 영구 동기화
                 renderLocalComments();
             }
         };
 
-        // 신규 댓글 파일 첨부 및 드래그 앤 드롭 이벤트
+        // 🌟 신규 댓글 파일 첨부 및 드래그 앤 드롭 (Base64 변환 적용)
         const attachBtn = document.getElementById('attachFileLocalBtn');
         const fileInputBox = document.getElementById('commentFileInputBox');
         const filePreviewBox = document.getElementById('pendingFilesPreview');
@@ -1032,14 +1062,22 @@
 
             fileInputBox.addEventListener('change', (e) => {
                 const files = Array.from(e.target.files);
+                let processCount = 0;
                 files.forEach(file => {
-                    pendingLocalFiles.push({ 
-                        name: file.name, 
-                        url: URL.createObjectURL(file),
-                        type: file.type 
-                    });
+                    const reader = new FileReader();
+                    reader.onload = (evt) => {
+                        pendingLocalFiles.push({ 
+                            name: file.name, 
+                            url: evt.target.result, // Base64 영구 데이터
+                            type: file.type 
+                        });
+                        processCount++;
+                        if (processCount === files.length) {
+                            updatePreview();
+                        }
+                    };
+                    reader.readAsDataURL(file);
                 });
-                updatePreview();
             });
         }
 
@@ -1064,14 +1102,22 @@
 
                 const files = Array.from(e.dataTransfer.files);
                 if (files && files.length > 0) {
+                    let processCount = 0;
                     files.forEach(file => {
-                        pendingLocalFiles.push({
-                            name: file.name,
-                            url: URL.createObjectURL(file),
-                            type: file.type
-                        });
+                        const reader = new FileReader();
+                        reader.onload = (evt) => {
+                            pendingLocalFiles.push({
+                                name: file.name,
+                                url: evt.target.result, // Base64 영구 데이터
+                                type: file.type
+                            });
+                            processCount++;
+                            if (processCount === files.length) {
+                                updatePreview();
+                            }
+                        };
+                        reader.readAsDataURL(file);
                     });
-                    updatePreview();
                 }
             });
         }
@@ -1125,6 +1171,7 @@
                 fileInputBox.value = '';
                 pendingLocalFiles = [];
                 updatePreview();
+                saveCommentsToStorage(); // localStorage 영구 동기화
                 renderLocalComments();
                 
                 const scrollArea = document.getElementById('commentListArea');

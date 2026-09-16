@@ -115,6 +115,7 @@
             </button>
         </div>
 
+        <!-- 고정 메뉴 사이드바 -->
         <aside id="sidebar" class="w-64 bg-white/95 backdrop-blur-md border-r border-gray-200 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 h-full z-40 shadow-xl md:shadow-sm transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
             <div class="p-5 md:p-6 flex items-center justify-between border-b border-gray-100">
                 <div class="text-xl font-black tracking-tighter">
@@ -597,12 +598,13 @@
                     <!-- 스크립트로 원본 댓글 데이터가 렌더링됩니다 -->
                 </div>
 
-                <!-- 댓글 작성 및 파일 첨부 -->
+                <!-- 댓글 작성 및 파일 첨부 (드래그 앤 드롭 영역 포함) -->
                 <div class="space-y-2">
                     <div id="pendingFilesPreview" class="flex flex-wrap gap-2 hidden"></div>
                     <div class="flex gap-2 items-stretch">
                         <div class="relative flex-1">
-                            <textarea id="commentInputBox" rows="2" placeholder="댓글 내용을 입력하거나 파일을 드래그하여 올려주세요." class="w-full border border-gray-300 rounded-xl p-2.5 pb-7 text-xs focus:outline-none focus:ring-2 focus:ring-slate-800 resize-none bg-white shadow-inner transition-all min-h-[58px]"></textarea>
+                            <!-- 세로 조절 핸들이 기본 포함된 textarea (resize-y 적용) -->
+                            <textarea id="commentInputBox" rows="2" placeholder="댓글 내용을 입력하거나 파일을 드래그하여 올려주세요." class="w-full border border-gray-300 rounded-xl p-2.5 pb-7 text-xs focus:outline-none focus:ring-2 focus:ring-slate-800 resize-y bg-white shadow-inner transition-all min-h-[58px]"></textarea>
                             
                             <!-- 첨부파일 버튼 -->
                             <div class="absolute bottom-2 left-2.5 flex items-center gap-2">
@@ -887,6 +889,7 @@
                             </div>
                         </div>
                     </div>
+                    <!-- comment-text 클래스를 순수 텍스트 영역으로 한정하여 상위 공백 감화 차단 -->
                     <div id="local-content-${item.id}" class="text-xs text-gray-800 leading-normal mt-0.5">
                         <div class="comment-text">${escapeLocalHtml(item.content)}</div>
                         ${filesHtml}
@@ -909,7 +912,7 @@
             renderEditForm(id, target.content);
         };
 
-        // 수정 폼 동적 출력
+        // 🌟 수정 폼 동적 출력 (한 줄 HTML 스트링으로 여백 팽창을 완벽히 제거)
         function renderEditForm(id, textContent) {
             const contentArea = document.getElementById(`local-content-${id}`);
             if(!contentArea) return;
@@ -921,6 +924,7 @@
                 fileEditAreaHtml = `<div class="flex flex-wrap gap-1.5 pt-1.5 mt-1 border-t border-gray-100">${currentFiles.map((f, fileIdx) => renderFileCardHtml(f, { canDelete: true, onRemove: `removeEditFile('${id}', ${fileIdx})` })).join('')}</div>`;
             }
 
+            // HTML 개행 공백문자를 완전히 제거한 한 줄 템플릿
             contentArea.innerHTML = `<div class="edit-drop-zone transition-colors rounded-lg" id="edit-drop-zone-${id}" ondragover="handleEditDragOver(event, '${id}')" ondragleave="handleEditDragLeave(event, '${id}')" ondrop="handleEditDrop(event, '${id}')"><textarea id="local-edit-ta-${id}" oninput="autoResizeTextarea(this)" class="w-full border border-blue-400 rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none bg-white leading-normal overflow-hidden block box-border transition-all m-0" rows="1">${textContent}</textarea>${fileEditAreaHtml}<div class="flex justify-between items-center pt-1.5 mt-1 border-t border-gray-100"><div class="flex items-center gap-1.5"><input type="file" id="editFileInputBox-${id}" multiple accept="*" class="hidden" onchange="handleEditFileUpload('${id}', this)"><button type="button" onclick="document.getElementById('editFileInputBox-${id}').click()" class="flex items-center gap-1 text-[10px] text-gray-600 hover:text-blue-600 font-medium px-2 py-0.5 rounded border border-gray-300 hover:bg-gray-50 transition"><i class="fa-solid fa-paperclip text-[9px]"></i> 파일 첨부</button><span class="text-[9px] text-gray-400 hidden sm:inline">(드래그 가능)</span></div><div class="flex gap-1"><button onclick="cancelLocalInlineEdit('${id}')" class="px-2.5 py-0.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md text-[11px] font-bold transition">취소</button><button onclick="saveLocalInlineEdit('${id}')" class="px-2.5 py-0.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-[11px] font-bold transition shadow-sm">저장</button></div></div></div>`;
 
             const ta = document.getElementById(`local-edit-ta-${id}`);
@@ -931,9 +935,9 @@
             }
         }
 
-        // Textarea 높이 밀착 맞춤 함수
+        // Textarea 높이 밀착 맞춤 함수 (임시 0px 후 scrollHeight 자동 정렬)
         function autoResizeTextarea(ta) {
-            ta.style.height = 'auto';
+            ta.style.height = '0px';
             ta.style.height = ta.scrollHeight + 'px';
         }
 

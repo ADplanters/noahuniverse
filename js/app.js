@@ -869,14 +869,14 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
 });
 
 /**
- * 🌟 업무 이슈 요청 게시판 리스트 불러오기 (모바일 한글 세로 쏠림 방지 및 가로 터치 스크롤 강화)
+ * 업무 이슈 요청 게시판 리스트 불러오기 (모바일 한글 세로 쏠림 방지 및 가로 터치 스크롤 강화)
  */
 async function fetchTasks() {
     const tbody = document.getElementById('boardTable');
     const emptyState = document.getElementById('emptyState');
     if(!tbody) return;
 
-    // 🌟 모바일 대응: 테이블 상위 부모 요소에 가로 스크롤 및 최소 너비 보장 클래스 부여
+    // 모바일 대응: 테이블 상위 부모 요소에 가로 스크롤 및 최소 너비 보장 클래스 부여
     if (tbody.parentElement) {
         tbody.parentElement.classList.add('overflow-x-auto', 'block', 'w-full', '-mx-2', 'sm:mx-0');
         if (tbody.parentElement.tagName === 'TABLE') {
@@ -943,7 +943,7 @@ async function fetchTasks() {
             else if (item.status === '처리완료') statusBadgeClass = 'bg-green-50 text-green-600 border-green-200';
             else if (item.status === '보류') statusBadgeClass = 'bg-gray-100 text-gray-600 border-gray-200';
 
-            // 🌟 텍스트 찌그러짐 방지: whitespace-nowrap, break-keep, min-w 속성 추가로 모바일 글자 세로 노출 해결
+            // 텍스트 찌그러짐 방지: whitespace-nowrap, break-keep, min-w 속성 추가로 모바일 글자 세로 노출 해결
             rowsHtml += `
                 <tr class="hover:bg-hermes-light/30 transition group border-b border-gray-100 cursor-pointer task-detail-trigger break-keep" data-id="${item.id}">
                     <td class="p-3 md:p-4 align-middle text-gray-900 text-[11px] font-bold whitespace-nowrap">${item.date || '-'}</td>

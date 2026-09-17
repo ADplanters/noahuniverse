@@ -458,13 +458,12 @@ async function openDetailModal(taskId) {
     const newUrl = `${window.location.pathname}?id=${taskId}`;
     window.history.pushState({ path: newUrl }, '', newUrl);
 
-    // 🌟 조회수 누적 업데이트
+    // 조회수 누적 업데이트
     task.views = (task.views || 0) + 1;
     try {
         await updateDoc(doc(db, "crm_tasks", taskId), { views: increment(1) });
     } catch (e) { console.error("View increment error:", e); }
 
-    // 조회수 렌더링
     const viewCountEl = document.getElementById('detailViews') || document.querySelector('#detailModal .fa-eye')?.parentElement;
     if (viewCountEl) viewCountEl.innerHTML = `<i class="fa-solid fa-eye mr-1"></i> ${task.views}`;
 
@@ -484,7 +483,7 @@ async function openDetailModal(taskId) {
 }
 
 // ============================================================================
-// 6. 소통 댓글 모듈 (관리자 수정/삭제 완전 지원)
+// 6. 소통 댓글 모듈 (댓글 박스 내 인라인 수정 기능 완벽 구현)
 // ============================================================================
 function renderComments(commentsArr) {
     const listEl = document.getElementById('commentListArea') || document.getElementById('commentList');
@@ -501,7 +500,6 @@ function renderComments(commentsArr) {
     const isAdmin = checkIsAdmin();
 
     commentsArr.forEach((c, index) => {
-        // 관리자이거나 작성자 본인이면 수정/삭제 권한 부여
         const canManage = (c.author === currentUserName) || isAdmin;
         const actionBtns = canManage ? `
             <div class="flex items-center gap-1.5 ml-2">
@@ -516,7 +514,7 @@ function renderComments(commentsArr) {
         }
 
         listEl.innerHTML += `
-            <div class="bg-white border border-gray-200 p-3 rounded-xl shadow-xs space-y-1">
+            <div class="bg-white border border-gray-200 p-3 rounded-xl shadow-xs space-y-1 comment-item" id="comment-item-${index}">
                 <div class="flex justify-between items-center text-xs">
                     <span class="font-bold text-gray-800">${c.author} <span class="text-[10px] text-gray-400">(${c.role || '멤버'})</span></span>
                     <div class="flex items-center gap-1">
@@ -524,32 +522,63 @@ function renderComments(commentsArr) {
                         ${actionBtns}
                     </div>
                 </div>
-                <p class="text-xs text-gray-700 whitespace-pre-line">${c.text}</p>
+                <div class="comment-body-area" id="comment-body-${index}">
+                    <p class="text-xs text-gray-700 whitespace-pre-line">${c.text}</p>
+                </div>
                 ${filesHtml}
             </div>
         `;
     });
 
-    // 🌟 댓글 수정 처리
+    // 🌟 팝업 없이 댓글 영역 내부에서 직접 수정(인라인 수정)
     listEl.querySelectorAll('.edit-comment-btn').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
+        btn.addEventListener('click', (e) => {
             e.stopPropagation();
             const idx = parseInt(btn.getAttribute('data-index'));
             const comment = commentsArr[idx];
-            const newText = prompt("댓글 내용을 수정하세요:", comment.text);
-            if (newText !== null && newText.trim() !== "") {
-                commentsArr[idx].text = newText.trim();
+            const bodyArea = document.getElementById(`comment-body-${idx}`);
+
+            if (!bodyArea || bodyArea.querySelector('textarea')) return;
+
+            bodyArea.innerHTML = `
+                <div class="mt-1 space-y-2">
+                    <textarea id="inline-edit-textarea-${idx}" class="w-full text-xs p-2 border border-orange-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-hermes resize-y" rows="3">${comment.text}</textarea>
+                    <div class="flex justify-end gap-1.5">
+                        <button type="button" class="cancel-inline-edit-btn bg-gray-100 hover:bg-gray-200 text-gray-700 text-[10px] font-bold px-2.5 py-1 rounded-md transition">취소</button>
+                        <button type="button" class="save-inline-edit-btn bg-hermes hover:bg-orange-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-md transition">저장</button>
+                    </div>
+                </div>
+            `;
+
+            const saveBtn = bodyArea.querySelector('.save-inline-edit-btn');
+            const cancelBtn = bodyArea.querySelector('.cancel-inline-edit-btn');
+            const textarea = document.getElementById(`inline-edit-textarea-${idx}`);
+
+            cancelBtn.addEventListener('click', (eEvt) => {
+                eEvt.stopPropagation();
+                renderComments(commentsArr);
+            });
+
+            saveBtn.addEventListener('click', async (eEvt) => {
+                eEvt.stopPropagation();
+                const updatedText = textarea.value.trim();
+                if (!updatedText) {
+                    alert("댓글 내용을 입력해 주세요.");
+                    return;
+                }
+                commentsArr[idx].text = updatedText;
                 try {
                     await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), { comments: commentsArr });
                     renderComments(commentsArr);
                     fetchTasks();
-                    alert("댓글이 수정되었습니다.");
-                } catch(err) { alert("댓글 수정 실패: " + err.message); }
-            }
+                } catch(err) {
+                    alert("댓글 수정 실패: " + err.message);
+                }
+            });
         });
     });
 
-    // 🌟 댓글 삭제 처리
+    // 댓글 삭제 처리
     listEl.querySelectorAll('.delete-comment-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             e.stopPropagation();
@@ -720,7 +749,6 @@ async function fetchLibraryItems() {
                 </a>
             ` : '';
 
-            // 🌟 고급 사각 배너 카드 UI 적용
             grid.innerHTML += `
                 <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 group flex flex-col cursor-pointer lib-card-trigger" data-id="${item.id}">
                     <div class="h-36 bg-gray-50 relative overflow-hidden flex items-center justify-center border-b border-gray-100">

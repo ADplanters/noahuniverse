@@ -80,6 +80,26 @@ function safeAddListener(id, eventType, callback) {
     }
 }
 
+// 모바일 사이드바 햄버거 메뉴 토글 전용 유틸리티
+function toggleMobileSidebar(forceState) {
+    const sidebarEl = document.getElementById('sidebar');
+    const overlayEl = document.getElementById('mobileOverlay');
+    if (!sidebarEl) return;
+
+    const isCurrentlyClosed = sidebarEl.classList.contains('-translate-x-full') || sidebarEl.classList.contains('hidden');
+    const shouldOpen = forceState !== undefined ? forceState : isCurrentlyClosed;
+
+    if (shouldOpen) {
+        sidebarEl.classList.remove('-translate-x-full', 'hidden');
+        sidebarEl.classList.add('translate-x-0');
+        if (overlayEl) overlayEl.classList.remove('hidden');
+    } else {
+        sidebarEl.classList.add('-translate-x-full');
+        sidebarEl.classList.remove('translate-x-0');
+        if (overlayEl) overlayEl.classList.add('hidden');
+    }
+}
+
 // 최상위 관리자 권한 확인
 function checkIsAdmin() {
     if (currentUserRole === 'admin') {
@@ -177,14 +197,14 @@ function closeAllModals() {
     window.history.pushState({}, '', window.location.pathname);
 }
 
-// 🌟 키보드 ESC 키 감지 모달 닫기
+// 키보드 ESC 키 감지 모달 닫기
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         closeAllModals();
     }
 });
 
-// 🌟 모달 바깥 배경 클릭 및 내부 X(닫기) / 취소 버튼 강제 바인딩 (클라이언트 창 오류 해결)
+// 모달 바깥 배경 클릭 및 내부 X(닫기) / 취소 버튼 강제 바인딩 (클라이언트 창 오류 해결)
 [createModal, editTaskModal, clientModal, editClientModal, assignModal, detailModal, libraryViewModal, libraryEditModal, pendingModal].forEach(modalEl => {
     if (modalEl) {
         // 배경 클릭 시 닫기
@@ -216,8 +236,28 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// 🌟 글로벌 신규 클라이언트 추가, 이미지 확대, 링크 복사 클릭 이벤트 캐치
+// 🌟 글로벌 모바일 햄버거 메뉴, 신규 클라이언트 추가, 이미지 확대, 링크 복사 클릭 이벤트 캐치
 document.addEventListener('click', (e) => {
+    // 🌟 모바일 햄버거 메뉴 버튼 클릭 감지 및 토글
+    const mobileMenuTrigger = e.target.closest('#mobileMenuBtn') || 
+                              e.target.closest('#hamburgerBtn') || 
+                              e.target.closest('#openSidebarBtn') || 
+                              e.target.closest('.mobile-menu-btn') || 
+                              (e.target.closest('button') && (e.target.closest('button').querySelector('.fa-bars') || e.target.closest('button').querySelector('.fa-bars-staggered')));
+
+    if (mobileMenuTrigger) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleMobileSidebar();
+        return;
+    }
+
+    // 모바일 배경 오버레이 터치 시 사이드바 닫기
+    if (e.target.closest('#mobileOverlay')) {
+        toggleMobileSidebar(false);
+        return;
+    }
+
     const addClientBtn = e.target.closest('#openClientModalBtn') || (e.target.textContent && e.target.textContent.includes('신규 클라이언트 추가'));
     if (addClientBtn && clientModal) {
         e.preventDefault();
@@ -235,7 +275,7 @@ document.addEventListener('click', (e) => {
         }
     }
 
-    // 🌟 링크 복사 버튼 글로벌 캡처 (Fallback)
+    // 링크 복사 버튼 글로벌 캡처
     const shareTrigger = e.target.closest('#shareLinkBtn') || (e.target.closest('button') && e.target.closest('button').textContent.includes('링크 복사'));
     if (shareTrigger) {
         e.preventDefault();
@@ -998,7 +1038,7 @@ async function openDetailModal(taskId) {
     document.getElementById('detailDate').innerText = task.date || '-';
     document.getElementById('detailContent').innerText = task.content || '등록된 내용이 없습니다.';
 
-    // 🌟 상단 '링크 복사' 버튼에 클립보드 이벤트 직접 연결
+    // 상단 '링크 복사' 버튼에 클립보드 이벤트 직접 연결
     const shareBtn = document.getElementById('shareLinkBtn') || Array.from(detailModal.querySelectorAll('button')).find(b => b.textContent.includes('링크 복사'));
     if (shareBtn) {
         shareBtn.onclick = (e) => {
@@ -2025,6 +2065,9 @@ navItems.forEach(item => {
             n.className = "nav-item flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition";
         });
         e.currentTarget.className = "nav-item flex items-center gap-3 bg-hermes text-white px-4 py-3 rounded-lg font-bold shadow-md shadow-orange-200/50 transition";
+
+        // 모바일 네비게이션 클릭 시 사이드바 자동 닫기
+        toggleMobileSidebar(false);
 
         if (statsContainer) statsContainer.classList.add('hidden');
         if (tasksContainer) tasksContainer.classList.add('hidden');

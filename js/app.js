@@ -81,7 +81,7 @@ function checkIsAdmin() {
     return false;
 }
 
-// 작성자 본인 확인
+// 🌟 작성자 본인 확인 로직
 function checkIsAuthor(task) {
     if (!auth.currentUser || !task) return false;
     return (task.staff === currentUserName) || 
@@ -117,7 +117,7 @@ function openImageModal(imgUrl) {
     if (!modal) {
         modal = document.createElement('div');
         modal.id = 'globalImageModal';
-        modal.className = 'fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 hidden backdrop-blur-xs transition-opacity duration-200';
+        modal.className = 'fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 hidden backdrop-blur-xs transition-opacity duration-200';
         modal.innerHTML = `
             <div class="relative max-w-5xl max-h-[90vh] flex flex-col items-center">
                 <button type="button" id="closeImageModalBtn" class="absolute -top-10 right-0 text-white text-3xl font-bold hover:text-orange-400 transition cursor-pointer">&times;</button>
@@ -412,7 +412,7 @@ function showPendingPopup() {
 }
 
 // ============================================================================
-// 5. 업무 이슈/요청 게시판 (이슈 수정 / 삭제 / 담당자 연결 제어)
+// 5. 업무 이슈/요청 게시판 (이슈 제어 로직 모음)
 // ============================================================================
 safeAddListener('taskForm', 'submit', async (e) => {
     e.preventDefault();
@@ -479,7 +479,7 @@ safeAddListener('taskForm', 'submit', async (e) => {
     }
 });
 
-// 이슈 삭제 처리
+// 🌟 게시글 삭제 처리
 async function deleteTask(taskId) {
     const task = tasksMap[taskId];
     const title = task ? task.title : '해당 이슈';
@@ -496,96 +496,83 @@ async function deleteTask(taskId) {
     }
 }
 
-// 이슈 수정 모달 열기
+// 🌟 게시글 수정 팝업 오픈 (기존 데이터 세팅 복구)
 function openEditTaskModal(taskId) {
     const task = tasksMap[taskId];
     if (!task) return;
     currentDetailTaskId = taskId;
 
     if (editTaskModal) {
-        const titleIn = document.getElementById('editInputTitle') || document.getElementById('editTitle');
-        const contentIn = document.getElementById('editInputContent') || document.getElementById('editContent');
-        const typeIn = document.getElementById('editInputType') || document.getElementById('editType');
-        const clientIn = document.getElementById('editInputClient') || document.getElementById('editClient');
+        // 기존 폼 엘리먼트 데이터 채우기 (빈 칸 방지)
+        const titleIn = document.getElementById('editInputTitle') || editTaskModal.querySelector('input[name="title"]');
+        const contentIn = document.getElementById('editInputContent') || editTaskModal.querySelector('textarea[name="content"]');
+        const typeIn = document.getElementById('editInputType') || editTaskModal.querySelector('select[name="type"]');
+        const clientIn = document.getElementById('editInputClient') || editTaskModal.querySelector('input[name="client"]');
 
         if (titleIn) titleIn.value = task.title || '';
         if (contentIn) contentIn.value = task.content || '';
         if (typeIn) typeIn.value = task.type || 'Q&A';
         if (clientIn) clientIn.value = task.client || '';
 
+        // 🌟 z-index 최상위 배치하여 상세 모달 앞으로 노출되도록 보정
         editTaskModal.classList.remove('hidden');
-    } else {
-        const newTitle = prompt("수정할 제목을 입력하세요:", task.title);
-        if (newTitle === null) return;
-        const newContent = prompt("수정할 본문 내용을 입력하세요:", task.content);
-        if (newContent === null) return;
-
-        updateDoc(doc(db, "crm_tasks", taskId), {
-            title: newTitle.trim(),
-            content: newContent.trim(),
-            updatedAt: new Date().toISOString()
-        }).then(() => {
-            alert("이슈가 성공적으로 수정되었습니다.");
-            fetchTasks();
-            if (!detailModal.classList.contains('hidden')) openDetailModal(taskId);
-        });
+        editTaskModal.style.zIndex = "999"; 
     }
 }
 
-// 담당자 연결 모달 열기
+// 🌟 담당자 다중 연결 모달 오픈 (멤버 리스트 정상 출력 보정)
 async function openAssignModal(taskId) {
     const task = tasksMap[taskId];
     if (!task) return;
     currentAssignClientId = taskId;
 
     if (assignModal) {
-        const listContainer = document.getElementById('assignManagerList') || document.getElementById('assignUserList');
+        const listContainer = document.getElementById('assignManagerList') || document.querySelector('#assignModal .assign-manager-list');
         if (listContainer) {
-            listContainer.innerHTML = '<div class="text-xs text-gray-400 p-2"><i class="fa-solid fa-spinner animate-spin mr-1"></i> 담당자 목록 불러오는 중...</div>';
+            listContainer.innerHTML = '<div class="text-xs text-gray-400 p-2"><i class="fa-solid fa-spinner animate-spin mr-1"></i> 멤버 목록 불러오는 중...</div>';
             try {
-                const usersSnap = await getDocs(collection(db, "users"));
+                // 전체 가입 승인된 멤버 리스트 호출
+                const usersSnap = await getDocs(query(collection(db, "users"), where("status", "==", "approved")));
                 let html = '';
                 const currentAssigned = task.assignedManagers || [];
+                
                 usersSnap.forEach(uDoc => {
                     const u = uDoc.data();
                     const isChecked = currentAssigned.includes(u.name) || task.staff === u.name ? 'checked' : '';
                     html += `
                         <label class="flex items-center gap-2 p-2 hover:bg-orange-50 rounded-lg cursor-pointer text-xs font-bold text-gray-700">
                             <input type="checkbox" value="${u.name}" class="assign-manager-checkbox rounded text-hermes focus:ring-hermes" ${isChecked} />
-                            <span>${u.name} <span class="text-[10px] text-gray-400">(${u.email})</span></span>
+                            <span>${u.name} <span class="text-[10px] text-gray-400 font-normal">(${u.email})</span></span>
                         </label>
                     `;
                 });
-                listContainer.innerHTML = html || '<div class="text-xs text-gray-400 p-2">등록된 유저가 없습니다.</div>';
+                listContainer.innerHTML = html || '<div class="text-xs text-gray-400 p-2">등록된 멤버가 없습니다.</div>';
             } catch(err) {
                 console.error(err);
+                listContainer.innerHTML = '<div class="text-xs text-red-500 p-2">멤버 목록을 불러오지 못했습니다.</div>';
             }
         }
+        
+        // 🌟 z-index 최상위 배치 및 닫기 버튼 이벤트 재바인딩
         assignModal.classList.remove('hidden');
-    } else {
-        const newStaff = prompt("연결할 담당자 이름을 입력하세요 (쉼표로 구분):", task.staff || '');
-        if (newStaff !== null) {
-            const staffArr = newStaff.split(',').map(s => s.trim()).filter(Boolean);
-            await updateDoc(doc(db, "crm_tasks", taskId), {
-                staff: staffArr[0] || '미지정',
-                assignedManagers: staffArr
-            });
-            alert("담당자가 연결되었습니다.");
-            fetchTasks();
-            if (!detailModal.classList.contains('hidden')) openDetailModal(taskId);
-        }
+        assignModal.style.zIndex = "999";
+
+        const closeBtn = assignModal.querySelector('.fa-xmark')?.closest('button');
+        const cancelBtn = assignModal.querySelector('button.bg-gray-100');
+        if (closeBtn) closeBtn.onclick = () => assignModal.classList.add('hidden');
+        if (cancelBtn) cancelBtn.onclick = () => assignModal.classList.add('hidden');
     }
 }
 
-// 이슈 수정 폼 제출 바인딩
+// 🌟 게시글 수정 폼 제출 (저장 처리)
 safeAddListener('editTaskForm', 'submit', async (e) => {
     e.preventDefault();
     if (!currentDetailTaskId) return;
 
-    const titleIn = document.getElementById('editInputTitle') || document.getElementById('editTitle');
-    const contentIn = document.getElementById('editInputContent') || document.getElementById('editContent');
-    const typeIn = document.getElementById('editInputType') || document.getElementById('editType');
-    const clientIn = document.getElementById('editInputClient') || document.getElementById('editClient');
+    const titleIn = document.getElementById('editInputTitle') || document.querySelector('#editTaskForm input[name="title"]');
+    const contentIn = document.getElementById('editInputContent') || document.querySelector('#editTaskForm textarea[name="content"]');
+    const typeIn = document.getElementById('editInputType') || document.querySelector('#editTaskForm select[name="type"]');
+    const clientIn = document.getElementById('editInputClient') || document.querySelector('#editTaskForm input[name="client"]');
 
     try {
         await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), {
@@ -604,7 +591,7 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
     }
 });
 
-// 담당자 연결 폼 제출 바인딩
+// 🌟 담당자 다중 연결 완료 폼 제출 (저장 처리)
 safeAddListener('assignForm', 'submit', async (e) => {
     e.preventDefault();
     const targetId = currentAssignClientId || currentDetailTaskId;
@@ -660,7 +647,6 @@ async function fetchTasks() {
             const isAdmin = checkIsAdmin();
             const isAuthor = checkIsAuthor(item);
 
-            // 🌟 권한별 테이블 외부 액션 버튼 제어
             let adminActions = `<td class="admin-only-col p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 align-middle"><span class="text-gray-300 text-xs">-</span></td>`;
 
             if (isAdmin) {
@@ -718,7 +704,7 @@ async function fetchTasks() {
     } catch (e) { console.error("Firestore error:", e); }
 }
 
-// 상세 모달 열기 및 내부에 수정/삭제/담당자연결 컨트롤 바 생성
+// 상세 모달 열기 및 내부에 🌟 작성자/관리자별 수정/삭제/담당자연결 컨트롤 노출
 async function openDetailModal(taskId) {
     const task = tasksMap[taskId];
     if(!task) return;
@@ -742,17 +728,17 @@ async function openDetailModal(taskId) {
     document.getElementById('detailDate').innerText = task.date || '-';
     document.getElementById('detailContent').innerText = task.content || '등록된 내용이 없습니다.';
 
-    // 🌟 상세 모달 상단 컨트롤 버튼 바 제어
+    // 🌟 상세 모달 상단 컨트롤 버튼 바 제어 (관리자 vs 작성자 본인)
     const isAdmin = checkIsAdmin();
     const isAuthor = checkIsAuthor(task);
 
     let actionArea = document.getElementById('detailTaskActions');
     if (!actionArea) {
-        const shareBtn = document.getElementById('shareLinkBtn');
+        const shareBtn = document.getElementById('shareLinkBtn') || document.querySelector('#detailModal button:last-child');
         if (shareBtn && shareBtn.parentElement) {
             actionArea = document.createElement('div');
             actionArea.id = 'detailTaskActions';
-            actionArea.className = 'inline-flex items-center gap-1.5 ml-2';
+            actionArea.className = 'inline-flex items-center gap-1.5 ml-2 mr-2';
             shareBtn.parentElement.insertBefore(actionArea, shareBtn);
         }
     }
@@ -1412,11 +1398,11 @@ navItems.forEach(item => {
     });
 });
 
-// 테이블 행 및 내부 버튼 클릭 핸들러
+// 테이블 행 및 내부 버튼 클릭 핸들러 (이벤트 위임)
 const boardTableEl = document.getElementById('boardTable');
 if (boardTableEl) {
     boardTableEl.addEventListener('click', (e) => {
-        if (e.target.closest('.download-link')) return;
+        if (e.target.closest('.download-link') || e.target.closest('.img-preview-btn')) return;
 
         const delBtn = e.target.closest('.delete-task-btn');
         if (delBtn) {

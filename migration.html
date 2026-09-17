@@ -2,15 +2,15 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>DB 마이그레이션 도구</title>
+    <title>DB 마이그레이션 도구 V2</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="p-10 bg-gray-50 flex flex-col items-center">
-    <h1 class="text-2xl font-black text-gray-900 mb-2">ADplanters 데이터 마이그레이션</h1>
-    <p class="mb-8 text-gray-500 font-medium">기존 프로젝트의 고객/이슈/라이브러리 데이터를 새 프로젝트로 안전하게 복사합니다.</p>
+    <h1 class="text-2xl font-black text-gray-900 mb-2">ADplanters 누락 데이터 완벽 복구</h1>
+    <p class="mb-8 text-gray-500 font-medium">누락되었던 멤버 관리, 승인 대기, 작업 로그 데이터를 새 프로젝트로 100% 이관합니다.</p>
     
     <button id="startBtn" class="px-8 py-4 bg-orange-600 text-white font-bold rounded-xl shadow-lg hover:bg-orange-700 transition">
-        데이터 이전 시작하기
+        누락 데이터 이전 시작
     </button>
     <div id="status" class="mt-8 font-mono text-sm text-gray-700 whitespace-pre-line w-full max-w-2xl bg-white p-6 rounded-2xl border shadow-sm h-64 overflow-y-auto">대기 중... 버튼을 클릭하세요.</div>
 
@@ -50,16 +50,16 @@
             try {
                 const provider = new GoogleAuthProvider();
                 await signInWithPopup(newAuth, provider);
-                log("✅ 로그인 성공. 데이터 이전을 본격적으로 시작합니다.\n");
+                log("✅ 로그인 성공. 누락 데이터 복구를 본격적으로 시작합니다.\n");
 
-                // 복사할 컬렉션 목록
-                const collections = ["users", "clients", "crm_tasks", "crm_library"];
+                // 🌟 누락되었던 users, activity_logs 추가 완료
+                const collections = ["users", "activity_logs", "clients", "crm_tasks", "crm_library"];
                 
                 for (const col of collections) {
-                    log(`⏳ [${col}] 컬렉션 복사 중...`);
+                    log(`⏳ [${col}] 데이터 읽어오는 중...`);
                     const snapshot = await getDocs(collection(oldDb, col));
                     if (snapshot.empty) {
-                        log(`  - 데이터가 없습니다. 패스합니다.`);
+                        log(`  - 데이터가 0건입니다. 패스합니다.`);
                         continue;
                     }
                     
@@ -68,12 +68,13 @@
                         await setDoc(doc(newDb, col, document.id), document.data());
                         count++;
                     }
-                    log(`  ✅ [${col}] 총 ${count}개 항목 복사 완료!`);
+                    log(`  ✅ [${col}] 총 ${count}개 항목 새 DB로 저장 완료!`);
                 }
                 
-                log(`\n🎉 모든 마이그레이션이 성공적으로 완료되었습니다! 이제 이 창을 닫아주세요.`);
+                log(`\n🎉 멤버 관리 및 로그 기록 복구가 100% 성공적으로 완료되었습니다! 이제 이 창을 닫고 메인 화면을 새로고침 해주세요.`);
             } catch (error) {
                 log(`\n❌ 에러 발생: ${error.message}`);
+                log(`👉 기존 프로젝트(partner-noah)의 규칙이 'allow read: if true;'로 변경되었는지 다시 확인해 주세요.`);
             }
         });
     </script>

@@ -71,7 +71,7 @@ const libraryViewModal = document.getElementById('libraryViewModal');
 const libraryEditModal = document.getElementById('libraryEditModal');
 
 // ============================================================================
-// 3. 공통 유틸리티 & 워터마크 & 권한 검증 헬퍼
+// 3. 공통 유틸리티 & 워터마크 & 권한 검증 헬퍼 & 탭 라우팅
 // ============================================================================
 function safeAddListener(id, eventType, callback) {
     const el = document.getElementById(id);
@@ -122,7 +122,75 @@ function checkIsAuthor(task) {
 }
 
 /**
- * 🌟 24시간 이내 등록된 신규 데이터 존재 여부를 검사하여 메뉴 옆에 빨간색 고급 알림 표식을 표시하는 로직
+ * 🌟 고유 URL 기반 탭 전환 및 최상위 관리자 권한 검증 라우터
+ * @param {string} tabName - 이동할 탭 구분값 (dashboard, clients, inquiries, library, members, approvals, logs)
+ * @param {boolean} pushHistory - URL 히스토리 누적 여부
+ */
+function switchTab(tabName, pushHistory = true) {
+    const adminOnlyTabs = ['members', 'approvals', 'logs'];
+    const isAdmin = checkIsAdmin();
+
+    // 🌟 최상위 관리자 전용 탭 비권한 계정 접근 제어
+    if (adminOnlyTabs.includes(tabName) && !isAdmin) {
+        alert("최상위 관리자(Admin) 권한이 필요한 메뉴입니다.");
+        tabName = 'dashboard';
+    }
+
+    // URL 쿼리 파라미터 갱신 (?tab=메뉴명)
+    if (pushHistory) {
+        const newUrl = `${window.location.pathname}?tab=${tabName}`;
+        window.history.pushState({ tab: tabName }, '', newUrl);
+    }
+
+    toggleMobileSidebar(false);
+
+    // 네비게이션 버튼 UI 활성화 스타일 교체
+    navItems.forEach(n => {
+        const m = n.getAttribute('data-menu');
+        if (m === tabName) {
+            n.className = "nav-item flex items-center gap-3 bg-hermes text-white px-4 py-3 rounded-lg font-bold shadow-md shadow-orange-200/50 transition";
+        } else {
+            n.className = "nav-item flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition";
+        }
+    });
+
+    // 모든 컨테이너 숨김
+    if (statsContainer) statsContainer.classList.add('hidden');
+    if (tasksContainer) tasksContainer.classList.add('hidden');
+    if (clientsContainer) clientsContainer.classList.add('hidden');
+    if (membersContainer) membersContainer.classList.add('hidden');
+    if (approvalsContainer) approvalsContainer.classList.add('hidden');
+    if (logsContainer) logsContainer.classList.add('hidden');
+    if (libraryContainer) libraryContainer.classList.add('hidden');
+
+    // 선택 탭 컨테이너 노출 및 데이터 페치
+    if (tabName === 'dashboard') {
+        if (statsContainer) statsContainer.classList.remove('hidden');
+        if (tasksContainer) tasksContainer.classList.remove('hidden');
+        fetchTasks();
+    } else if (tabName === 'inquiries') {
+        if (tasksContainer) tasksContainer.classList.remove('hidden');
+        fetchTasks();
+    } else if (tabName === 'clients') {
+        if (clientsContainer) clientsContainer.classList.remove('hidden');
+        fetchClients();
+    } else if (tabName === 'members') {
+        if (membersContainer) membersContainer.classList.remove('hidden');
+        fetchMembers();
+    } else if (tabName === 'approvals') {
+        if (approvalsContainer) approvalsContainer.classList.remove('hidden');
+        fetchApprovals();
+    } else if (tabName === 'logs') {
+        if (logsContainer) logsContainer.classList.remove('hidden');
+        fetchLogs();
+    } else if (tabName === 'library') {
+        if (libraryContainer) libraryContainer.classList.remove('hidden');
+        fetchLibraryItems();
+    }
+}
+
+/**
+ * 24시간 이내 등록된 신규 데이터 존재 여부를 검사하여 메뉴 옆에 빨간색 고급 알림 표식을 표시하는 로직
  */
 function checkAllNavBadges() {
     const NOW = Date.now();
@@ -145,28 +213,24 @@ function checkAllNavBadges() {
     let hasNewClients = false;
     let hasNewLibrary = false;
 
-    // 1. 업무 이슈/요청 검사
     Object.values(tasksMap).forEach(t => {
         if (isWithin24Hours(t.createdAt || t.date)) {
             hasNewInquiries = true;
         }
     });
 
-    // 2. 클라이언트 목록 검사
     Object.values(clientsMap).forEach(c => {
         if (isWithin24Hours(c.createdAt)) {
             hasNewClients = true;
         }
     });
 
-    // 3. 인사이트 라이브러리 검사
     Object.values(libraryMap).forEach(l => {
         if (isWithin24Hours(l.createdAt)) {
             hasNewLibrary = true;
         }
     });
 
-    // 메뉴 뱃지 UI 갱신 처리
     const setMenuBadge = (menuName, showBadge) => {
         const targetLinks = document.querySelectorAll(`.nav-item[data-menu="${menuName}"]`);
         targetLinks.forEach(link => {
@@ -263,7 +327,9 @@ function closeAllModals() {
         }
     });
     
-    window.history.pushState({}, '', window.location.pathname);
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeTab = urlParams.get('tab') || 'dashboard';
+    window.history.pushState({ tab: activeTab }, '', `${window.location.pathname}?tab=${activeTab}`);
 }
 
 // 키보드 ESC 키 감지 모달 닫기
@@ -276,14 +342,12 @@ document.addEventListener('keydown', (e) => {
 // 모달 바깥 배경 클릭 및 내부 X(닫기) / 취소 버튼 강제 바인딩 (클라이언트 창 오류 해결)
 [createModal, editTaskModal, clientModal, editClientModal, assignModal, detailModal, libraryViewModal, libraryEditModal, pendingModal].forEach(modalEl => {
     if (modalEl) {
-        // 배경 클릭 시 닫기
         modalEl.addEventListener('click', (e) => {
             if (e.target === modalEl) {
                 closeAllModals();
             }
         });
 
-        // X 아이콘 및 취소 텍스트 버튼을 찾아 강제로 이벤트 바인딩
         const closeBtns = modalEl.querySelectorAll('.fa-xmark, button[title="닫기"]');
         closeBtns.forEach(icon => {
             const btn = icon.closest('button') || icon;
@@ -307,7 +371,6 @@ document.addEventListener('keydown', (e) => {
 
 // 글로벌 모바일 햄버거 메뉴, 신규 클라이언트 추가, 이미지 확대, 링크 복사 클릭 이벤트 캐치
 document.addEventListener('click', (e) => {
-    // 모바일 햄버거 메뉴 버튼 클릭 감지 및 토글
     const mobileMenuTrigger = e.target.closest('#mobileMenuBtn') || 
                               e.target.closest('#hamburgerBtn') || 
                               e.target.closest('#openSidebarBtn') || 
@@ -321,7 +384,6 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 모바일 배경 오버레이 터치 시 사이드바 닫기
     if (e.target.closest('#mobileOverlay')) {
         toggleMobileSidebar(false);
         return;
@@ -344,7 +406,6 @@ document.addEventListener('click', (e) => {
         }
     }
 
-    // 링크 복사 버튼 글로벌 캡처
     const shareTrigger = e.target.closest('#shareLinkBtn') || (e.target.closest('button') && e.target.closest('button').textContent.includes('링크 복사'));
     if (shareTrigger) {
         e.preventDefault();
@@ -369,7 +430,6 @@ async function uploadFilesToStorage(fileList, folderName) {
     for (let i = 0; i < filesArray.length; i++) {
         const file = filesArray[i];
         
-        // 파일명 정제: 특수문자, 한글, 공백 등 파싱 오류 유발 요소를 안전하게 치환
         const extIndex = file.name.lastIndexOf('.');
         const nameWithoutExt = extIndex !== -1 ? file.name.substring(0, extIndex) : file.name;
         const ext = extIndex !== -1 ? file.name.substring(extIndex) : '';
@@ -421,7 +481,6 @@ function setupDragAndDrop(dropAreaId, fileInputId) {
         }, false);
     });
 
-    // 게시글 본문 폼 등 일반 파일 인풋 바인딩
     if (fileInputId !== 'commentFileInputBox') {
         dropArea.addEventListener('drop', (e) => {
             const dt = e.dataTransfer;
@@ -453,7 +512,6 @@ function renderFileButtons(item, isTableList = false) {
             const fileName = f.fileName || '첨부파일';
             const isImg = isImageFile(fileName, url);
 
-            // 1. 메인 목록(게시판 테이블)용: 이미지 썸네일 대신 깔끔한 컴팩트 뱃지 표시
             if (isTableList) {
                 const badgeLabel = isImg ? `[이미지 ${idx + 1}]` : `[파일 ${idx + 1}]`;
                 return `
@@ -463,7 +521,6 @@ function renderFileButtons(item, isTableList = false) {
                 `;
             }
 
-            // 2. 상세 모달창 및 댓글용: 기존의 이미지 썸네일 미리보기 그대로 유지
             if (isImg) {
                 return `
                     <div class="inline-block relative group my-1 mr-2 align-top">
@@ -654,9 +711,10 @@ function showDashboard(user) {
     setupDragAndDrop('inputContent', 'inputFile');
     initNewCommentDragAndDrop();
 
-    fetchTasks();
-    fetchClients();
-    fetchLibraryItems();
+    // 🌟 URL 쿼리 파라미터 기반 초기 탭 딥링크 파싱 및 이동 (?tab=메뉴명)
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialTab = urlParams.get('tab') || urlParams.get('menu') || 'dashboard';
+    switchTab(initialTab, false);
 }
 
 function showPendingPopup() {
@@ -717,7 +775,7 @@ safeAddListener('taskForm', 'submit', async (e) => {
         status: "답변대기", 
         views: 0,
         date: dateStr,
-        createdAt: new Date().toISOString(), // 🌟 24시간 알림용 생성 시각 기록
+        createdAt: new Date().toISOString(), 
         comments: [] 
     };
 
@@ -1009,7 +1067,6 @@ async function fetchTasks() {
             const fileButton = renderFileButtons(item, true);
             const commentCount = item.comments ? item.comments.length : 0;
             
-            // 작성자(빨간색) 및 담당자(파란색) 시각적 구분 생성
             const authorName = item.staff || item.name || '미상';
             const managerList = (item.assignedManagers && item.assignedManagers.length > 0) ? item.assignedManagers.join(', ') : '미배정';
             
@@ -1056,7 +1113,6 @@ async function fetchTasks() {
             isInitialDeepLinkChecked = true;
         }
 
-        // 🌟 데이터 로드 후 네비게이션 알림 배지 일괄 갱신
         checkAllNavBadges();
 
     } catch (e) { console.error("Firestore error:", e); }
@@ -1067,8 +1123,10 @@ async function openDetailModal(taskId) {
     if(!task) return;
     
     currentDetailTaskId = taskId;
-    const newUrl = `${window.location.pathname}?id=${taskId}`;
-    window.history.pushState({ path: newUrl }, '', newUrl);
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeTab = urlParams.get('tab') || 'dashboard';
+    const newUrl = `${window.location.pathname}?tab=${activeTab}&id=${taskId}`;
+    window.history.pushState({ tab: activeTab, id: taskId }, '', newUrl);
 
     if (detailModal) {
         const modalCard = detailModal.querySelector('.bg-white') || detailModal.firstElementChild;
@@ -1181,7 +1239,7 @@ async function openDetailModal(taskId) {
         shareBtn.onclick = (e) => {
             e.preventDefault();
             e.stopPropagation();
-            const shareUrl = `${window.location.origin}${window.location.pathname}?id=${taskId}`;
+            const shareUrl = `${window.location.origin}${window.location.pathname}?tab=${activeTab}&id=${taskId}`;
             copyToClipboard(shareUrl, "게시글 링크");
         };
     }
@@ -1279,7 +1337,6 @@ function bindInlineEditMode(taskId) {
 // 7. 소통 댓글 모듈 (미리보기 렌더링 + 인라인 수정 + 다중 파일 끌어놓기)
 // ============================================================================
 
-// 신규 댓글 드래그앤드롭 / 선택 파일 실시간 미리보기 전용 렌더링 함수
 function renderNewCommentFilePreviews() {
     let prevArea = document.getElementById('commentNewFilesPreviewArea');
     const inputBox = document.getElementById('commentInputBox');
@@ -1316,7 +1373,6 @@ function renderNewCommentFilePreviews() {
         }
     });
 
-    // 개별 미리보기 삭제 버튼 이벤트 연결
     prevArea.querySelectorAll('.remove-new-comment-file-btn').forEach(btn => {
         btn.onclick = (e) => {
             e.stopPropagation();
@@ -1327,7 +1383,6 @@ function renderNewCommentFilePreviews() {
     });
 }
 
-// 신규 댓글창 영역 다중 드래그앤드롭 및 파일 선택 이벤트 바인딩
 function initNewCommentDragAndDrop() {
     const commentInput = document.getElementById('commentInputBox');
     const commentFileInput = document.getElementById('commentFileInputBox');
@@ -1418,7 +1473,6 @@ function renderComments(commentsArr) {
         `;
     });
 
-    // 댓글 인라인 수정 모드 바인딩
     listEl.querySelectorAll('.edit-comment-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -2023,8 +2077,10 @@ function openLibraryViewModal(id) {
     if (!item) return;
 
     currentViewLibId = id;
-    const newUrl = `${window.location.pathname}?libId=${id}`;
-    window.history.pushState({ path: newUrl }, '', newUrl);
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeTab = urlParams.get('tab') || 'library';
+    const newUrl = `${window.location.pathname}?tab=${activeTab}&libId=${id}`;
+    window.history.pushState({ tab: activeTab, libId: id }, '', newUrl);
 
     if (document.getElementById('libViewCategory')) document.getElementById('libViewCategory').innerText = item.category || '가이드';
     if (document.getElementById('libViewTitle')) document.getElementById('libViewTitle').innerText = item.title;
@@ -2232,51 +2288,27 @@ safeAddListener('googleLoginBtn', 'click', () => signInWithPopup(auth, provider)
 safeAddListener('logoutBtn', 'click', () => signOut(auth));
 safeAddListener('closePendingBtn', 'click', () => signOut(auth));
 
+// 🌟 메뉴 탭 클릭 시 고유 URL 딥링크 저장 및 라우팅 수행
 navItems.forEach(item => {
     item.addEventListener('click', (e) => {
         e.preventDefault();
         const menu = e.currentTarget.getAttribute('data-menu');
-        
-        navItems.forEach(n => {
-            n.className = "nav-item flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition";
-        });
-        e.currentTarget.className = "nav-item flex items-center gap-3 bg-hermes text-white px-4 py-3 rounded-lg font-bold shadow-md shadow-orange-200/50 transition";
-
-        // 모바일 네비게이션 클릭 시 사이드바 자동 닫기
-        toggleMobileSidebar(false);
-
-        if (statsContainer) statsContainer.classList.add('hidden');
-        if (tasksContainer) tasksContainer.classList.add('hidden');
-        if (clientsContainer) clientsContainer.classList.add('hidden');
-        if (membersContainer) membersContainer.classList.add('hidden');
-        if (approvalsContainer) approvalsContainer.classList.add('hidden');
-        if (logsContainer) logsContainer.classList.add('hidden');
-        if (libraryContainer) libraryContainer.classList.add('hidden');
-
-        if (menu === 'dashboard') {
-            if (statsContainer) statsContainer.classList.remove('hidden');
-            if (tasksContainer) tasksContainer.classList.remove('hidden');
-            fetchTasks();
-        } else if (menu === 'inquiries') {
-            if (tasksContainer) tasksContainer.classList.remove('hidden');
-            fetchTasks();
-        } else if (menu === 'clients') {
-            if (clientsContainer) clientsContainer.classList.remove('hidden');
-            fetchClients();
-        } else if (menu === 'members') {
-            if (membersContainer) membersContainer.classList.remove('hidden');
-            fetchMembers();
-        } else if (menu === 'approvals') {
-            if (approvalsContainer) approvalsContainer.classList.remove('hidden');
-            fetchApprovals();
-        } else if (menu === 'logs') {
-            if (logsContainer) logsContainer.classList.remove('hidden');
-            fetchLogs();
-        } else if (menu === 'library') {
-            if (libraryContainer) libraryContainer.classList.remove('hidden');
-            fetchLibraryItems();
-        }
+        switchTab(menu, true);
     });
+});
+
+// 🌟 브라우저 뒤로가기 / 앞으로가기 클릭 시 탭 상태 자동 동기화
+window.addEventListener('popstate', (e) => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentTab = urlParams.get('tab') || urlParams.get('menu') || 'dashboard';
+    const taskId = urlParams.get('id');
+    
+    if (taskId && tasksMap[taskId]) {
+        openDetailModal(taskId);
+    } else {
+        closeAllModals();
+        switchTab(currentTab, false);
+    }
 });
 
 const boardTableEl = document.getElementById('boardTable');

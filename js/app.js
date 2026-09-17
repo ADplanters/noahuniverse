@@ -868,6 +868,9 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
     }
 });
 
+/**
+ * 🌟 업무 이슈 요청 게시판 리스트 불러오기 (등록일 -> 진행 상태가 가장 먼저 배치되도록 변경)
+ */
 async function fetchTasks() {
     const tbody = document.getElementById('boardTable');
     const emptyState = document.getElementById('emptyState');
@@ -932,8 +935,11 @@ async function fetchTasks() {
             else if (item.status === '처리완료') statusBadgeClass = 'bg-green-50 text-green-600 border-green-200';
             else if (item.status === '보류') statusBadgeClass = 'bg-gray-100 text-gray-600 border-gray-200';
 
+            // 🌟 요구사항 반영: 1컬럼 - 등록일, 2컬럼 - 진행 상태, 3컬럼 - 클라이언트 ... 순서 변경
             rowsHtml += `
                 <tr class="hover:bg-hermes-light/30 transition group border-b border-gray-100 cursor-pointer task-detail-trigger" data-id="${item.id}">
+                    <td class="p-3 md:p-4 align-middle text-gray-900 text-[11px] font-bold whitespace-nowrap">${item.date || '-'}</td>
+                    <td class="p-3 md:p-4 align-middle text-center whitespace-nowrap"><span class="${statusBadgeClass} px-2 py-0.5 rounded text-[10px] font-bold border">${item.status || '답변대기'}</span></td>
                     <td class="p-3 md:p-4 font-bold text-gray-900 align-middle text-xs">${item.client || '-'}</td>
                     <td class="p-3 md:p-4 align-middle"><span class="bg-gray-100 text-gray-600 text-[10px] px-1.5 py-0.5 rounded font-bold">${item.type || '-'}</span></td>
                     <td class="p-3 md:p-4 align-middle">
@@ -944,8 +950,6 @@ async function fetchTasks() {
                     </td>
                     <td class="p-3 md:p-4 align-middle">${fileButton}</td>
                     <td class="p-3 md:p-4 align-middle text-xs font-bold text-gray-700">${displayStaff}</td>
-                    <td class="p-3 md:p-4 align-middle text-center"><span class="${statusBadgeClass} px-2 py-0.5 rounded text-[10px] font-bold border">${item.status || '답변대기'}</span></td>
-                    <td class="p-3 md:p-4 align-middle text-gray-400 text-[11px] font-medium">${item.date || '-'}</td>
                     ${adminActions}
                 </tr>
             `;
@@ -973,7 +977,7 @@ async function openDetailModal(taskId) {
     const newUrl = `${window.location.pathname}?id=${taskId}`;
     window.history.pushState({ path: newUrl }, '', newUrl);
 
-    // 🌟 모바일 가로 이탈 완벽 방지: 모달 메인 카드 레이아웃에 모바일 전용 반응형 너비 및 자동 줄바꿈 강제
+    // 모바일 가로 이탈 완벽 방지: 모달 메인 카드 레이아웃에 모바일 전용 반응형 너비 및 자동 줄바꿈 강제
     if (detailModal) {
         const modalCard = detailModal.querySelector('.bg-white') || detailModal.firstElementChild;
         if (modalCard) {
@@ -1074,7 +1078,7 @@ async function openDetailModal(taskId) {
 
     document.getElementById('detailDate').innerText = task.date || '-';
     
-    // 🌟 모바일 화면 가로 늘어남 방지: 본문 텍스트 및 긴 URL(링크) 자동 줄바꿈(break-all) 강제 적용
+    // 모바일 화면 가로 늘어남 방지: 본문 텍스트 및 긴 URL(링크) 자동 줄바꿈(break-all) 강제 적용
     const contentEl = document.getElementById('detailContent');
     if (contentEl) {
         contentEl.innerText = task.content || '등록된 내용이 없습니다.';

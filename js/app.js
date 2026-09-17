@@ -238,7 +238,14 @@ async function uploadFilesToStorage(fileList, folderName) {
     const uploadedFiles = [];
     for (let i = 0; i < fileList.length; i++) {
         const file = fileList[i];
-        const uniqueFileName = `${Date.now()}_${Math.floor(Math.random()*1000)}_${file.name}`;
+        
+        // 🌟 [수정됨] 파일명 정제 로직 추가 (특수문자 및 공백 제거)
+        const extIndex = file.name.lastIndexOf('.');
+        const nameWithoutExt = extIndex !== -1 ? file.name.substring(0, extIndex) : file.name;
+        const ext = extIndex !== -1 ? file.name.substring(extIndex) : '';
+        const safeName = nameWithoutExt.replace(/[#?%\\/]/g, '_').replace(/\s+/g, '_');
+        
+        const uniqueFileName = `${Date.now()}_${Math.floor(Math.random()*1000)}_${safeName}${ext}`;
         const storageReference = ref(storage, `${folderName}/${uniqueFileName}`);
         
         try {

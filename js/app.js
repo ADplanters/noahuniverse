@@ -67,17 +67,26 @@ const libraryViewModal = document.getElementById('libraryViewModal');
 const libraryEditModal = document.getElementById('libraryEditModal');
 
 // ============================================================================
-// 3. 공통 유틸리티 & 워터마크 & 이미지 확대 모달 제어
+// 3. 공통 유틸리티 & 워터마크 & 권한 검증 헬퍼
 // ============================================================================
 function safeAddListener(id, eventType, callback) {
     const el = document.getElementById(id);
     if (el) el.addEventListener(eventType, callback);
 }
 
+// 최상위 관리자 권한 확인
 function checkIsAdmin() {
     if (currentUserRole === 'admin') return true;
     if (auth.currentUser && ADMIN_EMAILS.includes(auth.currentUser.email)) return true;
     return false;
+}
+
+// 작성자 본인 확인
+function checkIsAuthor(task) {
+    if (!auth.currentUser || !task) return false;
+    return (task.staff === currentUserName) || 
+           (task.email === auth.currentUser.email) || 
+           (task.uid === auth.currentUser.uid);
 }
 
 // 사선 지그재그 바둑판 패턴 워터마크 동적 생성
@@ -403,7 +412,7 @@ function showPendingPopup() {
 }
 
 // ============================================================================
-// 5. 업무 이슈/요청 게시판
+// 5. 업무 이슈/요청 게시판 (이슈 수정 / 삭제 / 담당자 연결 제어)
 // ============================================================================
 safeAddListener('taskForm', 'submit', async (e) => {
     e.preventDefault();
@@ -446,6 +455,8 @@ safeAddListener('taskForm', 'submit', async (e) => {
         content: document.getElementById('inputContent').value,
         files: filesArr, 
         staff: document.getElementById('inputStaff').value,
+        email: auth.currentUser ? auth.currentUser.email : '',
+        uid: auth.currentUser ? auth.currentUser.uid : '',
         assignedManagers: assignedManagersArr,
         status: "답변대기", 
         views: 0,
@@ -465,6 +476,154 @@ safeAddListener('taskForm', 'submit', async (e) => {
     } finally {
         submitBtn.innerText = originalBtnText;
         submitBtn.disabled = false;
+    }
+});
+
+// 이슈 삭제 처리
+async function deleteTask(taskId) {
+    const task = tasksMap[taskId];
+    const title = task ? task.title : '해당 이슈';
+    if (confirm(`[${title}] 이슈를 정말 삭제하시겠습니까?`)) {
+        try {
+            await deleteDoc(doc(db, "crm_tasks", taskId));
+            await logActivity("이슈 삭제", `[${title}] 이슈 삭제 처리`);
+            alert("이슈가 삭제되었습니다.");
+            closeAllModals();
+            fetchTasks();
+        } catch (err) {
+            alert("이슈 삭제 실패: " + err.message);
+        }
+    }
+}
+
+// 이슈 수정 모달 열기
+function openEditTaskModal(taskId) {
+    const task = tasksMap[taskId];
+    if (!task) return;
+    currentDetailTaskId = taskId;
+
+    if (editTaskModal) {
+        const titleIn = document.getElementById('editInputTitle') || document.getElementById('editTitle');
+        const contentIn = document.getElementById('editInputContent') || document.getElementById('editContent');
+        const typeIn = document.getElementById('editInputType') || document.getElementById('editType');
+        const clientIn = document.getElementById('editInputClient') || document.getElementById('editClient');
+
+        if (titleIn) titleIn.value = task.title || '';
+        if (contentIn) contentIn.value = task.content || '';
+        if (typeIn) typeIn.value = task.type || 'Q&A';
+        if (clientIn) clientIn.value = task.client || '';
+
+        editTaskModal.classList.remove('hidden');
+    } else {
+        const newTitle = prompt("수정할 제목을 입력하세요:", task.title);
+        if (newTitle === null) return;
+        const newContent = prompt("수정할 본문 내용을 입력하세요:", task.content);
+        if (newContent === null) return;
+
+        updateDoc(doc(db, "crm_tasks", taskId), {
+            title: newTitle.trim(),
+            content: newContent.trim(),
+            updatedAt: new Date().toISOString()
+        }).then(() => {
+            alert("이슈가 성공적으로 수정되었습니다.");
+            fetchTasks();
+            if (!detailModal.classList.contains('hidden')) openDetailModal(taskId);
+        });
+    }
+}
+
+// 담당자 연결 모달 열기
+async function openAssignModal(taskId) {
+    const task = tasksMap[taskId];
+    if (!task) return;
+    currentAssignClientId = taskId;
+
+    if (assignModal) {
+        const listContainer = document.getElementById('assignManagerList') || document.getElementById('assignUserList');
+        if (listContainer) {
+            listContainer.innerHTML = '<div class="text-xs text-gray-400 p-2"><i class="fa-solid fa-spinner animate-spin mr-1"></i> 담당자 목록 불러오는 중...</div>';
+            try {
+                const usersSnap = await getDocs(collection(db, "users"));
+                let html = '';
+                const currentAssigned = task.assignedManagers || [];
+                usersSnap.forEach(uDoc => {
+                    const u = uDoc.data();
+                    const isChecked = currentAssigned.includes(u.name) || task.staff === u.name ? 'checked' : '';
+                    html += `
+                        <label class="flex items-center gap-2 p-2 hover:bg-orange-50 rounded-lg cursor-pointer text-xs font-bold text-gray-700">
+                            <input type="checkbox" value="${u.name}" class="assign-manager-checkbox rounded text-hermes focus:ring-hermes" ${isChecked} />
+                            <span>${u.name} <span class="text-[10px] text-gray-400">(${u.email})</span></span>
+                        </label>
+                    `;
+                });
+                listContainer.innerHTML = html || '<div class="text-xs text-gray-400 p-2">등록된 유저가 없습니다.</div>';
+            } catch(err) {
+                console.error(err);
+            }
+        }
+        assignModal.classList.remove('hidden');
+    } else {
+        const newStaff = prompt("연결할 담당자 이름을 입력하세요 (쉼표로 구분):", task.staff || '');
+        if (newStaff !== null) {
+            const staffArr = newStaff.split(',').map(s => s.trim()).filter(Boolean);
+            await updateDoc(doc(db, "crm_tasks", taskId), {
+                staff: staffArr[0] || '미지정',
+                assignedManagers: staffArr
+            });
+            alert("담당자가 연결되었습니다.");
+            fetchTasks();
+            if (!detailModal.classList.contains('hidden')) openDetailModal(taskId);
+        }
+    }
+}
+
+// 이슈 수정 폼 제출 바인딩
+safeAddListener('editTaskForm', 'submit', async (e) => {
+    e.preventDefault();
+    if (!currentDetailTaskId) return;
+
+    const titleIn = document.getElementById('editInputTitle') || document.getElementById('editTitle');
+    const contentIn = document.getElementById('editInputContent') || document.getElementById('editContent');
+    const typeIn = document.getElementById('editInputType') || document.getElementById('editType');
+    const clientIn = document.getElementById('editInputClient') || document.getElementById('editClient');
+
+    try {
+        await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), {
+            title: titleIn ? titleIn.value : tasksMap[currentDetailTaskId].title,
+            content: contentIn ? contentIn.value : tasksMap[currentDetailTaskId].content,
+            type: typeIn ? typeIn.value : tasksMap[currentDetailTaskId].type,
+            client: clientIn ? clientIn.value : tasksMap[currentDetailTaskId].client,
+            updatedAt: new Date().toISOString()
+        });
+        if (editTaskModal) editTaskModal.classList.add('hidden');
+        alert("이슈 수정이 완료되었습니다.");
+        await fetchTasks();
+        if (!detailModal.classList.contains('hidden')) openDetailModal(currentDetailTaskId);
+    } catch (err) {
+        alert("이슈 수정 실패: " + err.message);
+    }
+});
+
+// 담당자 연결 폼 제출 바인딩
+safeAddListener('assignForm', 'submit', async (e) => {
+    e.preventDefault();
+    const targetId = currentAssignClientId || currentDetailTaskId;
+    if (!targetId) return;
+
+    const checkboxes = document.querySelectorAll('.assign-manager-checkbox:checked');
+    const selectedManagers = Array.from(checkboxes).map(cb => cb.value);
+
+    try {
+        await updateDoc(doc(db, "crm_tasks", targetId), {
+            assignedManagers: selectedManagers,
+            staff: selectedManagers[0] || '미지정'
+        });
+        if (assignModal) assignModal.classList.add('hidden');
+        alert("담당자 연결이 완료되었습니다.");
+        await fetchTasks();
+        if (!detailModal.classList.contains('hidden')) openDetailModal(targetId);
+    } catch (err) {
+        alert("담당자 연결 실패: " + err.message);
     }
 });
 
@@ -496,13 +655,33 @@ async function fetchTasks() {
         if(emptyState) emptyState.style.display = 'none';
 
         let rowsHtml = '';
-        const isAdmin = checkIsAdmin();
 
         fetchedData.forEach(item => {
-            const adminActions = isAdmin ? 
-                `<td class="p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col align-middle">
-                    <button class="delete-task-btn bg-red-50 text-red-500 hover:bg-red-500 hover:text-white px-2.5 py-1.5 rounded transition shadow-sm text-xs font-bold" data-id="${item.id}" data-t="${item.title}"><i class="fa-solid fa-trash-can"></i> 삭제</button>
-                </td>` : `<td class="admin-only-col hidden"></td>`;
+            const isAdmin = checkIsAdmin();
+            const isAuthor = checkIsAuthor(item);
+
+            // 🌟 권한별 테이블 외부 액션 버튼 제어
+            let adminActions = `<td class="admin-only-col p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 align-middle"><span class="text-gray-300 text-xs">-</span></td>`;
+
+            if (isAdmin) {
+                adminActions = `
+                    <td class="p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col align-middle whitespace-nowrap">
+                        <div class="flex items-center justify-center gap-1">
+                            <button type="button" class="edit-task-btn bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-2 py-1 rounded transition text-[11px] font-bold" data-id="${item.id}">수정</button>
+                            <button type="button" class="assign-task-btn bg-orange-50 text-hermes hover:bg-hermes hover:text-white px-2 py-1 rounded transition text-[11px] font-bold" data-id="${item.id}">담당자</button>
+                            <button type="button" class="delete-task-btn bg-red-50 text-red-500 hover:bg-red-500 hover:text-white px-2 py-1 rounded transition text-[11px] font-bold" data-id="${item.id}" data-t="${item.title}">삭제</button>
+                        </div>
+                    </td>
+                `;
+            } else if (isAuthor) {
+                adminActions = `
+                    <td class="p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col align-middle whitespace-nowrap">
+                        <div class="flex items-center justify-center gap-1">
+                            <button type="button" class="edit-task-btn bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-2 py-1 rounded transition text-[11px] font-bold" data-id="${item.id}">수정</button>
+                        </div>
+                    </td>
+                `;
+            }
 
             const fileButton = renderFileButtons(item);
             const commentCount = item.comments ? item.comments.length : 0;
@@ -539,7 +718,7 @@ async function fetchTasks() {
     } catch (e) { console.error("Firestore error:", e); }
 }
 
-// 상세 모달 열기 및 조회수 실시간 누적 (+1)
+// 상세 모달 열기 및 내부에 수정/삭제/담당자연결 컨트롤 바 생성
 async function openDetailModal(taskId) {
     const task = tasksMap[taskId];
     if(!task) return;
@@ -562,6 +741,41 @@ async function openDetailModal(taskId) {
     document.getElementById('detailStaff').innerText = task.staff || '미지정';
     document.getElementById('detailDate').innerText = task.date || '-';
     document.getElementById('detailContent').innerText = task.content || '등록된 내용이 없습니다.';
+
+    // 🌟 상세 모달 상단 컨트롤 버튼 바 제어
+    const isAdmin = checkIsAdmin();
+    const isAuthor = checkIsAuthor(task);
+
+    let actionArea = document.getElementById('detailTaskActions');
+    if (!actionArea) {
+        const shareBtn = document.getElementById('shareLinkBtn');
+        if (shareBtn && shareBtn.parentElement) {
+            actionArea = document.createElement('div');
+            actionArea.id = 'detailTaskActions';
+            actionArea.className = 'inline-flex items-center gap-1.5 ml-2';
+            shareBtn.parentElement.insertBefore(actionArea, shareBtn);
+        }
+    }
+
+    if (actionArea) {
+        if (isAdmin) {
+            actionArea.innerHTML = `
+                <button type="button" id="btnDetailEdit" class="px-2.5 py-1 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white text-xs font-bold rounded-lg border border-blue-200 transition shadow-2xs">수정</button>
+                <button type="button" id="btnDetailAssign" class="px-2.5 py-1 bg-orange-50 hover:bg-hermes text-hermes hover:text-white text-xs font-bold rounded-lg border border-orange-200 transition shadow-2xs">담당자 연결</button>
+                <button type="button" id="btnDetailDelete" class="px-2.5 py-1 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white text-xs font-bold rounded-lg border border-red-200 transition shadow-2xs">삭제</button>
+            `;
+            document.getElementById('btnDetailEdit').onclick = () => openEditTaskModal(taskId);
+            document.getElementById('btnDetailAssign').onclick = () => openAssignModal(taskId);
+            document.getElementById('btnDetailDelete').onclick = () => deleteTask(taskId);
+        } else if (isAuthor) {
+            actionArea.innerHTML = `
+                <button type="button" id="btnDetailEdit" class="px-2.5 py-1 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white text-xs font-bold rounded-lg border border-blue-200 transition shadow-2xs">수정</button>
+            `;
+            document.getElementById('btnDetailEdit').onclick = () => openEditTaskModal(taskId);
+        } else {
+            actionArea.innerHTML = '';
+        }
+    }
 
     const fileBtnArea = document.getElementById('detailFileBtn');
     if (fileBtnArea) fileBtnArea.innerHTML = renderFileButtons(task);
@@ -619,7 +833,6 @@ function renderComments(commentsArr) {
         `;
     });
 
-    // 인라인 수정 & 기존 파일 개별 삭제(✕) + 신규 파일 드래그앤드롭 첨부 처리
     listEl.querySelectorAll('.edit-comment-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -729,7 +942,6 @@ function renderComments(commentsArr) {
         });
     });
 
-    // 댓글 삭제 처리
     listEl.querySelectorAll('.delete-comment-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             e.stopPropagation();
@@ -801,7 +1013,7 @@ safeAddListener('submitNewCommentBtn', 'click', async () => {
 });
 
 // ============================================================================
-// 7. 클라이언트 관리 모듈 (🌟 레이아웃 이탈 방지형 연결된 담당자 렌더링)
+// 7. 클라이언트 관리 모듈
 // ============================================================================
 async function fetchClients() {
     const tbody = document.getElementById('clientsTable');
@@ -827,10 +1039,9 @@ async function fetchClients() {
         querySnapshot.forEach((docSnap) => {
             const data = docSnap.data();
             
-            // 🌟 담당자가 아무리 많아도 열을 이탈하지 않는 이탈 방지형 렌더링
             let managersHtml = '<span class="text-gray-400 text-xs">미배정</span>';
             if (data.managers && data.managers.length > 0) {
-                const maxVisible = 1; // 1명만 한 줄에 표기하여 오버플로우 원천 차단
+                const maxVisible = 1; 
                 const visibleManagers = data.managers.slice(0, maxVisible);
                 const hiddenCount = data.managers.length - maxVisible;
 
@@ -1201,10 +1412,36 @@ navItems.forEach(item => {
     });
 });
 
+// 테이블 행 및 내부 버튼 클릭 핸들러
 const boardTableEl = document.getElementById('boardTable');
 if (boardTableEl) {
     boardTableEl.addEventListener('click', (e) => {
-        if (e.target.closest('.download-link') || e.target.closest('.delete-task-btn')) return;
+        if (e.target.closest('.download-link')) return;
+
+        const delBtn = e.target.closest('.delete-task-btn');
+        if (delBtn) {
+            e.stopPropagation();
+            const taskId = delBtn.getAttribute('data-id');
+            if (taskId) deleteTask(taskId);
+            return;
+        }
+
+        const editBtn = e.target.closest('.edit-task-btn');
+        if (editBtn) {
+            e.stopPropagation();
+            const taskId = editBtn.getAttribute('data-id');
+            if (taskId) openEditTaskModal(taskId);
+            return;
+        }
+
+        const assignBtn = e.target.closest('.assign-task-btn');
+        if (assignBtn) {
+            e.stopPropagation();
+            const taskId = assignBtn.getAttribute('data-id');
+            if (taskId) openAssignModal(taskId);
+            return;
+        }
+
         const row = e.target.closest('.task-detail-trigger');
         if (row) {
             const taskId = row.getAttribute('data-id');

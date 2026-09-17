@@ -38,7 +38,7 @@ let clientsMap = {};
 let libraryMap = {}; 
 let cachedClientNames = []; 
 
-// 🌟 신규 댓글 작성용 드래그앤드롭 누적 파일 배열
+// 신규 댓글 작성용 드래그앤드롭 누적 파일 배열
 let newCommentSelectedFiles = [];
 
 // ============================================================================
@@ -216,7 +216,7 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// 🌟 글로벌 신규 클라이언트 추가 및 이미지 확대 모달 클릭 이벤트 캐치
+// 🌟 글로벌 신규 클라이언트 추가, 이미지 확대, 링크 복사 클릭 이벤트 캐치
 document.addEventListener('click', (e) => {
     const addClientBtn = e.target.closest('#openClientModalBtn') || (e.target.textContent && e.target.textContent.includes('신규 클라이언트 추가'));
     if (addClientBtn && clientModal) {
@@ -232,6 +232,20 @@ document.addEventListener('click', (e) => {
         const url = imgTrigger.getAttribute('data-url');
         if (url) {
             openImageModal(url);
+        }
+    }
+
+    // 🌟 링크 복사 버튼 글로벌 캡처 (Fallback)
+    const shareTrigger = e.target.closest('#shareLinkBtn') || (e.target.closest('button') && e.target.closest('button').textContent.includes('링크 복사'));
+    if (shareTrigger) {
+        e.preventDefault();
+        e.stopPropagation();
+        const targetTaskId = currentDetailTaskId || new URLSearchParams(window.location.search).get('id');
+        if (targetTaskId) {
+            const shareUrl = `${window.location.origin}${window.location.pathname}?id=${targetTaskId}`;
+            copyToClipboard(shareUrl, "게시글 링크");
+        } else {
+            copyToClipboard(window.location.href, "현재 페이지 링크");
         }
     }
 });
@@ -298,7 +312,7 @@ function setupDragAndDrop(dropAreaId, fileInputId) {
         }, false);
     });
 
-    // 게시글 본문 폼 등 일반 파일 인풋 바인딩 (팝업 alert 제거)
+    // 게시글 본문 폼 등 일반 파일 인풋 바인딩
     if (fileInputId !== 'commentFileInputBox') {
         dropArea.addEventListener('drop', (e) => {
             const dt = e.dataTransfer;
@@ -370,15 +384,29 @@ function copyToClipboard(text, label = "링크") {
     if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(text).then(() => {
             alert(`${label}가 클립보드에 복사되었습니다.\n\n` + text);
+        }).catch(err => {
+            fallbackCopyToClipboard(text, label);
         });
     } else {
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        document.body.appendChild(textArea);
-        textArea.select();
+        fallbackCopyToClipboard(text, label);
+    }
+}
+
+// 예비 클립보드 복사 헬퍼
+function fallbackCopyToClipboard(text, label = "링크") {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-9999px";
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
         document.execCommand('copy');
-        document.body.removeChild(textArea);
         alert(`${label}가 클립보드에 복사되었습니다.\n\n` + text);
+    } catch (err) {
+        alert("링크 복사에 실패했습니다. 주소창의 URL을 직접 복사해 주세요.");
+    } finally {
+        document.body.removeChild(textArea);
     }
 }
 
@@ -970,12 +998,22 @@ async function openDetailModal(taskId) {
     document.getElementById('detailDate').innerText = task.date || '-';
     document.getElementById('detailContent').innerText = task.content || '등록된 내용이 없습니다.';
 
+    // 🌟 상단 '링크 복사' 버튼에 클립보드 이벤트 직접 연결
+    const shareBtn = document.getElementById('shareLinkBtn') || Array.from(detailModal.querySelectorAll('button')).find(b => b.textContent.includes('링크 복사'));
+    if (shareBtn) {
+        shareBtn.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const shareUrl = `${window.location.origin}${window.location.pathname}?id=${taskId}`;
+            copyToClipboard(shareUrl, "게시글 링크");
+        };
+    }
+
     const isAdmin = checkIsAdmin();
     const isAuthor = checkIsAuthor(task);
 
     let actionArea = document.getElementById('detailTaskActions');
     if (!actionArea) {
-        const shareBtn = document.getElementById('shareLinkBtn') || document.querySelector('#detailModal button:last-child');
         if (shareBtn && shareBtn.parentElement) {
             actionArea = document.createElement('div');
             actionArea.id = 'detailTaskActions';
@@ -1061,7 +1099,7 @@ function bindInlineEditMode(taskId) {
 // 7. 소통 댓글 모듈 (미리보기 렌더링 + 인라인 수정 + 다중 파일 끌어놓기)
 // ============================================================================
 
-// 🌟 신규 댓글 드래그앤드롭 / 선택 파일 실시간 미리보기 전용 렌더링 함수
+// 신규 댓글 드래그앤드롭 / 선택 파일 실시간 미리보기 전용 렌더링 함수
 function renderNewCommentFilePreviews() {
     let prevArea = document.getElementById('commentNewFilesPreviewArea');
     const inputBox = document.getElementById('commentInputBox');
@@ -1109,7 +1147,7 @@ function renderNewCommentFilePreviews() {
     });
 }
 
-// 🌟 신규 댓글창 영역 다중 드래그앤드롭 및 파일 선택 이벤트 바인딩
+// 신규 댓글창 영역 다중 드래그앤드롭 및 파일 선택 이벤트 바인딩
 function initNewCommentDragAndDrop() {
     const commentInput = document.getElementById('commentInputBox');
     const commentFileInput = document.getElementById('commentFileInputBox');
@@ -1409,7 +1447,7 @@ function renderComments(commentsArr) {
     });
 }
 
-// 🌟 신규 댓글 등록 버튼 이벤트
+// 신규 댓글 등록 버튼 이벤트
 safeAddListener('submitNewCommentBtn', 'click', async () => {
     if(!currentDetailTaskId) return;
     const task = tasksMap[currentDetailTaskId];

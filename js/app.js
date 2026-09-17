@@ -147,7 +147,7 @@ function copyToClipboard(text, label = "링크") {
 }
 
 // ============================================================================
-// 4. 인증 및 사용자 권한 제어
+// 4. 인증 및 사용자 권한 제어 (이메일 기반 신규 UID 자동 연동)
 // ============================================================================
 onAuthStateChanged(auth, async (user) => {
     if (user) {
@@ -163,6 +163,7 @@ onAuthStateChanged(auth, async (user) => {
             isInitialLoginLogged = true;
         }
 
+        // 1. ADMIN_EMAILS 목록 지정 관리자 자동 승인
         if (ADMIN_EMAILS.includes(user.email)) {
             await setDoc(userRef, { email: user.email, name: currentUserName, role: "admin", status: "approved" }, { merge: true });
             currentUserRole = 'admin';
@@ -170,10 +171,49 @@ onAuthStateChanged(auth, async (user) => {
             return;
         }
 
+        // 2. 현재 새 UID 문서가 없는 경우: 이전된 이메일 데이터 찾아서 자동 연동
         if (!userSnap.exists()) {
-            await setDoc(userRef, { email: user.email, name: currentUserName, role: "player", status: "pending", createdAt: new Date().toISOString() });
+            const q = query(collection(db, "users"), where("email", "==", user.email));
+            const qSnap = await getDocs(q);
+            
+            if (!qSnap.empty) {
+                const oldDoc = qSnap.docs[0];
+                const oldData = oldDoc.data();
+                
+                // 기존 데이터 기반으로 새 UID 문서 생성
+                await setDoc(userRef, { 
+                    ...oldData, 
+                    uid: user.uid,
+                    updatedAt: new Date().toISOString()
+                });
+
+                // 구 UID 문서가 별도로 존재한다면 정리
+                if (oldDoc.id !== user.uid) {
+                    await deleteDoc(doc(db, "users", oldDoc.id));
+                }
+                
+                currentUserRole = oldData.role || 'player';
+                
+                // 기존 승인 유저만 대시보드 진입, 대기 상태 유저는 대기 팝업 노출
+                if (oldData.status === 'approved') {
+                    showDashboard(user);
+                } else {
+                    showPendingPopup();
+                }
+                return;
+            }
+
+            // 완전 신규 가입자만 대기 상태로 새로 생성
+            await setDoc(userRef, { 
+                email: user.email, 
+                name: currentUserName, 
+                role: "player", 
+                status: "pending", 
+                createdAt: new Date().toISOString() 
+            });
             showPendingPopup();
         } else {
+            // 이미 새 UID 문서가 존재하는 유저 처리
             const userData = userSnap.data();
             if (userData.status === 'approved') {
                 currentUserRole = userData.role || 'player';
@@ -222,7 +262,7 @@ function showPendingPopup() {
 }
 
 // ============================================================================
-// 5. 업무 이슈/요청 게시판 & Firebase Storage 업로드 로직
+// 5. 업무 이슈/요청 게시판
 // ============================================================================
 safeAddListener('taskForm', 'submit', async (e) => {
     e.preventDefault();
@@ -345,7 +385,6 @@ async function fetchTasks() {
         });
         tbody.innerHTML = rowsHtml;
 
-        // URL 딥링크 감지
         if (!isInitialDeepLinkChecked) {
             const urlParams = new URLSearchParams(window.location.search);
             const sharedTaskId = urlParams.get('id');
@@ -381,7 +420,7 @@ function openDetailModal(taskId) {
 }
 
 // ============================================================================
-// 6. 댓글 시스템 (Firebase Storage 연동)
+// 6. 댓글 시스템
 // ============================================================================
 function renderComments(commentsArr) {
     const listEl = document.getElementById('commentListArea');
@@ -426,7 +465,6 @@ function renderComments(commentsArr) {
         `;
     });
 
-    // 댓글 삭제 이벤트
     listEl.querySelectorAll('.delete-comment-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const idx = parseInt(btn.getAttribute('data-index'));
@@ -440,7 +478,6 @@ function renderComments(commentsArr) {
     });
 }
 
-// 소통 댓글 신규 등록 (Storage 지원)
 safeAddListener('submitNewCommentBtn', 'click', async () => {
     if(!currentDetailTaskId) return;
     const task = tasksMap[currentDetailTaskId];
@@ -498,7 +535,260 @@ safeAddListener('submitNewCommentBtn', 'click', async () => {
 });
 
 // ============================================================================
-// 7. 이벤트 핸들러 및 모달 처리
+// 7. 클라이언트 관리 모듈
+// ============================================================================
+async function fetchClients() {
+    const tbody = document.getElementById('clientsTable');
+    const emptyState = document.getElementById('emptyClients');
+    if(!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 로딩 중...</td></tr>';
+
+    try {
+        let q = collection(db, "clients");
+        if (currentUserRole === 'player') {
+            q = query(collection(db, "clients"), where("managers", "array-contains", currentUserName));
+        }
+
+        const querySnapshot = await getDocs(q);
+        tbody.innerHTML = '';
+
+        if (querySnapshot.empty) {
+            if(emptyState) emptyState.style.display = 'flex';
+            return;
+        }
+        if(emptyState) emptyState.style.display = 'none';
+
+        querySnapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            let managersHtml = '<span class="text-gray-400 text-xs">미배정</span>';
+            if (data.managers && data.managers.length > 0) {
+                managersHtml = data.managers.map(m => `<span class="inline-block bg-blue-50 text-noah text-[10px] px-2 py-1 rounded border border-blue-100 mr-1 mb-1 font-bold">${m}</span>`).join('');
+            }
+
+            const isAdmin = checkIsAdmin();
+            const adminActions = isAdmin ? 
+                `<td class="p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col align-middle">
+                    <div class="flex items-center justify-center gap-1.5">
+                        <button class="edit-client-btn bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-2.5 py-1.5 rounded transition shadow-sm" data-id="${docSnap.id}">수정</button>
+                        <button class="delete-client-btn bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold px-2.5 py-1.5 rounded transition shadow-sm" data-id="${docSnap.id}" data-name="${data.name}">삭제</button>
+                    </div>
+                </td>` : `<td class="admin-only-col hidden"></td>`;
+
+            const tr = `
+                <tr class="hover:bg-orange-50/30 transition border-b border-gray-100">
+                    <td class="p-3 md:p-4 font-black text-gray-900 align-middle">${data.name}</td>
+                    <td class="p-3 md:p-4 text-xs text-gray-500 align-middle">
+                        ${data.homeUrl ? `<a href="${data.homeUrl}" target="_blank" class="text-blue-500 hover:underline"><i class="fa-solid fa-link"></i> 웹</a> ` : ''}
+                        ${data.instaUrl ? `<a href="${data.instaUrl}" target="_blank" class="text-pink-500 hover:underline"><i class="fa-brands fa-instagram"></i> 인스타</a>` : ''}
+                    </td>
+                    <td class="p-3 md:p-4 text-xs align-middle">
+                        <div class="text-gray-700 font-medium">ID: ${data.metaId || '-'}</div>
+                        <div class="text-gray-900 font-bold flex items-center gap-1 mt-0.5">PW: ${data.metaPw || '-'}</div>
+                    </td>
+                    <td class="p-3 md:p-4 font-bold text-hermes text-xs align-middle">${data.budget || '-'}</td>
+                    <td class="p-3 md:p-4 text-xs text-gray-600 align-middle"><div>인스타: ${data.instaDate || '-'}</div><div>메타: ${data.metaDate || '-'}</div></td>
+                    <td class="p-3 md:p-4 text-xs font-bold text-gray-500 align-middle">${data.registeredBy || '-'}</td>
+                    <td class="p-3 md:p-4 max-w-[120px] whitespace-normal align-middle">${managersHtml}</td>
+                    ${adminActions}
+                </tr>
+            `;
+            tbody.innerHTML += tr;
+        });
+
+    } catch (e) { console.error("Client fetch error:", e); }
+}
+
+// ============================================================================
+// 8. 멤버 관리 / 승인 관리 / 로그 모니터링 모듈
+// ============================================================================
+async function fetchMembers() {
+    const isAdmin = checkIsAdmin();
+    if(!isAdmin) return;
+    const tbody = document.getElementById('membersTable');
+    if(!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin text-hermes mr-2"></i> 로딩 중...</td></tr>';
+
+    try {
+        const querySnapshot = await getDocs(collection(db, "users"));
+        tbody.innerHTML = '';
+
+        querySnapshot.forEach((docSnap) => {
+            const user = docSnap.data();
+            const statusBadge = user.status === 'approved' 
+                ? '<span class="bg-blue-50 text-blue-600 px-2 py-1 rounded text-[10px] font-bold border border-blue-100">승인완료</span>'
+                : '<span class="bg-red-50 text-red-500 px-2 py-1 rounded text-[10px] font-bold border border-red-100">대기중</span>';
+
+            const tr = `
+                <tr class="hover:bg-gray-50 transition border-b border-gray-100">
+                    <td class="p-3 md:p-4 font-bold text-gray-900 align-middle">${user.name}</td>
+                    <td class="p-3 md:p-4 text-gray-500 text-xs align-middle">${user.email}</td>
+                    <td class="p-3 md:p-4 align-middle">${statusBadge}</td>
+                    <td class="p-3 md:p-4 align-middle">
+                        <select class="role-update-select text-xs font-bold border border-gray-300 rounded p-1.5 focus:border-hermes outline-none" data-uid="${docSnap.id}">
+                            <option value="player" ${user.role==='player'?'selected':''}>Player (담당 직원)</option>
+                            <option value="leader" ${user.role==='leader'?'selected':''}>리더 (노아 대표)</option>
+                            <option value="admin" ${user.role==='admin'?'selected':''}>최상위 관리자 (Admin)</option>
+                        </select>
+                    </td>
+                    <td class="p-3 md:p-4 text-center align-middle">
+                        <button class="update-member-btn bg-gray-800 hover:bg-black text-white text-[11px] font-bold px-3 py-1.5 rounded transition shadow-sm" data-uid="${docSnap.id}" data-name="${user.name}">권한수정</button>
+                    </td>
+                    <td class="p-3 md:p-4 text-center align-middle">
+                        <button class="delete-member-btn bg-red-50 hover:bg-red-500 text-red-500 hover:text-white border border-red-100 hover:border-red-500 text-[11px] font-bold px-3 py-1.5 rounded transition shadow-sm" data-uid="${docSnap.id}" data-name="${user.name}">강제탈퇴</button>
+                    </td>
+                </tr>
+            `;
+            tbody.innerHTML += tr;
+        });
+
+        document.querySelectorAll('.update-member-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const uid = e.currentTarget.getAttribute('data-uid');
+                const uName = e.currentTarget.getAttribute('data-name');
+                const newRole = document.querySelector(`.role-update-select[data-uid="${uid}"]`).value;
+                if(confirm(`${uName}님의 권한을 수정하시겠습니까?`)) {
+                    await updateDoc(doc(db, "users", uid), { role: newRole, status: 'approved' });
+                    await logActivity("권한 변경", `[${uName}] 유저의 권한을 '${newRole}'(으)로 변경`);
+                    fetchMembers();
+                    alert('권한이 수정되었습니다.');
+                }
+            });
+        });
+
+        document.querySelectorAll('.delete-member-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const uid = e.currentTarget.getAttribute('data-uid');
+                const uName = e.currentTarget.getAttribute('data-name');
+                if(confirm(`경고: ${uName}님의 계정을 영구 삭제하시겠습니까?`)) {
+                    await deleteDoc(doc(db, "users", uid));
+                    await logActivity("계정 삭제", `[${uName}] 유저 계정 강제 탈퇴 처리`);
+                    fetchMembers();
+                    alert('해당 계정이 삭제되었습니다.');
+                }
+            });
+        });
+    } catch (error) { console.error("멤버 로드 에러:", error); }
+}
+
+async function fetchApprovals() {
+    const isAdmin = checkIsAdmin();
+    if(!isAdmin) return;
+    const tbody = document.getElementById('approvalsTable');
+    const emptyState = document.getElementById('emptyApprovals');
+    if(!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 로딩 중...</td></tr>';
+
+    try {
+        const q = query(collection(db, "users"), where("status", "==", "pending"));
+        const querySnapshot = await getDocs(q);
+        tbody.innerHTML = '';
+
+        if (querySnapshot.empty) {
+            if(emptyState) emptyState.style.display = 'flex';
+            return;
+        }
+
+        if(emptyState) emptyState.style.display = 'none';
+        querySnapshot.forEach((docSnap) => {
+            const user = docSnap.data();
+            const tr = `
+                <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
+                    <td class="p-3 md:p-4 font-bold text-gray-900 align-middle">${user.name}</td>
+                    <td class="p-3 md:p-4 text-gray-500 font-medium align-middle">${user.email}</td>
+                    <td class="p-3 md:p-4 align-middle">
+                        <select class="role-select text-xs font-bold border border-gray-300 rounded p-1.5 focus:border-hermes outline-none" data-uid="${docSnap.id}">
+                            <option value="player">Player (담당 직원)</option>
+                            <option value="leader">리더 (노아 대표)</option>
+                            <option value="admin">최상위 관리자 (Admin)</option>
+                        </select>
+                    </td>
+                    <td class="p-3 md:p-4 text-center align-middle">
+                        <button class="approve-btn bg-hermes hover:bg-hermes-hover text-white text-xs font-bold px-3 py-1.5 rounded-lg transition shadow-sm" data-uid="${docSnap.id}" data-name="${user.name}">승인</button>
+                    </td>
+                </tr>
+            `;
+            tbody.innerHTML += tr;
+        });
+
+        document.querySelectorAll('.approve-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const uid = e.currentTarget.getAttribute('data-uid');
+                const uName = e.currentTarget.getAttribute('data-name');
+                const selectEl = document.querySelector(`.role-select[data-uid="${uid}"]`);
+                if (confirm('선택하신 권한으로 승인하시겠습니까?')) {
+                    await updateDoc(doc(db, "users", uid), { status: 'approved', role: selectEl.value });
+                    await logActivity("가입 승인", `[${uName}] 유저를 신규 승인(${selectEl.value}) 처리했습니다.`);
+                    fetchApprovals();
+                    alert('승인 완료되었습니다.');
+                }
+            });
+        });
+    } catch (error) { console.error("유저 로드 에러:", error); }
+}
+
+async function fetchLogs() {
+    const isAdmin = checkIsAdmin();
+    if(!isAdmin) return;
+    const tbody = document.getElementById('logsTable');
+    const emptyState = document.getElementById('emptyLogs');
+    if(!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 로그 데이터 수집 중...</td></tr>';
+
+    try {
+        const logsSnap = await getDocs(collection(db, "activity_logs"));
+        let logs = [];
+        logsSnap.forEach(docSnap => logs.push({ id: docSnap.id, ...docSnap.data() }));
+
+        logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        tbody.innerHTML = '';
+        if (logs.length === 0) {
+            if(emptyState) emptyState.style.display = 'flex';
+            return;
+        }
+        if(emptyState) emptyState.style.display = 'none';
+
+        logs.forEach(log => {
+            const dateObj = new Date(log.timestamp);
+            const dateStr = dateObj.toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false });
+            
+            const tr = `
+                <tr class="hover:bg-gray-50 transition border-b border-gray-100">
+                    <td class="p-3 md:p-4 text-xs font-medium text-gray-500 align-middle">${dateStr}</td>
+                    <td class="p-3 md:p-4 text-xs font-bold text-gray-800 align-middle">${log.name} (${log.email})</td>
+                    <td class="p-3 md:p-4 align-middle"><span class="bg-gray-100 text-gray-600 px-2 py-1 rounded font-bold text-[11px]">${log.action}</span></td>
+                    <td class="p-3 md:p-4 text-xs text-gray-600 font-medium whitespace-normal align-middle">${log.details || '-'}</td>
+                </tr>
+            `;
+            tbody.innerHTML += tr;
+        });
+    } catch (error) { console.error("Log error:", error); }
+}
+
+async function fetchLibraryItems() {
+    const grid = document.getElementById('libraryGrid');
+    if (!grid) return;
+    grid.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin text-hermes mr-2"></i> 라이브러리 로딩 중...</div>';
+
+    try {
+        const querySnapshot = await getDocs(collection(db, "crm_library"));
+        grid.innerHTML = '';
+
+        querySnapshot.forEach(docSnap => {
+            const item = docSnap.data();
+            grid.innerHTML += `
+                <div class="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+                    <span class="px-2.5 py-1 bg-orange-50 text-hermes text-[10px] font-bold rounded-md">${item.category || '가이드'}</span>
+                    <h3 class="font-black text-gray-900 mt-2 mb-1">${item.title}</h3>
+                    <p class="text-xs text-gray-500 line-clamp-2">${item.desc || ''}</p>
+                </div>
+            `;
+        });
+    } catch (e) { console.error("Library fetch error:", e); }
+}
+
+// ============================================================================
+// 9. 네비게이션 및 모달 이벤트 핸들러
 // ============================================================================
 safeAddListener('googleLoginBtn', 'click', () => signInWithPopup(auth, provider));
 safeAddListener('logoutBtn', 'click', () => signOut(auth));
@@ -513,32 +803,55 @@ safeAddListener('closeDetailModalBtn', 'click', () => {
     window.history.pushState({}, '', window.location.pathname);
 });
 
-safeAddListener('shareLinkBtn', 'click', () => {
-    if (!currentDetailTaskId) return;
-    const shareUrl = `${window.location.origin}${window.location.pathname}?id=${currentDetailTaskId}`;
-    copyToClipboard(shareUrl, "이슈 고유 주소");
-});
-
-// 메뉴 네비게이션
+// 메뉴 네비게이션 및 탭별 데이터 호출 연결
 navItems.forEach(item => {
     item.addEventListener('click', (e) => {
         e.preventDefault();
         const menu = e.currentTarget.getAttribute('data-menu');
         
+        // 탭 스타일 활성화
+        navItems.forEach(n => {
+            n.className = "nav-item flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition";
+        });
+        e.currentTarget.className = "nav-item flex items-center gap-3 bg-hermes text-white px-4 py-3 rounded-lg font-bold shadow-md shadow-orange-200/50 transition";
+
+        // 컨테이너 초기화
         if (statsContainer) statsContainer.classList.add('hidden');
         if (tasksContainer) tasksContainer.classList.add('hidden');
         if (clientsContainer) clientsContainer.classList.add('hidden');
+        if (membersContainer) membersContainer.classList.add('hidden');
+        if (approvalsContainer) approvalsContainer.classList.add('hidden');
+        if (logsContainer) logsContainer.classList.add('hidden');
         if (libraryContainer) libraryContainer.classList.add('hidden');
 
-        if (menu === 'dashboard' || menu === 'inquiries') {
+        // 선택 메뉴 노출 및 데이터 로드
+        if (menu === 'dashboard') {
             if (statsContainer) statsContainer.classList.remove('hidden');
             if (tasksContainer) tasksContainer.classList.remove('hidden');
             fetchTasks();
+        } else if (menu === 'inquiries') {
+            if (tasksContainer) tasksContainer.classList.remove('hidden');
+            fetchTasks();
+        } else if (menu === 'clients') {
+            if (clientsContainer) clientsContainer.classList.remove('hidden');
+            fetchClients();
+        } else if (menu === 'members') {
+            if (membersContainer) membersContainer.classList.remove('hidden');
+            fetchMembers();
+        } else if (menu === 'approvals') {
+            if (approvalsContainer) approvalsContainer.classList.remove('hidden');
+            fetchApprovals();
+        } else if (menu === 'logs') {
+            if (logsContainer) logsContainer.classList.remove('hidden');
+            fetchLogs();
+        } else if (menu === 'library') {
+            if (libraryContainer) libraryContainer.classList.remove('hidden');
+            fetchLibraryItems();
         }
     });
 });
 
-// 테이블 행 클릭 시 상세보기 오픈
+// 이슈 목록 테이블 클릭 상세 열기
 const boardTableEl = document.getElementById('boardTable');
 if (boardTableEl) {
     boardTableEl.addEventListener('click', (e) => {

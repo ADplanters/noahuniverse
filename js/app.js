@@ -801,7 +801,7 @@ safeAddListener('submitNewCommentBtn', 'click', async () => {
 });
 
 // ============================================================================
-// 7. 클라이언트 관리 모듈 (🌟 연결된 담당자 최대 2명 표시 및 마우스 오버 전체 모달 팝업)
+// 7. 클라이언트 관리 모듈 (🌟 레이아웃 이탈 방지형 연결된 담당자 렌더링)
 // ============================================================================
 async function fetchClients() {
     const tbody = document.getElementById('clientsTable');
@@ -827,23 +827,27 @@ async function fetchClients() {
         querySnapshot.forEach((docSnap) => {
             const data = docSnap.data();
             
-            // 🌟 연결된 담당자 축약 표기 및 hover 툴팁 모달 구현
+            // 🌟 담당자가 아무리 많아도 열을 이탈하지 않는 이탈 방지형 렌더링
             let managersHtml = '<span class="text-gray-400 text-xs">미배정</span>';
             if (data.managers && data.managers.length > 0) {
-                const maxVisible = 2; // 기본 노출 인원수
+                const maxVisible = 1; // 1명만 한 줄에 표기하여 오버플로우 원천 차단
                 const visibleManagers = data.managers.slice(0, maxVisible);
                 const hiddenCount = data.managers.length - maxVisible;
 
-                let badges = visibleManagers.map(m => `<span class="inline-block bg-blue-50 text-noah text-[10px] px-2 py-1 rounded border border-blue-100 mr-1 mb-1 font-bold">${m}</span>`).join('');
+                let badges = visibleManagers.map(m => `
+                    <span class="inline-flex items-center bg-blue-50 text-noah text-[10px] px-1.5 py-0.5 rounded border border-blue-100 font-bold truncate max-w-[75px]" title="${m}">
+                        ${m}
+                    </span>
+                `).join('');
                 
                 if (hiddenCount > 0) {
                     const allList = data.managers.map(m => `<div class="py-0.5 flex items-center gap-1"><i class="fa-solid fa-user text-orange-400 text-[9px]"></i> ${m}</div>`).join('');
                     badges += `
-                        <div class="inline-block relative group align-middle mb-1">
-                            <span class="inline-block bg-gray-100 hover:bg-orange-100 text-gray-600 hover:text-hermes text-[10px] px-2 py-1 rounded border border-gray-200 cursor-pointer font-bold transition shadow-2xs">
-                                ... (+${hiddenCount}명)
+                        <div class="inline-block relative group align-middle">
+                            <span class="inline-flex items-center bg-gray-100 hover:bg-orange-100 text-gray-600 hover:text-hermes text-[10px] px-1.5 py-0.5 rounded border border-gray-200 cursor-pointer font-bold transition shadow-2xs">
+                                +${hiddenCount}명
                             </span>
-                            <div class="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-3 bg-gray-900/95 text-white text-[11px] rounded-xl shadow-2xl z-50 whitespace-nowrap min-w-[120px] border border-gray-700/80 backdrop-blur-xs">
+                            <div class="hidden group-hover:block absolute bottom-full right-0 mb-2 p-3 bg-gray-900/95 text-white text-[11px] rounded-xl shadow-2xl z-50 whitespace-nowrap min-w-[120px] border border-gray-700/80 backdrop-blur-xs">
                                 <div class="font-bold border-b border-gray-700 pb-1.5 mb-1.5 text-orange-400 text-[10px] flex items-center gap-1">
                                     <i class="fa-solid fa-users"></i> 전체 담당자 (${data.managers.length}명)
                                 </div>
@@ -852,12 +856,12 @@ async function fetchClients() {
                         </div>
                     `;
                 }
-                managersHtml = badges;
+                managersHtml = `<div class="flex items-center gap-1 w-full max-w-[130px] overflow-hidden">${badges}</div>`;
             }
 
             const isAdmin = checkIsAdmin();
             const adminActions = isAdmin ? 
-                `<td class="p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col align-middle">
+                `<td class="p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col align-middle whitespace-nowrap">
                     <div class="flex items-center justify-center gap-1.5">
                         <button class="edit-client-btn bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-2.5 py-1.5 rounded transition shadow-sm" data-id="${docSnap.id}">수정</button>
                         <button class="delete-client-btn bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold px-2.5 py-1.5 rounded transition shadow-sm" data-id="${docSnap.id}" data-name="${data.name}">삭제</button>
@@ -878,7 +882,7 @@ async function fetchClients() {
                     <td class="p-3 md:p-4 font-bold text-hermes text-xs align-middle">${data.budget || '-'}</td>
                     <td class="p-3 md:p-4 text-xs text-gray-600 align-middle"><div>인스타: ${data.instaDate || '-'}</div><div>메타: ${data.metaDate || '-'}</div></td>
                     <td class="p-3 md:p-4 text-xs font-bold text-gray-500 align-middle">${data.registeredBy || '-'}</td>
-                    <td class="p-3 md:p-4 max-w-[150px] whitespace-normal align-middle">${managersHtml}</td>
+                    <td class="p-3 md:p-4 max-w-[130px] overflow-hidden align-middle">${managersHtml}</td>
                     ${adminActions}
                 </tr>
             `;

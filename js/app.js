@@ -483,7 +483,7 @@ async function openDetailModal(taskId) {
 }
 
 // ============================================================================
-// 6. 소통 댓글 모듈 (댓글 박스 내 인라인 수정 기능 완벽 구현)
+// 6. 소통 댓글 모듈 (인라인 수정 + 첨부파일 삭제/추가 완벽 구현)
 // ============================================================================
 function renderComments(commentsArr) {
     const listEl = document.getElementById('commentListArea') || document.getElementById('commentList');
@@ -524,13 +524,13 @@ function renderComments(commentsArr) {
                 </div>
                 <div class="comment-body-area" id="comment-body-${index}">
                     <p class="text-xs text-gray-700 whitespace-pre-line">${c.text}</p>
+                    ${filesHtml}
                 </div>
-                ${filesHtml}
             </div>
         `;
     });
 
-    // 🌟 팝업 없이 댓글 영역 내부에서 직접 수정(인라인 수정)
+    // 인라인 수정 & 기존 파일 개별 삭제(x) + 신규 파일 첨부 처리
     listEl.querySelectorAll('.edit-comment-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -540,19 +540,65 @@ function renderComments(commentsArr) {
 
             if (!bodyArea || bodyArea.querySelector('textarea')) return;
 
+            // 수정 세션용 첨부파일 배열 복사
+            let currentEditFiles = comment.files ? [...comment.files] : [];
+
+            function renderEditFilesList() {
+                if (currentEditFiles.length === 0) return '<span class="text-[10px] text-gray-400 italic">첨부파일 없음</span>';
+                return currentEditFiles.map((f, fIdx) => {
+                    const fileName = f.fileName || '첨부파일';
+                    return `
+                        <span class="inline-flex items-center gap-1 bg-gray-100 text-gray-700 text-[10px] font-bold px-2 py-1 rounded-lg border border-gray-200">
+                            <i class="fa-solid fa-paperclip text-hermes"></i> ${fileName}
+                            <button type="button" class="remove-edit-file-btn text-red-500 hover:text-red-700 ml-1 font-black" data-fidx="${fIdx}">✕</button>
+                        </span>
+                    `;
+                }).join(' ');
+            }
+
             bodyArea.innerHTML = `
                 <div class="mt-1 space-y-2">
                     <textarea id="inline-edit-textarea-${idx}" class="w-full text-xs p-2 border border-orange-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-hermes resize-y" rows="3">${comment.text}</textarea>
-                    <div class="flex justify-end gap-1.5">
+                    
+                    <!-- 기존 첨부파일 목록 및 삭제(x) 버튼 영역 -->
+                    <div class="space-y-1 bg-gray-50/70 p-2 rounded-lg border border-gray-100">
+                        <div class="text-[10px] font-bold text-gray-500">첨부파일 관리:</div>
+                        <div id="inline-edit-files-container-${idx}" class="flex flex-wrap gap-1">
+                            ${renderEditFilesList()}
+                        </div>
+                        <div class="pt-1">
+                            <input type="file" id="inline-edit-file-input-${idx}" multiple class="text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-bold file:bg-white file:border file:border-gray-200 file:text-gray-700 hover:file:bg-orange-50 cursor-pointer" />
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-1.5 pt-1">
                         <button type="button" class="cancel-inline-edit-btn bg-gray-100 hover:bg-gray-200 text-gray-700 text-[10px] font-bold px-2.5 py-1 rounded-md transition">취소</button>
                         <button type="button" class="save-inline-edit-btn bg-hermes hover:bg-orange-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-md transition">저장</button>
                     </div>
                 </div>
             `;
 
+            const filesContainer = document.getElementById(`inline-edit-files-container-${idx}`);
+
+            // x 버튼을 눌러 개별 파일 삭제 바인딩
+            function bindFileRemoveEvents() {
+                if (!filesContainer) return;
+                filesContainer.querySelectorAll('.remove-edit-file-btn').forEach(rmBtn => {
+                    rmBtn.addEventListener('click', (rmEvt) => {
+                        rmEvt.stopPropagation();
+                        const fIdx = parseInt(rmBtn.getAttribute('data-fidx'));
+                        currentEditFiles.splice(fIdx, 1);
+                        filesContainer.innerHTML = renderEditFilesList();
+                        bindFileRemoveEvents();
+                    });
+                });
+            }
+            bindFileRemoveEvents();
+
             const saveBtn = bodyArea.querySelector('.save-inline-edit-btn');
             const cancelBtn = bodyArea.querySelector('.cancel-inline-edit-btn');
             const textarea = document.getElementById(`inline-edit-textarea-${idx}`);
+            const newFileInput = document.getElementById(`inline-edit-file-input-${idx}`);
 
             cancelBtn.addEventListener('click', (eEvt) => {
                 eEvt.stopPropagation();
@@ -562,17 +608,31 @@ function renderComments(commentsArr) {
             saveBtn.addEventListener('click', async (eEvt) => {
                 eEvt.stopPropagation();
                 const updatedText = textarea.value.trim();
-                if (!updatedText) {
-                    alert("댓글 내용을 입력해 주세요.");
+                if (!updatedText && currentEditFiles.length === 0 && (!newFileInput.files || newFileInput.files.length === 0)) {
+                    alert("댓글 내용이나 첨부파일을 지정해 주세요.");
                     return;
                 }
-                commentsArr[idx].text = updatedText;
+
+                saveBtn.innerText = "저장 중...";
+                saveBtn.disabled = true;
+
                 try {
+                    let newlyUploadedFiles = [];
+                    if (newFileInput && newFileInput.files && newFileInput.files.length > 0) {
+                        newlyUploadedFiles = await uploadFilesToStorage(newFileInput.files, "crm_comments");
+                    }
+
+                    const finalFiles = [...currentEditFiles, ...newlyUploadedFiles];
+                    commentsArr[idx].text = updatedText;
+                    commentsArr[idx].files = finalFiles;
+
                     await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), { comments: commentsArr });
                     renderComments(commentsArr);
                     fetchTasks();
                 } catch(err) {
-                    alert("댓글 수정 실패: " + err.message);
+                    alert("댓글 수정 저장 실패: " + err.message);
+                    saveBtn.innerText = "저장";
+                    saveBtn.disabled = false;
                 }
             });
         });
@@ -714,7 +774,7 @@ async function fetchClients() {
 }
 
 // ============================================================================
-// 8. 인사이트 라이브러리 모듈 (사각 배너형 복원)
+// 8. 인사이트 라이브러리 모듈
 // ============================================================================
 async function fetchLibraryItems() {
     const grid = document.getElementById('libraryGrid');

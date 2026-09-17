@@ -184,16 +184,17 @@
                     <button id="openModalBtn" class="bg-hermes hover:bg-hermes-hover text-white text-xs font-bold px-3 py-2 md:px-4 md:py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5 shrink-0"><i class="fa-solid fa-plus"></i> <span class="inline">신규 이슈 등록</span></button>
                 </div>
                 <div class="w-full overflow-x-auto pb-12">
-                    <table class="w-full text-left border-collapse min-w-[950px]">
+                    <table class="w-full text-left border-collapse min-w-[700px]">
+                        <!-- 🌟 app.js 데이터 생성 순서와 1:1 정밀 매칭된 테이블 헤더 -->
                         <thead>
-                            <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
-                                <th class="p-3 md:p-4 font-bold whitespace-nowrap">클라이언트</th>
-                                <th class="p-3 md:p-4 font-bold whitespace-nowrap">분류</th>
-                                <th class="p-3 md:p-4 font-bold">제목 (클릭 시 상세 보기 및 댓글)</th>
-                                <th class="p-3 md:p-4 font-bold">첨부파일</th>
-                                <th class="p-3 md:p-4 font-bold">작성자 / 담당자</th>
-                                <th class="p-3 md:p-4 font-bold text-center whitespace-nowrap">상태</th>
+                            <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200 break-keep">
                                 <th class="p-3 md:p-4 font-bold whitespace-nowrap">등록일</th>
+                                <th class="p-3 md:p-4 font-bold text-center whitespace-nowrap">상태</th>
+                                <th class="p-3 md:p-4 font-bold whitespace-nowrap">클라이언트</th>
+                                <th class="p-3 md:p-4 font-bold whitespace-nowrap">구분</th>
+                                <th class="p-3 md:p-4 font-bold whitespace-nowrap">제목 (클릭 시 상세 보기 및 댓글)</th>
+                                <th class="p-3 md:p-4 font-bold whitespace-nowrap">첨부파일</th>
+                                <th class="p-3 md:p-4 font-bold whitespace-nowrap">작성자 / 담당자</th>
                                 <th class="p-3 md:p-4 font-bold text-center whitespace-nowrap admin-only-col">관리(ADMIN)</th>
                             </tr>
                         </thead>
@@ -516,7 +517,7 @@
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
                     
-                    <!-- 🌟 눈 모양 조회수 표시 및 최상위 관리자 전용 호버 툴팁 -->
+                    <!-- 눈 모양 조회수 표시 및 최상위 관리자 전용 호버 툴팁 -->
                     <div id="viewCountBadgeWrapper" class="relative inline-block group">
                         <button type="button" id="viewCountBadgeBtn" class="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-[10px] sm:text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer">
                             <i class="fa-regular fa-eye text-blue-600"></i>

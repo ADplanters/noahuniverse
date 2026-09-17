@@ -950,7 +950,7 @@ function bindInlineEditMode(taskId) {
 }
 
 // ============================================================================
-// 7. 소통 댓글 모듈 (인라인 수정 및 드래그앤드롭 첨부 보존)
+// 7. 소통 댓글 모듈 (🌟 수정 창 전체 드래그&드롭 + 실시간 이미지 미리보기 구현)
 // ============================================================================
 function renderComments(commentsArr) {
     const listEl = document.getElementById('commentListArea') || document.getElementById('commentList');
@@ -1009,6 +1009,7 @@ function renderComments(commentsArr) {
             if (!bodyArea || bodyArea.querySelector('textarea')) return;
 
             let currentEditFiles = comment.files ? [...comment.files] : [];
+            let newSelectedFiles = []; // 🌟 신규 드래그/선택된 파일 객체 관리 배열
 
             function renderEditFilesList() {
                 if (currentEditFiles.length === 0) return '<span class="text-[10px] text-gray-400 italic">첨부파일 없음</span>';
@@ -1023,20 +1024,68 @@ function renderComments(commentsArr) {
                 }).join(' ');
             }
 
+            // 🌟 실시간 이미지 썸네일 미리보기 함수
+            function renderNewFilesPreview() {
+                const prevContainer = document.getElementById(`inline-edit-new-previews-${idx}`);
+                if (!prevContainer) return;
+                prevContainer.innerHTML = '';
+
+                newSelectedFiles.forEach((file, nIdx) => {
+                    const isImg = file.type.startsWith('image/') || isImageFile(file.name, '');
+                    if (isImg) {
+                        const objectUrl = URL.createObjectURL(file);
+                        prevContainer.innerHTML += `
+                            <div class="inline-block relative group my-1 mr-1">
+                                <img src="${objectUrl}" class="w-16 h-16 object-cover rounded-xl border border-orange-300 shadow-2xs" />
+                                <button type="button" class="remove-new-file-btn absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[9px] font-black shadow" data-nidx="${nIdx}">✕</button>
+                            </div>
+                        `;
+                    } else {
+                        prevContainer.innerHTML += `
+                            <span class="inline-flex items-center gap-1 bg-orange-50 text-orange-700 text-[10px] font-bold px-2 py-1 rounded-lg border border-orange-200 my-1">
+                                <i class="fa-solid fa-file text-hermes"></i> ${file.name}
+                                <button type="button" class="remove-new-file-btn text-red-500 hover:text-red-700 ml-1 font-black" data-nidx="${nIdx}">✕</button>
+                            </span>
+                        `;
+                    }
+                });
+
+                // 새로 추가된 미리보기 파일 개별 삭제(✕) 바인딩
+                prevContainer.querySelectorAll('.remove-new-file-btn').forEach(rmBtn => {
+                    rmBtn.addEventListener('click', (eEvt) => {
+                        eEvt.stopPropagation();
+                        const nIdx = parseInt(rmBtn.getAttribute('data-nidx'));
+                        newSelectedFiles.splice(nIdx, 1);
+                        renderNewFilesPreview();
+                    });
+                });
+            }
+
+            // 🌟 전체 영역 감싸는 모드 및 UI 개선
             bodyArea.innerHTML = `
-                <div class="mt-1 space-y-2">
-                    <textarea id="inline-edit-textarea-${idx}" class="w-full text-xs p-2.5 border border-orange-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-hermes/30 transition resize-y" rows="3" placeholder="댓글 내용 및 드래그 파일 첨부 가능">${comment.text}</textarea>
+                <div class="mt-1 space-y-2 border-2 border-orange-300 p-3 rounded-2xl bg-orange-50/20 transition-all cursor-pointer" id="inline-edit-box-${idx}">
+                    <textarea id="inline-edit-textarea-${idx}" class="w-full text-xs p-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-hermes/30 transition resize-y bg-white" rows="3" placeholder="댓글 내용을 수정하거나 박물 전체 영역에 파일을 끌어다 놓으세요.">${comment.text}</textarea>
                     
-                    <div class="space-y-1 bg-gray-50/80 p-2.5 rounded-xl border border-gray-100">
+                    <div class="space-y-1 bg-white p-2.5 rounded-xl border border-gray-200">
                         <div class="text-[10px] font-bold text-gray-500 flex justify-between">
                             <span>첨부파일 관리:</span>
-                            <span class="text-orange-500 font-normal text-[9px]">* 텍스트 상자나 버튼에 파일 드래그 가능</span>
+                            <span class="text-orange-500 font-bold text-[9px]">* 이 박스 영역 전체에 파일 드래그 & 드롭 가능</span>
                         </div>
+                        
+                        <!-- 기존 보존 파일 리스트 -->
                         <div id="inline-edit-files-container-${idx}" class="flex flex-wrap gap-1">
                             ${renderEditFilesList()}
                         </div>
-                        <div class="pt-1">
-                            <input type="file" id="inline-edit-file-input-${idx}" multiple class="text-xs text-gray-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-[10px] file:font-bold file:bg-white file:border file:border-gray-200 file:text-gray-700 hover:file:bg-orange-50 cursor-pointer" />
+
+                        <!-- 🌟 실시간 새로 드래그/선택된 파일 미리보기 영역 -->
+                        <div id="inline-edit-new-previews-${idx}" class="flex flex-wrap gap-2 pt-2 border-t border-dashed border-gray-200 empty:hidden">
+                        </div>
+
+                        <div class="pt-1 flex items-center gap-2">
+                            <input type="file" id="inline-edit-file-input-${idx}" multiple class="hidden" />
+                            <button type="button" id="inline-edit-file-trigger-${idx}" class="text-xs bg-gray-100 hover:bg-orange-100 text-gray-700 px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1 border border-gray-200">
+                                <i class="fa-solid fa-paperclip text-hermes"></i> 파일 선택
+                            </button>
                         </div>
                     </div>
 
@@ -1047,7 +1096,49 @@ function renderComments(commentsArr) {
                 </div>
             `;
 
-            setupDragAndDrop(`inline-edit-textarea-${idx}`, `inline-edit-file-input-${idx}`);
+            // 🌟 수정 박스 전체 영역 드래그 앤 드롭 이벤트 바인딩
+            const editBox = document.getElementById(`inline-edit-box-${idx}`);
+            const fileInput = document.getElementById(`inline-edit-file-input-${idx}`);
+            const fileTrigger = document.getElementById(`inline-edit-file-trigger-${idx}`);
+
+            if (fileTrigger && fileInput) {
+                fileTrigger.onclick = () => fileInput.click();
+                fileInput.onchange = (fEvt) => {
+                    if (fEvt.target.files && fEvt.target.files.length > 0) {
+                        Array.from(fEvt.target.files).forEach(f => newSelectedFiles.push(f));
+                        renderNewFilesPreview();
+                    }
+                };
+            }
+
+            if (editBox) {
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    editBox.addEventListener(eventName, (eEvt) => {
+                        eEvt.preventDefault();
+                        eEvt.stopPropagation();
+                    }, false);
+                });
+
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    editBox.addEventListener(eventName, () => {
+                        editBox.classList.add('ring-4', 'ring-orange-400/50', 'bg-orange-100/40');
+                    }, false);
+                });
+
+                ['dragleave', 'drop'].forEach(eventName => {
+                    editBox.addEventListener(eventName, () => {
+                        editBox.classList.remove('ring-4', 'ring-orange-400/50', 'bg-orange-100/40');
+                    }, false);
+                });
+
+                editBox.addEventListener('drop', (dropEvt) => {
+                    const dt = dropEvt.dataTransfer;
+                    if (dt.files && dt.files.length > 0) {
+                        Array.from(dt.files).forEach(f => newSelectedFiles.push(f));
+                        renderNewFilesPreview();
+                    }
+                }, false);
+            }
 
             const filesContainer = document.getElementById(`inline-edit-files-container-${idx}`);
 
@@ -1067,8 +1158,6 @@ function renderComments(commentsArr) {
 
             const saveBtn = bodyArea.querySelector('.save-inline-edit-btn');
             const cancelBtn = bodyArea.querySelector('.cancel-inline-edit-btn');
-            const textarea = document.getElementById(`inline-edit-textarea-${idx}`);
-            const newFileInput = document.getElementById(`inline-edit-file-input-${idx}`);
 
             cancelBtn.addEventListener('click', (eEvt) => {
                 eEvt.stopPropagation();
@@ -1077,9 +1166,10 @@ function renderComments(commentsArr) {
 
             saveBtn.addEventListener('click', async (eEvt) => {
                 eEvt.stopPropagation();
+                const textarea = document.getElementById(`inline-edit-textarea-${idx}`);
                 const updatedText = textarea.value.trim();
-                
-                if (!updatedText && currentEditFiles.length === 0 && (!newFileInput.files || newFileInput.files.length === 0)) {
+
+                if (!updatedText && currentEditFiles.length === 0 && newSelectedFiles.length === 0) {
                     alert("댓글 내용이나 첨부파일을 지정해 주세요.");
                     return;
                 }
@@ -1089,8 +1179,8 @@ function renderComments(commentsArr) {
 
                 try {
                     let newlyUploadedFiles = [];
-                    if (newFileInput && newFileInput.files && newFileInput.files.length > 0) {
-                        newlyUploadedFiles = await uploadFilesToStorage(newFileInput.files, "crm_comments");
+                    if (newSelectedFiles.length > 0) {
+                        newlyUploadedFiles = await uploadFilesToStorage(newSelectedFiles, "crm_comments");
                     }
 
                     const finalFiles = [...currentEditFiles, ...newlyUploadedFiles];
@@ -1180,7 +1270,7 @@ safeAddListener('submitNewCommentBtn', 'click', async () => {
 });
 
 // ============================================================================
-// 8. 클라이언트 관리 모듈 (🌟 수정/삭제 기능 완벽 연동)
+// 8. 클라이언트 관리 모듈 (수정/삭제 완벽 연동)
 // ============================================================================
 async function deleteClient(clientId) {
     const client = clientsMap[clientId];
@@ -1343,7 +1433,6 @@ async function fetchClients() {
     } catch (e) { console.error("Client fetch error:", e); }
 }
 
-// 🌟 클라이언트 테이블 내부 수정/삭제 클릭 이벤트 위임
 const clientsTableEl = document.getElementById('clientsTable');
 if (clientsTableEl) {
     clientsTableEl.addEventListener('click', (e) => {

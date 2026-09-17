@@ -34,6 +34,7 @@ let currentViewLibId = null;
 let isInitialLoginLogged = false;
 let isInitialDeepLinkChecked = false; 
 let tasksMap = {}; 
+let clientsMap = {};
 let libraryMap = {}; 
 let cachedClientNames = []; 
 
@@ -586,7 +587,6 @@ async function openAssignModal(taskId) {
     currentAssignClientId = taskId;
 
     if (assignModal) {
-        // 모달 내부 구조 탐색 및 컨테이너 강제 생성
         const modalCard = assignModal.querySelector('.bg-white') || assignModal.firstElementChild;
         let listContainer = assignModal.querySelector('#assignManagerList') || assignModal.querySelector('.assign-manager-list');
 
@@ -635,7 +635,6 @@ async function openAssignModal(taskId) {
         assignModal.classList.remove('hidden');
         assignModal.style.zIndex = "99999";
 
-        // X버튼 및 취소 버튼 닫기 바인딩
         const closeBtn = assignModal.querySelector('.fa-xmark')?.closest('button') || assignModal.querySelector('button[title="닫기"]');
         const cancelBtn = assignModal.querySelector('button.bg-gray-100') || Array.from(assignModal.querySelectorAll('button')).find(b => b.textContent.includes('취소'));
         
@@ -695,7 +694,6 @@ safeAddListener('assignForm', 'submit', async (e) => {
         submitBtn.disabled = true; 
     }
 
-    // 🌟 모달창 안의 체크박스를 정확히 타겟팅
     const checkboxes = assignModal.querySelectorAll('.assign-manager-checkbox:checked');
     const selectedManagers = Array.from(checkboxes).map(cb => cb.value);
     const staffString = selectedManagers.length > 0 ? selectedManagers.join(', ') : '미지정';
@@ -823,7 +821,7 @@ async function fetchTasks() {
 }
 
 // ============================================================================
-// 6. 이슈 상세 모달 (🌟자연스러운 인라인 에디팅 & 담당자 배정 표기 최적화)
+// 6. 이슈 상세 모달 (자연스러운 인라인 에디팅 & 담당자 배정 표기 최적화)
 // ============================================================================
 async function openDetailModal(taskId) {
     const task = tasksMap[taskId];
@@ -847,7 +845,7 @@ async function openDetailModal(taskId) {
     document.getElementById('detailType').innerText = task.type || 'Q&A';
     document.getElementById('detailClient').innerText = task.client || '-';
     
-    // 🌟 지정 담당자 표기 복구 및 디자인 보정
+    // 지정 담당자 표기 복구 및 디자인 보정
     const staffDisplay = (task.assignedManagers && task.assignedManagers.length > 0) 
         ? task.assignedManagers.join(', ') 
         : (task.staff || '미지정');
@@ -885,7 +883,6 @@ async function openDetailModal(taskId) {
             `;
             document.getElementById('btnDetailDelete').onclick = () => deleteTask(taskId);
             
-            // 🌟 상세 모달 상단 수정(인라인) 및 담당자연결(플로팅) 바인딩
             document.getElementById('btnDetailEdit').onclick = () => bindInlineEditMode(taskId);
             document.getElementById('btnDetailAssign').onclick = () => openAssignModal(taskId);
             
@@ -909,7 +906,7 @@ async function openDetailModal(taskId) {
     logActivity("상세 조회", `[${task.title}] 상세 내용을 조회했습니다.`);
 }
 
-// 🌟 상세 모달 내부 본문 자연스러운 인라인 편집 모드
+// 상세 모달 내부 본문 자연스러운 인라인 편집 모드
 function bindInlineEditMode(taskId) {
     const task = tasksMap[taskId];
     const titleEl = document.getElementById('detailTitle');
@@ -1183,8 +1180,79 @@ safeAddListener('submitNewCommentBtn', 'click', async () => {
 });
 
 // ============================================================================
-// 8. 클라이언트 관리 모듈
+// 8. 클라이언트 관리 모듈 (🌟 수정/삭제 기능 완벽 연동)
 // ============================================================================
+async function deleteClient(clientId) {
+    const client = clientsMap[clientId];
+    const cName = client ? client.name : '해당 클라이언트';
+    if (confirm(`[${cName}] 클라이언트를 삭제하시겠습니까?`)) {
+        try {
+            await deleteDoc(doc(db, "clients", clientId));
+            await logActivity("클라이언트 삭제", `[${cName}] 삭제 완료`);
+            alert("삭제되었습니다.");
+            fetchClients();
+        } catch (err) { 
+            alert("삭제 실패: " + err.message); 
+        }
+    }
+}
+
+function openEditClientModal(clientId) {
+    const client = clientsMap[clientId];
+    if (!client) return;
+    currentEditClientId = clientId;
+
+    if (editClientModal) {
+        const inputs = editClientModal.querySelectorAll('input');
+        const nameIn = document.getElementById('editClientName') || editClientModal.querySelector('[name="name"]') || inputs[0];
+        const homeIn = document.getElementById('editClientHomeUrl') || editClientModal.querySelector('[name="homeUrl"]') || inputs[1];
+        const instaIn = document.getElementById('editClientInstaUrl') || editClientModal.querySelector('[name="instaUrl"]') || inputs[2];
+        const metaIdIn = document.getElementById('editClientMetaId') || editClientModal.querySelector('[name="metaId"]') || inputs[3];
+        const metaPwIn = document.getElementById('editClientMetaPw') || editClientModal.querySelector('[name="metaPw"]') || inputs[4];
+        const budgetIn = document.getElementById('editClientBudget') || editClientModal.querySelector('[name="budget"]') || inputs[5];
+
+        if (nameIn) nameIn.value = client.name || '';
+        if (homeIn) homeIn.value = client.homeUrl || '';
+        if (instaIn) instaIn.value = client.instaUrl || '';
+        if (metaIdIn) metaIdIn.value = client.metaId || '';
+        if (metaPwIn) metaPwIn.value = client.metaPw || '';
+        if (budgetIn) budgetIn.value = client.budget || '';
+
+        editClientModal.classList.remove('hidden');
+        editClientModal.style.zIndex = "99999";
+    }
+}
+
+safeAddListener('editClientForm', 'submit', async (e) => {
+    e.preventDefault();
+    if (!currentEditClientId) return;
+
+    const inputs = editClientModal.querySelectorAll('input');
+    const nameIn = document.getElementById('editClientName') || editClientModal.querySelector('[name="name"]') || inputs[0];
+    const homeIn = document.getElementById('editClientHomeUrl') || editClientModal.querySelector('[name="homeUrl"]') || inputs[1];
+    const instaIn = document.getElementById('editClientInstaUrl') || editClientModal.querySelector('[name="instaUrl"]') || inputs[2];
+    const metaIdIn = document.getElementById('editClientMetaId') || editClientModal.querySelector('[name="metaId"]') || inputs[3];
+    const metaPwIn = document.getElementById('editClientMetaPw') || editClientModal.querySelector('[name="metaPw"]') || inputs[4];
+    const budgetIn = document.getElementById('editClientBudget') || editClientModal.querySelector('[name="budget"]') || inputs[5];
+
+    try {
+        await updateDoc(doc(db, "clients", currentEditClientId), {
+            name: nameIn ? nameIn.value : clientsMap[currentEditClientId].name,
+            homeUrl: homeIn ? homeIn.value : clientsMap[currentEditClientId].homeUrl,
+            instaUrl: instaIn ? instaIn.value : clientsMap[currentEditClientId].instaUrl,
+            metaId: metaIdIn ? metaIdIn.value : clientsMap[currentEditClientId].metaId,
+            metaPw: metaPwIn ? metaPwIn.value : clientsMap[currentEditClientId].metaPw,
+            budget: budgetIn ? budgetIn.value : clientsMap[currentEditClientId].budget,
+            updatedAt: new Date().toISOString()
+        });
+        editClientModal.classList.add('hidden');
+        alert("클라이언트 정보가 수정되었습니다.");
+        fetchClients();
+    } catch (err) {
+        alert("수정 실패: " + err.message);
+    }
+});
+
 async function fetchClients() {
     const tbody = document.getElementById('clientsTable');
     const emptyState = document.getElementById('emptyClients');
@@ -1199,6 +1267,7 @@ async function fetchClients() {
 
         const querySnapshot = await getDocs(q);
         tbody.innerHTML = '';
+        clientsMap = {};
 
         if (querySnapshot.empty) {
             if(emptyState) emptyState.style.display = 'flex';
@@ -1208,6 +1277,7 @@ async function fetchClients() {
 
         querySnapshot.forEach((docSnap) => {
             const data = docSnap.data();
+            clientsMap[docSnap.id] = { id: docSnap.id, ...data };
             
             let managersHtml = '<span class="text-gray-400 text-xs">미배정</span>';
             if (data.managers && data.managers.length > 0) {
@@ -1271,6 +1341,28 @@ async function fetchClients() {
         });
 
     } catch (e) { console.error("Client fetch error:", e); }
+}
+
+// 🌟 클라이언트 테이블 내부 수정/삭제 클릭 이벤트 위임
+const clientsTableEl = document.getElementById('clientsTable');
+if (clientsTableEl) {
+    clientsTableEl.addEventListener('click', (e) => {
+        const editBtn = e.target.closest('.edit-client-btn');
+        if (editBtn) {
+            e.stopPropagation();
+            const clientId = editBtn.getAttribute('data-id');
+            if (clientId) openEditClientModal(clientId);
+            return;
+        }
+
+        const delBtn = e.target.closest('.delete-client-btn');
+        if (delBtn) {
+            e.stopPropagation();
+            const clientId = delBtn.getAttribute('data-id');
+            if (clientId) deleteClient(clientId);
+            return;
+        }
+    });
 }
 
 // ============================================================================

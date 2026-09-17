@@ -555,13 +555,20 @@ async function deleteTask(taskId) {
     }
 }
 
-// 외부 리스트 게시글 수정 모달 팝업 오픈 (빈 공백 방지 완벽 처리)
+// [수정] 게시글 수정(editTaskModal) 창 오픈 및 상태/담당자 변경 항목 주입
 function openEditTaskModal(taskId) {
     const task = tasksMap[taskId];
     if (!task) return;
     currentDetailTaskId = taskId;
 
     if (editTaskModal) {
+        // [수정 1] X 버튼과 취소 버튼에 대해 명시적 닫기(closeAllModals) 강제 바인딩 (클릭 무반응 문제 해결)
+        const closeBtn = editTaskModal.querySelector('.fa-xmark')?.closest('button') || editTaskModal.querySelector('button[title="닫기"]') || (editTaskModal.querySelector('svg') ? editTaskModal.querySelector('svg').closest('button') : null);
+        const cancelBtn = Array.from(editTaskModal.querySelectorAll('button')).find(b => b.textContent.includes('취소'));
+        
+        if (closeBtn) closeBtn.onclick = (e) => { e.preventDefault(); closeAllModals(); };
+        if (cancelBtn) cancelBtn.onclick = (e) => { e.preventDefault(); closeAllModals(); };
+
         const inputs = editTaskModal.querySelectorAll('input[type="text"]');
         const selects = editTaskModal.querySelectorAll('select');
         const textareas = editTaskModal.querySelectorAll('textarea');
@@ -578,10 +585,123 @@ function openEditTaskModal(taskId) {
         if (agencyIn) agencyIn.value = task.agency || '';
         if (contentIn) contentIn.value = task.content || '';
 
+        // [수정 2] 진행 상태 및 담당자 목록 동적 렌더링 영역 생성 및 주입
+        let extraFieldsArea = document.getElementById('editTaskExtraFields');
+        if (!extraFieldsArea) {
+            extraFieldsArea = document.createElement('div');
+            extraFieldsArea.id = 'editTaskExtraFields';
+            extraFieldsArea.className = 'w-full mb-4 flex flex-col gap-4 border-t border-gray-100 pt-4 mt-4';
+            
+            if (contentIn) {
+                const contentParent = contentIn.closest('div'); // textarea를 감싼 div
+                if (contentParent && contentParent.parentNode) {
+                    contentParent.parentNode.insertBefore(extraFieldsArea, contentParent.nextSibling);
+                }
+            } else {
+                const form = editTaskModal.querySelector('form');
+                if (form) form.insertBefore(extraFieldsArea, form.lastElementChild);
+            }
+        }
+
+        extraFieldsArea.innerHTML = '<div class="text-xs text-gray-400 p-2 text-center font-bold"><i class="fa-solid fa-spinner animate-spin"></i> 상태 및 멤버 목록 불러오는 중...</div>';
+
+        const currentStatus = task.status || '답변대기';
+        let statusHtml = `
+            <div>
+                <label class="block text-xs font-bold text-gray-700 mb-1">진행 상태</label>
+                <select id="editInputStatus" class="w-full text-sm font-medium border border-gray-300 rounded-lg p-2 focus:outline-none focus:border-hermes transition">
+                    <option value="답변대기" ${currentStatus === '답변대기' ? 'selected' : ''}>답변대기</option>
+                    <option value="진행중" ${currentStatus === '진행중' ? 'selected' : ''}>진행중</option>
+                    <option value="처리완료" ${currentStatus === '처리완료' ? 'selected' : ''}>처리완료</option>
+                    <option value="보류" ${currentStatus === '보류' ? 'selected' : ''}>보류</option>
+                </select>
+            </div>
+        `;
+
+        // Firestore DB에서 최신 멤버를 불러와 체크박스 렌더링
+        (async () => {
+            try {
+                const usersSnap = await getDocs(query(collection(db, "users"), where("status", "==", "approved")));
+                let managersHtml = '<div><label class="block text-xs font-bold text-gray-700 mb-1">담당자 배정 연결</label><div class="bg-gray-50 border border-gray-200 rounded-lg p-2 max-h-36 overflow-y-auto grid grid-cols-2 gap-1">';
+                
+                const currentAssigned = task.assignedManagers || [];
+                
+                usersSnap.forEach(uDoc => {
+                    const u = uDoc.data();
+                    const isChecked = currentAssigned.includes(u.name) ? 'checked' : '';
+                    managersHtml += `
+                        <label class="flex items-center gap-2 p-1.5 hover:bg-white rounded cursor-pointer text-xs font-medium text-gray-700 transition border border-transparent hover:border-gray-200 shadow-2xs">
+                            <input type="checkbox" value="${u.name}" class="edit-assign-manager-checkbox rounded text-hermes focus:ring-hermes" ${isChecked} />
+                            <span class="truncate">${u.name}</span>
+                        </label>
+                    `;
+                });
+                managersHtml += '</div></div>';
+                extraFieldsArea.innerHTML = statusHtml + managersHtml;
+            } catch(err) {
+                console.error("멤버 로드 실패:", err);
+                extraFieldsArea.innerHTML = statusHtml + '<div class="text-xs text-red-500 mt-2">멤버 로드 실패</div>';
+            }
+        })();
+
         editTaskModal.classList.remove('hidden');
         editTaskModal.style.zIndex = "99999"; 
     }
 }
+
+// [수정] 외부 리스트 게시글 수정 완료(submit) 시 상태와 담당자 데이터 업데이트 반영
+safeAddListener('editTaskForm', 'submit', async (e) => {
+    e.preventDefault();
+    if (!currentDetailTaskId) return;
+
+    const inputs = editTaskModal.querySelectorAll('input[type="text"]');
+    const selects = editTaskModal.querySelectorAll('select');
+    const textareas = editTaskModal.querySelectorAll('textarea');
+
+    const clientIn = document.getElementById('editInputClient') || editTaskModal.querySelector('[name="client"]') || inputs[0];
+    const titleIn = document.getElementById('editInputTitle') || editTaskModal.querySelector('[name="title"]') || inputs[1];
+    const typeIn = document.getElementById('editInputType') || editTaskModal.querySelector('[name="type"]') || selects[0];
+    const agencyIn = document.getElementById('editInputAgency') || editTaskModal.querySelector('[name="agency"]') || selects[1];
+    const contentIn = document.getElementById('editInputContent') || editTaskModal.querySelector('[name="content"]') || textareas[0];
+
+    // [추가] 동적으로 추가한 상태(Status) 및 담당자(Managers) 값 추출
+    const statusIn = document.getElementById('editInputStatus');
+    const newStatus = statusIn ? statusIn.value : tasksMap[currentDetailTaskId].status;
+
+    let newManagers = tasksMap[currentDetailTaskId].assignedManagers || [];
+    const extraArea = document.getElementById('editTaskExtraFields');
+    if (extraArea) {
+        const checkedBoxes = editTaskModal.querySelectorAll('.edit-assign-manager-checkbox:checked');
+        newManagers = Array.from(checkedBoxes).map(cb => cb.value);
+    }
+
+    try {
+        await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), {
+            title: titleIn ? titleIn.value : tasksMap[currentDetailTaskId].title,
+            content: contentIn ? contentIn.value : tasksMap[currentDetailTaskId].content,
+            type: typeIn ? typeIn.value : tasksMap[currentDetailTaskId].type,
+            client: clientIn ? clientIn.value : tasksMap[currentDetailTaskId].client,
+            agency: agencyIn ? agencyIn.value : (tasksMap[currentDetailTaskId].agency || ''),
+            status: newStatus,              // 상태 업데이트
+            assignedManagers: newManagers,  // 선택된 담당자 전체 배열 업데이트
+            updatedAt: new Date().toISOString()
+        });
+        
+        if (editTaskModal) {
+            editTaskModal.classList.add('hidden');
+        }
+        alert("게시글 수정이 완료되었습니다.");
+        
+        await fetchTasks(); // 리스트 갱신
+        
+        // 상세 모달이 열려있는 상태에서 밖에서 수정한 경우 상세 모달도 리렌더링
+        if (detailModal && !detailModal.classList.contains('hidden')) {
+            openDetailModal(currentDetailTaskId);
+        }
+    } catch (err) { 
+        alert("이슈 수정 실패: " + err.message); 
+    }
+});
 
 // 담당자 다중 연결 중앙 플로팅 모달 오픈
 async function openAssignModal(taskId) {
@@ -720,42 +840,6 @@ function bindAssignSubmitEvents() {
     }
 }
 
-// 외부 리스트 게시글 수정 완료 저장
-safeAddListener('editTaskForm', 'submit', async (e) => {
-    e.preventDefault();
-    if (!currentDetailTaskId) return;
-
-    const inputs = editTaskModal.querySelectorAll('input[type="text"]');
-    const selects = editTaskModal.querySelectorAll('select');
-    const textareas = editTaskModal.querySelectorAll('textarea');
-
-    const clientIn = document.getElementById('editInputClient') || editTaskModal.querySelector('[name="client"]') || inputs[0];
-    const titleIn = document.getElementById('editInputTitle') || editTaskModal.querySelector('[name="title"]') || inputs[1];
-    const typeIn = document.getElementById('editInputType') || editTaskModal.querySelector('[name="type"]') || selects[0];
-    const contentIn = document.getElementById('editInputContent') || editTaskModal.querySelector('[name="content"]') || textareas[0];
-
-    try {
-        await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), {
-            title: titleIn ? titleIn.value : tasksMap[currentDetailTaskId].title,
-            content: contentIn ? contentIn.value : tasksMap[currentDetailTaskId].content,
-            type: typeIn ? typeIn.value : tasksMap[currentDetailTaskId].type,
-            client: clientIn ? clientIn.value : tasksMap[currentDetailTaskId].client,
-            updatedAt: new Date().toISOString()
-        });
-        
-        if (editTaskModal) {
-            editTaskModal.classList.add('hidden');
-        }
-        alert("이슈 수정이 완료되었습니다.");
-        
-        await fetchTasks();
-        if (!detailModal.classList.contains('hidden')) {
-            openDetailModal(currentDetailTaskId);
-        }
-    } catch (err) { 
-        alert("이슈 수정 실패: " + err.message); 
-    }
-});
 
 async function fetchTasks() {
     const tbody = document.getElementById('boardTable');

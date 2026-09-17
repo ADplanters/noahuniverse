@@ -38,6 +38,9 @@ let clientsMap = {};
 let libraryMap = {}; 
 let cachedClientNames = []; 
 
+// 🌟 신규 댓글 작성용 드래그앤드롭 누적 파일 배열
+let newCommentSelectedFiles = [];
+
 // ============================================================================
 // 2. DOM 요소 바인딩
 // ============================================================================
@@ -213,7 +216,7 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// 🌟 글로벌 신규 클라이언트 추가 버튼(id가 없을 경우 텍스트 기반) 캐치
+// 🌟 글로벌 신규 클라이언트 추가 및 이미지 확대 모달 클릭 이벤트 캐치
 document.addEventListener('click', (e) => {
     const addClientBtn = e.target.closest('#openClientModalBtn') || (e.target.textContent && e.target.textContent.includes('신규 클라이언트 추가'));
     if (addClientBtn && clientModal) {
@@ -269,14 +272,12 @@ async function uploadFilesToStorage(fileList, folderName) {
     return uploadedFiles;
 }
 
-// 드래그 & 드롭 파일 첨부 바인딩 헬퍼
+// 드래그 & 드롭 기본 이벤트 차단 및 스타일 핸들러
 function setupDragAndDrop(dropAreaId, fileInputId) {
     const dropArea = document.getElementById(dropAreaId);
     const fileInput = document.getElementById(fileInputId);
     
-    if (!dropArea || !fileInput) {
-        return;
-    }
+    if (!dropArea) return;
 
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
         dropArea.addEventListener(eventName, (e) => {
@@ -297,14 +298,15 @@ function setupDragAndDrop(dropAreaId, fileInputId) {
         }, false);
     });
 
-    dropArea.addEventListener('drop', (e) => {
-        const dt = e.dataTransfer;
-        const files = dt.files;
-        if (files && files.length > 0) {
-            fileInput.files = files;
-            alert(`[드래그 첨부 성공] 총 ${files.length}개의 파일이 선택되었습니다.`);
-        }
-    }, false);
+    // 게시글 본문 폼 등 일반 파일 인풋 바인딩 (팝업 alert 제거)
+    if (fileInputId !== 'commentFileInputBox') {
+        dropArea.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            if (dt.files && dt.files.length > 0 && fileInput) {
+                fileInput.files = dt.files;
+            }
+        }, false);
+    }
 }
 
 // 이미지 파일 판별 헬퍼
@@ -497,6 +499,7 @@ function showDashboard(user) {
 
     setupDragAndDrop('commentInputBox', 'commentFileInputBox');
     setupDragAndDrop('inputContent', 'inputFile');
+    initNewCommentDragAndDrop();
 
     fetchTasks();
 }
@@ -885,6 +888,10 @@ async function openDetailModal(taskId) {
     const newUrl = `${window.location.pathname}?id=${taskId}`;
     window.history.pushState({ path: newUrl }, '', newUrl);
 
+    // 상세 모달 전환 시 댓글 첨부파일 임시 저장소 초기화
+    newCommentSelectedFiles = [];
+    renderNewCommentFilePreviews();
+
     task.views = (task.views || 0) + 1;
     try {
         await updateDoc(doc(db, "crm_tasks", taskId), { views: increment(1) });
@@ -1051,8 +1058,101 @@ function bindInlineEditMode(taskId) {
 }
 
 // ============================================================================
-// 7. 소통 댓글 모듈 (인라인 수정 + 전체 영역 드래그앤드롭 + 실시간 미리보기)
+// 7. 소통 댓글 모듈 (미리보기 렌더링 + 인라인 수정 + 다중 파일 끌어놓기)
 // ============================================================================
+
+// 🌟 신규 댓글 드래그앤드롭 / 선택 파일 실시간 미리보기 전용 렌더링 함수
+function renderNewCommentFilePreviews() {
+    let prevArea = document.getElementById('commentNewFilesPreviewArea');
+    const inputBox = document.getElementById('commentInputBox');
+
+    if (!prevArea && inputBox && inputBox.parentElement) {
+        prevArea = document.createElement('div');
+        prevArea.id = 'commentNewFilesPreviewArea';
+        prevArea.className = 'flex flex-wrap gap-2 my-2.5 p-2 bg-gray-50 border border-dashed border-gray-200 rounded-xl empty:hidden';
+        inputBox.parentElement.insertBefore(prevArea, inputBox.nextSibling);
+    }
+
+    if (!prevArea) return;
+    prevArea.innerHTML = '';
+
+    newCommentSelectedFiles.forEach((file, idx) => {
+        const isImg = file.type.startsWith('image/') || isImageFile(file.name, '');
+        if (isImg) {
+            const objectUrl = URL.createObjectURL(file);
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'inline-block relative group my-1 mr-1';
+            itemDiv.innerHTML = `
+                <img src="${objectUrl}" data-url="${objectUrl}" class="img-preview-btn w-16 h-16 object-cover rounded-xl border border-orange-300 shadow-2xs cursor-pointer hover:scale-105 transition" title="클릭하여 확대 보기" />
+                <button type="button" class="remove-new-comment-file-btn absolute -top-1.5 -right-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[9px] font-black shadow transition" data-idx="${idx}">✕</button>
+            `;
+            prevArea.appendChild(itemDiv);
+        } else {
+            const itemSpan = document.createElement('span');
+            itemSpan.className = 'inline-flex items-center gap-1 bg-orange-50 text-orange-700 text-[10px] font-bold px-2 py-1 rounded-lg border border-orange-200 my-1';
+            itemSpan.innerHTML = `
+                <i class="fa-solid fa-file text-hermes"></i> ${file.name}
+                <button type="button" class="remove-new-comment-file-btn text-red-500 hover:text-red-700 ml-1 font-black" data-idx="${idx}">✕</button>
+            `;
+            prevArea.appendChild(itemSpan);
+        }
+    });
+
+    // 개별 미리보기 삭제 버튼 이벤트 연결
+    prevArea.querySelectorAll('.remove-new-comment-file-btn').forEach(btn => {
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            const removeIdx = parseInt(btn.getAttribute('data-idx'));
+            newCommentSelectedFiles.splice(removeIdx, 1);
+            renderNewCommentFilePreviews();
+        };
+    });
+}
+
+// 🌟 신규 댓글창 영역 다중 드래그앤드롭 및 파일 선택 이벤트 바인딩
+function initNewCommentDragAndDrop() {
+    const commentInput = document.getElementById('commentInputBox');
+    const commentFileInput = document.getElementById('commentFileInputBox');
+
+    if (commentInput) {
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            commentInput.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            commentInput.addEventListener(eventName, () => {
+                commentInput.classList.add('border-hermes', 'bg-orange-50/50', 'ring-2', 'ring-orange-300');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            commentInput.addEventListener(eventName, () => {
+                commentInput.classList.remove('border-hermes', 'bg-orange-50/50', 'ring-2', 'ring-orange-300');
+            }, false);
+        });
+
+        commentInput.addEventListener('drop', (e) => {
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                Array.from(e.dataTransfer.files).forEach(f => newCommentSelectedFiles.push(f));
+                renderNewCommentFilePreviews();
+            }
+        }, false);
+    }
+
+    if (commentFileInput) {
+        commentFileInput.onchange = (e) => {
+            if (e.target.files && e.target.files.length > 0) {
+                Array.from(e.target.files).forEach(f => newCommentSelectedFiles.push(f));
+                renderNewCommentFilePreviews();
+                e.target.value = '';
+            }
+        };
+    }
+}
+
 function renderComments(commentsArr) {
     const listEl = document.getElementById('commentListArea') || document.getElementById('commentList');
     const countEl = document.getElementById('commentCountBadge') || document.getElementById('commentCount');
@@ -1100,7 +1200,7 @@ function renderComments(commentsArr) {
         `;
     });
 
-    // 인라인 수정 모드 바인딩
+    // 댓글 인라인 수정 모드 바인딩
     listEl.querySelectorAll('.edit-comment-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -1111,7 +1211,7 @@ function renderComments(commentsArr) {
             if (!bodyArea || bodyArea.querySelector('textarea')) return;
 
             let currentEditFiles = comment.files ? [...comment.files] : [];
-            let newSelectedFiles = []; // 드래그/선택된 신규 첨부파일 배열
+            let newSelectedFiles = []; // 인라인 수정 드래그/선택 첨부파일 배열
 
             function renderEditFilesList() {
                 if (currentEditFiles.length === 0) return '<span class="text-[10px] text-gray-400 italic">첨부파일 없음</span>';
@@ -1137,7 +1237,7 @@ function renderComments(commentsArr) {
                         const objectUrl = URL.createObjectURL(file);
                         prevContainer.innerHTML += `
                             <div class="inline-block relative group my-1 mr-1">
-                                <img src="${objectUrl}" class="w-16 h-16 object-cover rounded-xl border border-orange-300 shadow-2xs" />
+                                <img src="${objectUrl}" data-url="${objectUrl}" class="img-preview-btn w-16 h-16 object-cover rounded-xl border border-orange-300 shadow-2xs cursor-pointer hover:scale-105 transition" title="클릭하여 확대 보기" />
                                 <button type="button" class="remove-new-file-btn absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[9px] font-black shadow" data-nidx="${nIdx}">✕</button>
                             </div>
                         `;
@@ -1309,14 +1409,14 @@ function renderComments(commentsArr) {
     });
 }
 
+// 🌟 신규 댓글 등록 버튼 이벤트
 safeAddListener('submitNewCommentBtn', 'click', async () => {
     if(!currentDetailTaskId) return;
     const task = tasksMap[currentDetailTaskId];
     const textInput = document.getElementById('commentInputBox');
-    const fileInput = document.getElementById('commentFileInputBox');
-    const text = textInput.value.trim();
+    const text = textInput ? textInput.value.trim() : '';
 
-    if(!text && fileInput.files.length === 0) { 
+    if(!text && newCommentSelectedFiles.length === 0) { 
         alert('댓글 내용이나 첨부할 파일을 입력해 주세요.'); 
         return; 
     }
@@ -1327,8 +1427,8 @@ safeAddListener('submitNewCommentBtn', 'click', async () => {
 
     let commentFiles = [];
     try {
-        if (fileInput.files.length > 0) {
-            commentFiles = await uploadFilesToStorage(fileInput.files, "crm_comments");
+        if (newCommentSelectedFiles.length > 0) {
+            commentFiles = await uploadFilesToStorage(newCommentSelectedFiles, "crm_comments");
         }
     } catch(err) {
         alert(err.message);
@@ -1352,8 +1452,12 @@ safeAddListener('submitNewCommentBtn', 'click', async () => {
 
     try {
         await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), { comments: updatedComments });
-        textInput.value = '';
-        if(fileInput) fileInput.value = '';
+        
+        // 입력창 및 첨부파일 임시 저장소/미리보기 리셋
+        if(textInput) textInput.value = '';
+        newCommentSelectedFiles = [];
+        renderNewCommentFilePreviews();
+
         task.comments = updatedComments;
         renderComments(updatedComments);
         fetchTasks();
@@ -1369,7 +1473,7 @@ safeAddListener('submitNewCommentBtn', 'click', async () => {
 // 8. 클라이언트 관리 (날짜 저장 복구 및 수정/삭제 연동)
 // ============================================================================
 
-// 🌟 신규 클라이언트 추가 폼 처리 (인스타/메타 날짜 정상 전송 로직 복원)
+// 신규 클라이언트 추가 폼 처리
 safeAddListener('clientForm', 'submit', async (e) => {
     e.preventDefault();
     if (!clientModal) return;

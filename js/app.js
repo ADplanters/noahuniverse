@@ -67,7 +67,7 @@ const libraryViewModal = document.getElementById('libraryViewModal');
 const libraryEditModal = document.getElementById('libraryEditModal');
 
 // ============================================================================
-// 3. 공통 유틸리티 & 모달 제어 (ESC / 배경 클릭 이벤트 포함)
+// 3. 공통 유틸리티 & 워터마크 실시간 동적 생성
 // ============================================================================
 function safeAddListener(id, eventType, callback) {
     const el = document.getElementById(id);
@@ -78,6 +78,28 @@ function checkIsAdmin() {
     if (currentUserRole === 'admin') return true;
     if (auth.currentUser && ADMIN_EMAILS.includes(auth.currentUser.email)) return true;
     return false;
+}
+
+// 사선 지그재그 바둑판 패턴 워터마크 동적 생성
+function renderWatermark() {
+    if (document.getElementById('autoWatermarkLayer')) return;
+    
+    const container = document.createElement('div');
+    container.id = 'autoWatermarkLayer';
+    container.className = 'watermark-container';
+
+    let rowsHtml = '';
+    for (let i = 0; i < 24; i++) {
+        const shiftStyle = (i % 2 === 0) ? 'margin-left: 0px;' : 'margin-left: 140px;';
+        rowsHtml += `<div class="watermark-row" style="${shiftStyle}">`;
+        for (let j = 0; j < 10; j++) {
+            rowsHtml += `<span class="wm-ad">ADplanters</span> <span class="wm-hermes">✕</span> <span class="wm-noah">NOAH UNIVERSE COMPANY</span>`;
+        }
+        rowsHtml += `</div>`;
+    }
+    
+    container.innerHTML = rowsHtml;
+    document.body.prepend(container);
 }
 
 // 모든 모달 닫기
@@ -124,7 +146,7 @@ async function uploadFilesToStorage(fileList, folderName) {
     return uploadedFiles;
 }
 
-// 드래그 & 드롭 파일 첨부 바인딩 헬퍼
+// 🌟 드래그 & 드롭 파일 첨부 바인딩 헬퍼 (댓글창/수정창 완벽 대응)
 function setupDragAndDrop(dropAreaId, fileInputId) {
     const dropArea = document.getElementById(dropAreaId);
     const fileInput = document.getElementById(fileInputId);
@@ -138,11 +160,15 @@ function setupDragAndDrop(dropAreaId, fileInputId) {
     });
 
     ['dragenter', 'dragover'].forEach(eventName => {
-        dropArea.addEventListener(eventName, () => dropArea.classList.add('border-hermes', 'bg-orange-50/40'), false);
+        dropArea.addEventListener(eventName, () => {
+            dropArea.classList.add('border-hermes', 'bg-orange-50/50', 'ring-2', 'ring-orange-300');
+        }, false);
     });
 
     ['dragleave', 'drop'].forEach(eventName => {
-        dropArea.addEventListener(eventName, () => dropArea.classList.remove('border-hermes', 'bg-orange-50/40'), false);
+        dropArea.addEventListener(eventName, () => {
+            dropArea.classList.remove('border-hermes', 'bg-orange-50/50', 'ring-2', 'ring-orange-300');
+        }, false);
     });
 
     dropArea.addEventListener('drop', (e) => {
@@ -150,17 +176,43 @@ function setupDragAndDrop(dropAreaId, fileInputId) {
         const files = dt.files;
         if (files && files.length > 0) {
             fileInput.files = files;
-            alert(`${files.length}개의 파일이 성공적으로 첨부되었습니다.`);
+            alert(`[드래그 첨부 성공] 총 ${files.length}개의 파일이 선택되었습니다.`);
         }
     }, false);
 }
 
-// 첨부파일 다운로드 UI 버튼 생성
+// 🌟 이미지 파일 판별 헬퍼
+function isImageFile(fileName, url) {
+    const imgExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp'];
+    const lowerName = (fileName || '').toLowerCase();
+    const lowerUrl = (url || '').toLowerCase();
+    const isDataImg = lowerUrl.startsWith('data:image/');
+    return isDataImg || imgExts.some(ext => lowerName.endsWith(ext) || lowerUrl.includes(ext));
+}
+
+// 🌟 이미지 썸네일 미리보기 + 일반 첨부파일 다운로드 버튼 렌더링
 function renderFileButtons(item) {
     if (item.files && item.files.length > 0) {
         return item.files.map(f => {
             const url = f.fileUrl || f.fileData; 
-            return `<a href="${url}" target="_blank" download="${f.fileName}" class="download-link inline-flex items-center gap-1 bg-gray-100 hover:bg-orange-100 text-gray-700 hover:text-hermes text-[10px] font-bold px-2 py-1.5 rounded-lg border border-gray-200 transition my-0.5 shadow-sm"><i class="fa-solid fa-download text-hermes"></i> ${f.fileName}</a>`;
+            const fileName = f.fileName || '첨부파일';
+
+            // 이미지 파일인 경우: 썸네일 미리보기 렌더링 (클릭 시 새 탭 원본 열람)
+            if (isImageFile(fileName, url)) {
+                return `
+                    <div class="inline-block relative group my-1 mr-2 align-top">
+                        <a href="${url}" target="_blank" title="클릭하여 원본 이미지 보기: ${fileName}">
+                            <img src="${url}" alt="${fileName}" class="w-20 h-20 object-cover rounded-xl border border-gray-200 shadow-xs hover:shadow-md hover:scale-105 transition duration-200 cursor-pointer" />
+                        </a>
+                        <a href="${url}" target="_blank" download="${fileName}" class="absolute bottom-1 right-1 bg-black/60 hover:bg-black text-white text-[9px] px-1.5 py-0.5 rounded shadow transition" title="다운로드">
+                            <i class="fa-solid fa-download"></i>
+                        </a>
+                    </div>
+                `;
+            }
+
+            // 일반 파일인 경우: 다운로드 배지 버튼
+            return `<a href="${url}" target="_blank" download="${fileName}" class="download-link inline-flex items-center gap-1 bg-gray-100 hover:bg-orange-100 text-gray-700 hover:text-hermes text-[10px] font-bold px-2 py-1.5 rounded-lg border border-gray-200 transition my-0.5 shadow-sm"><i class="fa-solid fa-download text-hermes"></i> ${fileName}</a>`;
         }).join(' ');
     }
     return `<span class="text-gray-300 text-[10px]">첨부파일 없음</span>`;
@@ -199,9 +251,11 @@ function copyToClipboard(text, label = "링크") {
 }
 
 // ============================================================================
-// 4. 인증 및 사용자 권한 제어 (이메일 기반 신규 UID 자동 연동)
+// 4. 인증 및 사용자 권한 제어
 // ============================================================================
 onAuthStateChanged(auth, async (user) => {
+    renderWatermark();
+
     if (user) {
         const userRef = doc(db, "users", user.uid);
         const userSnap = await getDoc(userRef);
@@ -223,7 +277,7 @@ onAuthStateChanged(auth, async (user) => {
             return;
         }
 
-        // 2. 현재 새 UID 문서가 없는 경우: 이전된 이메일 데이터 찾아서 자동 연동
+        // 2. 이메일 기반 기존 UID 자동 매핑 처리
         if (!userSnap.exists()) {
             const q = query(collection(db, "users"), where("email", "==", user.email));
             const qSnap = await getDocs(q);
@@ -299,7 +353,7 @@ function showDashboard(user) {
         if(adminMenu) adminMenu.classList.add('hidden');
     }
 
-    // 드래그앤드롭 이벤트 바인딩 초기화
+    // 🌟 드래그앤드롭 파일 첨부 이벤트 바인딩
     setupDragAndDrop('commentInputBox', 'commentFileInputBox');
     setupDragAndDrop('inputContent', 'inputFile');
 
@@ -458,7 +512,6 @@ async function openDetailModal(taskId) {
     const newUrl = `${window.location.pathname}?id=${taskId}`;
     window.history.pushState({ path: newUrl }, '', newUrl);
 
-    // 조회수 누적 업데이트
     task.views = (task.views || 0) + 1;
     try {
         await updateDoc(doc(db, "crm_tasks", taskId), { views: increment(1) });
@@ -483,7 +536,7 @@ async function openDetailModal(taskId) {
 }
 
 // ============================================================================
-// 6. 소통 댓글 모듈 (인라인 수정 + 첨부파일 삭제/추가 완벽 구현)
+// 6. 소통 댓글 모듈 (인라인 수정 + 이미지 미리보기 + 드래그앤드롭 연동)
 // ============================================================================
 function renderComments(commentsArr) {
     const listEl = document.getElementById('commentListArea') || document.getElementById('commentList');
@@ -510,7 +563,7 @@ function renderComments(commentsArr) {
 
         let filesHtml = '';
         if (c.files && c.files.length > 0) {
-            filesHtml = `<div class="flex flex-wrap gap-2 pt-1 mt-1 border-t border-gray-100">${renderFileButtons({ files: c.files })}</div>`;
+            filesHtml = `<div class="flex flex-wrap gap-2 pt-2 mt-2 border-t border-gray-100">${renderFileButtons({ files: c.files })}</div>`;
         }
 
         listEl.innerHTML += `
@@ -530,7 +583,7 @@ function renderComments(commentsArr) {
         `;
     });
 
-    // 인라인 수정 & 기존 파일 개별 삭제(x) + 신규 파일 첨부 처리
+    // 인라인 수정 & 기존 파일 개별 삭제(✕) + 신규 파일 드래그앤드롭 첨부 처리
     listEl.querySelectorAll('.edit-comment-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -540,7 +593,6 @@ function renderComments(commentsArr) {
 
             if (!bodyArea || bodyArea.querySelector('textarea')) return;
 
-            // 수정 세션용 첨부파일 배열 복사
             let currentEditFiles = comment.files ? [...comment.files] : [];
 
             function renderEditFilesList() {
@@ -548,7 +600,7 @@ function renderComments(commentsArr) {
                 return currentEditFiles.map((f, fIdx) => {
                     const fileName = f.fileName || '첨부파일';
                     return `
-                        <span class="inline-flex items-center gap-1 bg-gray-100 text-gray-700 text-[10px] font-bold px-2 py-1 rounded-lg border border-gray-200">
+                        <span class="inline-flex items-center gap-1 bg-white text-gray-700 text-[10px] font-bold px-2 py-1 rounded-lg border border-gray-200 shadow-2xs">
                             <i class="fa-solid fa-paperclip text-hermes"></i> ${fileName}
                             <button type="button" class="remove-edit-file-btn text-red-500 hover:text-red-700 ml-1 font-black" data-fidx="${fIdx}">✕</button>
                         </span>
@@ -558,29 +610,33 @@ function renderComments(commentsArr) {
 
             bodyArea.innerHTML = `
                 <div class="mt-1 space-y-2">
-                    <textarea id="inline-edit-textarea-${idx}" class="w-full text-xs p-2 border border-orange-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-hermes resize-y" rows="3">${comment.text}</textarea>
+                    <textarea id="inline-edit-textarea-${idx}" class="w-full text-xs p-2.5 border border-orange-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-hermes/30 transition resize-y" rows="3" placeholder="댓글 내용 및 드래그 파일 첨부 가능">${comment.text}</textarea>
                     
-                    <!-- 기존 첨부파일 목록 및 삭제(x) 버튼 영역 -->
-                    <div class="space-y-1 bg-gray-50/70 p-2 rounded-lg border border-gray-100">
-                        <div class="text-[10px] font-bold text-gray-500">첨부파일 관리:</div>
+                    <div class="space-y-1 bg-gray-50/80 p-2.5 rounded-xl border border-gray-100">
+                        <div class="text-[10px] font-bold text-gray-500 flex justify-between">
+                            <span>첨부파일 관리:</span>
+                            <span class="text-orange-500 font-normal text-[9px]">* 텍스트 상자나 버튼에 파일 드래그 가능</span>
+                        </div>
                         <div id="inline-edit-files-container-${idx}" class="flex flex-wrap gap-1">
                             ${renderEditFilesList()}
                         </div>
                         <div class="pt-1">
-                            <input type="file" id="inline-edit-file-input-${idx}" multiple class="text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-bold file:bg-white file:border file:border-gray-200 file:text-gray-700 hover:file:bg-orange-50 cursor-pointer" />
+                            <input type="file" id="inline-edit-file-input-${idx}" multiple class="text-xs text-gray-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-[10px] file:font-bold file:bg-white file:border file:border-gray-200 file:text-gray-700 hover:file:bg-orange-50 cursor-pointer" />
                         </div>
                     </div>
 
                     <div class="flex justify-end gap-1.5 pt-1">
-                        <button type="button" class="cancel-inline-edit-btn bg-gray-100 hover:bg-gray-200 text-gray-700 text-[10px] font-bold px-2.5 py-1 rounded-md transition">취소</button>
-                        <button type="button" class="save-inline-edit-btn bg-hermes hover:bg-orange-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-md transition">저장</button>
+                        <button type="button" class="cancel-inline-edit-btn bg-gray-100 hover:bg-gray-200 text-gray-700 text-[10px] font-bold px-3 py-1.5 rounded-lg transition">취소</button>
+                        <button type="button" class="save-inline-edit-btn bg-hermes hover:bg-orange-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg transition shadow-xs">저장</button>
                     </div>
                 </div>
             `;
 
+            // 🌟 수정 모드 드래그 앤 드롭 바인딩
+            setupDragAndDrop(`inline-edit-textarea-${idx}`, `inline-edit-file-input-${idx}`);
+
             const filesContainer = document.getElementById(`inline-edit-files-container-${idx}`);
 
-            // x 버튼을 눌러 개별 파일 삭제 바인딩
             function bindFileRemoveEvents() {
                 if (!filesContainer) return;
                 filesContainer.querySelectorAll('.remove-edit-file-btn').forEach(rmBtn => {
@@ -936,7 +992,7 @@ async function fetchApprovals() {
     const tbody = document.getElementById('approvalsTable');
     const emptyState = document.getElementById('emptyApprovals');
     if(!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 로딩 중...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin text-hermes mr-2"></i> 로딩 중...</td></tr>';
 
     try {
         const q = query(collection(db, "users"), where("status", "==", "pending"));
@@ -992,7 +1048,7 @@ async function fetchLogs() {
     const tbody = document.getElementById('logsTable');
     const emptyState = document.getElementById('emptyLogs');
     if(!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 로그 데이터 수집 중...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin text-hermes mr-2"></i> 로그 데이터 수집 중...</td></tr>';
 
     try {
         const logsSnap = await getDocs(collection(db, "activity_logs"));

@@ -373,7 +373,7 @@ function isImageFile(fileName, url) {
 }
 
 /**
- * 🌟 첨부파일 렌더링 헬퍼 (테이블 목록 / 상세 모달 이중화 지원)
+ * 첨부파일 렌더링 헬퍼 (테이블 목록 / 상세 모달 이중화 지원)
  * @param {Object} item - 파일 목록을 포함하는 객체 ({ files: [...] })
  * @param {boolean} isTableList - true일 경우 목록용 콤팩트 뱃지([이미지 1], [파일 1])로 표시
  */
@@ -384,7 +384,7 @@ function renderFileButtons(item, isTableList = false) {
             const fileName = f.fileName || '첨부파일';
             const isImg = isImageFile(fileName, url);
 
-            // 🌟 1. 메인 목록(게시판 테이블)용: 이미지 썸네일 대신 깔끔한 컴팩트 뱃지 표시
+            // 1. 메인 목록(게시판 테이블)용: 이미지 썸네일 대신 깔끔한 컴팩트 뱃지 표시
             if (isTableList) {
                 const badgeLabel = isImg ? `[이미지 ${idx + 1}]` : `[파일 ${idx + 1}]`;
                 return `
@@ -394,7 +394,7 @@ function renderFileButtons(item, isTableList = false) {
                 `;
             }
 
-            // 🌟 2. 상세 모달창 및 댓글용: 기존의 이미지 썸네일 미리보기 그대로 유지
+            // 2. 상세 모달창 및 댓글용: 기존의 이미지 썸네일 미리보기 그대로 유지
             if (isImg) {
                 return `
                     <div class="inline-block relative group my-1 mr-2 align-top">
@@ -922,7 +922,7 @@ async function fetchTasks() {
                 `;
             }
 
-            // 🌟 테이블 메인 목록 전용: 두 번째 파라미터를 true로 전달하여 컴팩트 뱃지 표시
+            // 테이블 메인 목록 전용: 두 번째 파라미터를 true로 전달하여 컴팩트 뱃지 표시
             const fileButton = renderFileButtons(item, true);
             const commentCount = item.comments ? item.comments.length : 0;
             const displayStaff = (item.assignedManagers && item.assignedManagers.length > 0) ? item.assignedManagers.join(', ') : '미지정';
@@ -973,6 +973,20 @@ async function openDetailModal(taskId) {
     const newUrl = `${window.location.pathname}?id=${taskId}`;
     window.history.pushState({ path: newUrl }, '', newUrl);
 
+    // 🌟 모바일 가로 이탈 완벽 방지: 모달 메인 카드 레이아웃에 모바일 전용 반응형 너비 및 자동 줄바꿈 강제
+    if (detailModal) {
+        const modalCard = detailModal.querySelector('.bg-white') || detailModal.firstElementChild;
+        if (modalCard) {
+            modalCard.classList.add('max-w-[95vw]', 'sm:max-w-3xl', 'w-full', 'overflow-x-hidden', 'box-border', 'p-4', 'sm:p-6');
+        }
+
+        // 모달 헤더 영역 감싸기(flex-wrap) 적용
+        const topHeader = detailModal.querySelector('.flex.justify-between') || detailModal.querySelector('header');
+        if (topHeader) {
+            topHeader.classList.add('flex-wrap', 'gap-2', 'max-w-full', 'items-center');
+        }
+    }
+
     // 상세 모달 전환 시 댓글 첨부파일 임시 저장소 초기화
     newCommentSelectedFiles = [];
     renderNewCommentFilePreviews();
@@ -987,16 +1001,22 @@ async function openDetailModal(taskId) {
         viewCountEl.innerHTML = `<i class="fa-solid fa-eye mr-1"></i> ${task.views}`;
     }
 
-    document.getElementById('detailTitle').innerText = task.title || '제목 없음';
+    const titleEl = document.getElementById('detailTitle');
+    if (titleEl) {
+        titleEl.innerText = task.title || '제목 없음';
+        titleEl.className = "text-base sm:text-xl font-black text-gray-900 break-all leading-snug max-w-full";
+    }
+
     document.getElementById('detailType').innerText = task.type || 'Q&A';
     
     const typeEl = document.getElementById('detailType');
     if (typeEl && typeEl.parentElement) {
+        typeEl.parentElement.classList.add('flex-wrap', 'items-center', 'gap-1');
         let statusSelectEl = document.getElementById('detailStatusSelect');
         if (!statusSelectEl) {
             statusSelectEl = document.createElement('select');
             statusSelectEl.id = 'detailStatusSelect';
-            statusSelectEl.className = 'text-xs font-bold border border-gray-300 rounded-lg px-2 py-1 bg-white focus:border-hermes outline-none ml-2 shadow-2xs cursor-pointer';
+            statusSelectEl.className = 'text-xs font-bold border border-gray-300 rounded-lg px-2 py-1 bg-white focus:border-hermes outline-none ml-2 shadow-2xs cursor-pointer my-1';
             typeEl.parentElement.appendChild(statusSelectEl);
         }
         
@@ -1037,27 +1057,34 @@ async function openDetailModal(taskId) {
     const detailAssignEl = document.getElementById('detailAssign') || document.getElementById('detailAssignedManagers');
     if (detailAssignEl) {
         detailAssignEl.innerText = assignedStr;
-        detailAssignEl.className = "text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-100 inline-block";
+        detailAssignEl.className = "text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-100 inline-block break-all max-w-full";
     } else {
         const labels = detailModal.querySelectorAll('div, span, td, p');
         labels.forEach(node => {
             if (node.children.length === 0 && node.textContent.includes('지정 담당자')) {
                 if (node.nextElementSibling) {
                     node.nextElementSibling.innerText = assignedStr;
-                    node.nextElementSibling.className = "text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-100 inline-block";
+                    node.nextElementSibling.className = "text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-100 inline-block break-all max-w-full";
                 } else {
-                    node.innerHTML = `지정 담당자: <span class="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-100 inline-block">${assignedStr}</span>`;
+                    node.innerHTML = `지정 담당자: <span class="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-100 inline-block break-all max-w-full">${assignedStr}</span>`;
                 }
             }
         });
     }
 
     document.getElementById('detailDate').innerText = task.date || '-';
-    document.getElementById('detailContent').innerText = task.content || '등록된 내용이 없습니다.';
+    
+    // 🌟 모바일 화면 가로 늘어남 방지: 본문 텍스트 및 긴 URL(링크) 자동 줄바꿈(break-all) 강제 적용
+    const contentEl = document.getElementById('detailContent');
+    if (contentEl) {
+        contentEl.innerText = task.content || '등록된 내용이 없습니다.';
+        contentEl.className = "text-xs sm:text-sm text-gray-700 whitespace-pre-line break-all max-w-full overflow-x-auto leading-relaxed";
+    }
 
-    // 상단 '링크 복사' 버튼에 클립보드 이벤트 직접 연결
+    // 상단 '링크 복사' 버튼에 클립보드 이벤트 직접 연결 및 반응형 래핑
     const shareBtn = document.getElementById('shareLinkBtn') || Array.from(detailModal.querySelectorAll('button')).find(b => b.textContent.includes('링크 복사'));
     if (shareBtn) {
+        shareBtn.classList.add('whitespace-nowrap', 'shrink-0');
         shareBtn.onclick = (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -1074,17 +1101,19 @@ async function openDetailModal(taskId) {
         if (shareBtn && shareBtn.parentElement) {
             actionArea = document.createElement('div');
             actionArea.id = 'detailTaskActions';
-            actionArea.className = 'inline-flex items-center gap-1.5 ml-2 mr-2';
+            actionArea.className = 'inline-flex flex-wrap items-center gap-1.5 ml-1 mr-1 max-w-full';
             shareBtn.parentElement.insertBefore(actionArea, shareBtn);
         }
+    } else {
+        actionArea.className = 'inline-flex flex-wrap items-center gap-1.5 ml-1 mr-1 max-w-full';
     }
 
     if (actionArea) {
         if (isAdmin) {
             actionArea.innerHTML = `
-                <button type="button" id="btnDetailEdit" class="px-2.5 py-1 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white text-xs font-bold rounded-lg border border-blue-200 transition shadow-2xs">수정</button>
-                <button type="button" id="btnDetailAssign" class="px-2.5 py-1 bg-orange-50 hover:bg-hermes text-hermes hover:text-white text-xs font-bold rounded-lg border border-orange-200 transition shadow-2xs">담당자 연결</button>
-                <button type="button" id="btnDetailDelete" class="px-2.5 py-1 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white text-xs font-bold rounded-lg border border-red-200 transition shadow-2xs">삭제</button>
+                <button type="button" id="btnDetailEdit" class="px-2 py-1 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white text-xs font-bold rounded-lg border border-blue-200 transition shadow-2xs whitespace-nowrap">수정</button>
+                <button type="button" id="btnDetailAssign" class="px-2 py-1 bg-orange-50 hover:bg-hermes text-hermes hover:text-white text-xs font-bold rounded-lg border border-orange-200 transition shadow-2xs whitespace-nowrap">담당자 연결</button>
+                <button type="button" id="btnDetailDelete" class="px-2 py-1 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white text-xs font-bold rounded-lg border border-red-200 transition shadow-2xs whitespace-nowrap">삭제</button>
             `;
             document.getElementById('btnDetailDelete').onclick = () => deleteTask(taskId);
             document.getElementById('btnDetailEdit').onclick = () => bindInlineEditMode(taskId);
@@ -1092,7 +1121,7 @@ async function openDetailModal(taskId) {
             
         } else if (isAuthor) {
             actionArea.innerHTML = `
-                <button type="button" id="btnDetailEdit" class="px-2.5 py-1 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white text-xs font-bold rounded-lg border border-blue-200 transition shadow-2xs">수정</button>
+                <button type="button" id="btnDetailEdit" class="px-2 py-1 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white text-xs font-bold rounded-lg border border-blue-200 transition shadow-2xs whitespace-nowrap">수정</button>
             `;
             document.getElementById('btnDetailEdit').onclick = () => bindInlineEditMode(taskId);
         } else {
@@ -1100,9 +1129,10 @@ async function openDetailModal(taskId) {
         }
     }
 
-    // 🌟 게시글 상세 창 영역: 썸네일 미리보기를 그대로 출력 (두 번째 인자 false)
+    // 게시글 상세 창 영역: 썸네일 미리보기를 그대로 출력 (두 번째 인자 false)
     const fileBtnArea = document.getElementById('detailFileBtn');
     if (fileBtnArea) {
+        fileBtnArea.className = "flex flex-wrap gap-2 max-w-full overflow-x-auto";
         fileBtnArea.innerHTML = renderFileButtons(task, false);
     }
 
@@ -1119,13 +1149,13 @@ function bindInlineEditMode(taskId) {
 
     if (!titleEl || !contentEl) return;
 
-    titleEl.innerHTML = `<input type="text" id="inlineEditTitle" value="${task.title.replace(/"/g, '&quot;')}" class="w-full text-lg font-black border border-orange-400 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-hermes" />`;
-    contentEl.innerHTML = `<textarea id="inlineEditContent" rows="6" class="w-full text-sm font-medium border border-orange-400 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-hermes">${task.content}</textarea>`;
+    titleEl.innerHTML = `<input type="text" id="inlineEditTitle" value="${task.title.replace(/"/g, '&quot;')}" class="w-full text-base sm:text-lg font-black border border-orange-400 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-hermes box-border" />`;
+    contentEl.innerHTML = `<textarea id="inlineEditContent" rows="6" class="w-full text-xs sm:text-sm font-medium border border-orange-400 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-hermes box-border">${task.content}</textarea>`;
 
     if (actionArea) {
         actionArea.innerHTML = `
-            <button type="button" id="btnInlineSave" class="px-3 py-1.5 bg-hermes hover:bg-orange-600 text-white text-xs font-bold rounded-lg shadow-sm transition">저장</button>
-            <button type="button" id="btnInlineCancel" class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-bold rounded-lg transition">취소</button>
+            <button type="button" id="btnInlineSave" class="px-3 py-1.5 bg-hermes hover:bg-orange-600 text-white text-xs font-bold rounded-lg shadow-sm transition whitespace-nowrap">저장</button>
+            <button type="button" id="btnInlineCancel" class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-bold rounded-lg transition whitespace-nowrap">취소</button>
         `;
 
         document.getElementById('btnInlineCancel').onclick = () => openDetailModal(taskId);
@@ -1165,7 +1195,7 @@ function renderNewCommentFilePreviews() {
     if (!prevArea && inputBox && inputBox.parentElement) {
         prevArea = document.createElement('div');
         prevArea.id = 'commentNewFilesPreviewArea';
-        prevArea.className = 'flex flex-wrap gap-2 my-2.5 p-2 bg-gray-50 border border-dashed border-gray-200 rounded-xl empty:hidden';
+        prevArea.className = 'flex flex-wrap gap-2 my-2.5 p-2 bg-gray-50 border border-dashed border-gray-200 rounded-xl empty:hidden max-w-full';
         inputBox.parentElement.insertBefore(prevArea, inputBox.nextSibling);
     }
 
@@ -1185,10 +1215,10 @@ function renderNewCommentFilePreviews() {
             prevArea.appendChild(itemDiv);
         } else {
             const itemSpan = document.createElement('span');
-            itemSpan.className = 'inline-flex items-center gap-1 bg-orange-50 text-orange-700 text-[10px] font-bold px-2 py-1 rounded-lg border border-orange-200 my-1';
+            itemSpan.className = 'inline-flex items-center gap-1 bg-orange-50 text-orange-700 text-[10px] font-bold px-2 py-1 rounded-lg border border-orange-200 my-1 break-all max-w-full';
             itemSpan.innerHTML = `
-                <i class="fa-solid fa-file text-hermes"></i> ${file.name}
-                <button type="button" class="remove-new-comment-file-btn text-red-500 hover:text-red-700 ml-1 font-black" data-idx="${idx}">✕</button>
+                <i class="fa-solid fa-file text-hermes shrink-0"></i> <span class="truncate max-w-[120px]">${file.name}</span>
+                <button type="button" class="remove-new-comment-file-btn text-red-500 hover:text-red-700 ml-1 font-black shrink-0" data-idx="${idx}">✕</button>
             `;
             prevArea.appendChild(itemSpan);
         }
@@ -1268,20 +1298,20 @@ function renderComments(commentsArr) {
     commentsArr.forEach((c, index) => {
         const canManage = (c.author === currentUserName) || isAdmin;
         const actionBtns = canManage ? `
-            <div class="flex items-center gap-1.5 ml-2">
+            <div class="flex items-center gap-1.5 ml-2 shrink-0">
                 <button type="button" class="edit-comment-btn text-[10px] font-bold text-blue-600 hover:underline transition" data-index="${index}">수정</button>
                 <button type="button" class="delete-comment-btn text-[10px] font-bold text-red-500 hover:underline transition" data-index="${index}">삭제</button>
             </div>
         ` : '';
 
-        // 🌟 댓글 영역: 기존 이미지 썸네일 미리보기 출력 (두 번째 인자 false)
+        // 댓글 영역: 기존 이미지 썸네일 미리보기 출력 (두 번째 인자 false)
         let filesHtml = '';
         if (c.files && c.files.length > 0) {
-            filesHtml = `<div class="flex flex-wrap gap-2 pt-2 mt-2 border-t border-gray-100">${renderFileButtons({ files: c.files }, false)}</div>`;
+            filesHtml = `<div class="flex flex-wrap gap-2 pt-2 mt-2 border-t border-gray-100 max-w-full">${renderFileButtons({ files: c.files }, false)}</div>`;
         }
 
         listEl.innerHTML += `
-            <div class="bg-white border border-gray-200 p-3 rounded-xl shadow-xs space-y-1 comment-item" id="comment-item-${index}">
+            <div class="bg-white border border-gray-200 p-3 rounded-xl shadow-xs space-y-1 comment-item max-w-full overflow-hidden" id="comment-item-${index}">
                 <div class="flex justify-between items-center text-xs">
                     <span class="font-bold text-gray-800">${c.author} <span class="text-[10px] text-gray-400">(${c.role || '멤버'})</span></span>
                     <div class="flex items-center gap-1">
@@ -1290,7 +1320,7 @@ function renderComments(commentsArr) {
                     </div>
                 </div>
                 <div class="comment-body-area" id="comment-body-${index}">
-                    <p class="text-xs text-gray-700 whitespace-pre-line">${c.text}</p>
+                    <p class="text-xs text-gray-700 whitespace-pre-line break-all max-w-full">${c.text}</p>
                     ${filesHtml}
                 </div>
             </div>
@@ -1315,9 +1345,9 @@ function renderComments(commentsArr) {
                 return currentEditFiles.map((f, fIdx) => {
                     const fileName = f.fileName || '첨부파일';
                     return `
-                        <span class="inline-flex items-center gap-1 bg-white text-gray-700 text-[10px] font-bold px-2 py-1 rounded-lg border border-gray-200 shadow-2xs">
-                            <i class="fa-solid fa-paperclip text-hermes"></i> ${fileName}
-                            <button type="button" class="remove-edit-file-btn text-red-500 hover:text-red-700 ml-1 font-black" data-fidx="${fIdx}">✕</button>
+                        <span class="inline-flex items-center gap-1 bg-white text-gray-700 text-[10px] font-bold px-2 py-1 rounded-lg border border-gray-200 shadow-2xs break-all max-w-full">
+                            <i class="fa-solid fa-paperclip text-hermes shrink-0"></i> <span class="truncate max-w-[120px]">${fileName}</span>
+                            <button type="button" class="remove-edit-file-btn text-red-500 hover:text-red-700 ml-1 font-black shrink-0" data-fidx="${fIdx}">✕</button>
                         </span>
                     `;
                 }).join(' ');
@@ -1340,9 +1370,9 @@ function renderComments(commentsArr) {
                         `;
                     } else {
                         prevContainer.innerHTML += `
-                            <span class="inline-flex items-center gap-1 bg-orange-50 text-orange-700 text-[10px] font-bold px-2 py-1 rounded-lg border border-orange-200 my-1">
-                                <i class="fa-solid fa-file text-hermes"></i> ${file.name}
-                                <button type="button" class="remove-new-file-btn text-red-500 hover:text-red-700 ml-1 font-black" data-nidx="${nIdx}">✕</button>
+                            <span class="inline-flex items-center gap-1 bg-orange-50 text-orange-700 text-[10px] font-bold px-2 py-1 rounded-lg border border-orange-200 my-1 break-all max-w-full">
+                                <i class="fa-solid fa-file text-hermes shrink-0"></i> <span class="truncate max-w-[120px]">${file.name}</span>
+                                <button type="button" class="remove-new-file-btn text-red-500 hover:text-red-700 ml-1 font-black shrink-0" data-nidx="${nIdx}">✕</button>
                             </span>
                         `;
                     }
@@ -1359,33 +1389,33 @@ function renderComments(commentsArr) {
             }
 
             bodyArea.innerHTML = `
-                <div class="mt-1 space-y-2 border-2 border-orange-300 p-3 rounded-2xl bg-orange-50/20 transition-all cursor-pointer" id="inline-edit-box-${idx}">
-                    <textarea id="inline-edit-textarea-${idx}" class="w-full text-xs p-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-hermes/30 transition resize-y bg-white" rows="3" placeholder="댓글 내용을 수정하거나 전체 영역에 파일을 끌어다 놓으세요.">${comment.text}</textarea>
+                <div class="mt-1 space-y-2 border-2 border-orange-300 p-2.5 sm:p-3 rounded-2xl bg-orange-50/20 transition-all cursor-pointer max-w-full" id="inline-edit-box-${idx}">
+                    <textarea id="inline-edit-textarea-${idx}" class="w-full text-xs p-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-hermes/30 transition resize-y bg-white box-border" rows="3" placeholder="댓글 내용을 수정하거나 전체 영역에 파일을 끌어다 놓으세요.">${comment.text}</textarea>
                     
-                    <div class="space-y-1 bg-white p-2.5 rounded-xl border border-gray-200">
-                        <div class="text-[10px] font-bold text-gray-500 flex justify-between">
+                    <div class="space-y-1 bg-white p-2.5 rounded-xl border border-gray-200 max-w-full">
+                        <div class="text-[10px] font-bold text-gray-500 flex justify-between flex-wrap gap-1">
                             <span>기존 첨부파일:</span>
                             <span class="text-orange-500 font-bold text-[9px]">* 이 박스 영역 전체에 파일 드래그 & 드롭 가능</span>
                         </div>
                         
-                        <div id="inline-edit-files-container-${idx}" class="flex flex-wrap gap-1">
+                        <div id="inline-edit-files-container-${idx}" class="flex flex-wrap gap-1 max-w-full">
                             ${renderEditFilesList()}
                         </div>
 
-                        <div id="inline-edit-new-previews-${idx}" class="flex flex-wrap gap-2 pt-2 border-t border-dashed border-gray-200 empty:hidden">
+                        <div id="inline-edit-new-previews-${idx}" class="flex flex-wrap gap-2 pt-2 border-t border-dashed border-gray-200 empty:hidden max-w-full">
                         </div>
 
                         <div class="pt-1 flex items-center gap-2">
                             <input type="file" id="inline-edit-file-input-${idx}" multiple class="hidden" />
-                            <button type="button" id="inline-edit-file-trigger-${idx}" class="text-xs bg-gray-100 hover:bg-orange-100 text-gray-700 px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1 border border-gray-200">
+                            <button type="button" id="inline-edit-file-trigger-${idx}" class="text-xs bg-gray-100 hover:bg-orange-100 text-gray-700 px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1 border border-gray-200 whitespace-nowrap">
                                 <i class="fa-solid fa-paperclip text-hermes"></i> PC 파일 선택
                             </button>
                         </div>
                     </div>
 
                     <div class="flex justify-end gap-1.5 pt-1">
-                        <button type="button" class="cancel-inline-edit-btn bg-gray-100 hover:bg-gray-200 text-gray-700 text-[10px] font-bold px-3 py-1.5 rounded-lg transition">취소</button>
-                        <button type="button" class="save-inline-edit-btn bg-hermes hover:bg-orange-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg transition shadow-xs">저장</button>
+                        <button type="button" class="cancel-inline-edit-btn bg-gray-100 hover:bg-gray-200 text-gray-700 text-[10px] font-bold px-3 py-1.5 rounded-lg transition whitespace-nowrap">취소</button>
+                        <button type="button" class="save-inline-edit-btn bg-hermes hover:bg-orange-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg transition shadow-xs whitespace-nowrap">저장</button>
                     </div>
                 </div>
             `;

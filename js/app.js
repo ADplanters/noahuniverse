@@ -467,7 +467,7 @@ function showPendingPopup() {
 }
 
 // ============================================================================
-// 5. 업무 이슈/요청 게시판 (신규 작성 및 삭제)
+// 5. 업무 이슈/요청 게시판 (목록 렌더링 및 외부 모달 제어)
 // ============================================================================
 safeAddListener('taskForm', 'submit', async (e) => {
     e.preventDefault();
@@ -502,9 +502,6 @@ safeAddListener('taskForm', 'submit', async (e) => {
         assignedManagersArr = Array.from(checkboxes).map(cb => cb.value);
     }
 
-    // 🌟 staff는 최초 포스팅 작성자 이름으로 고정
-    const authorStaffName = document.getElementById('inputStaff').value || currentUserName || '담당자';
-
     const newTask = {
         client: document.getElementById('inputClient').value,
         type: document.getElementById('inputType').value,
@@ -512,7 +509,7 @@ safeAddListener('taskForm', 'submit', async (e) => {
         title: tTitle,
         content: document.getElementById('inputContent').value,
         files: filesArr, 
-        staff: authorStaffName, // 작성자 이름 영구 보존
+        staff: document.getElementById('inputStaff').value,
         email: auth.currentUser ? auth.currentUser.email : '',
         uid: auth.currentUser ? auth.currentUser.uid : '',
         assignedManagers: assignedManagersArr,
@@ -583,7 +580,7 @@ function openEditTaskModal(taskId) {
     }
 }
 
-// 🌟 담당자 다중 연결 플로팅 모달 오픈 및 이벤트 바인딩 복구
+// 담당자 다중 연결 중앙 플로팅 모달 오픈
 async function openAssignModal(taskId) {
     const task = tasksMap[taskId];
     if (!task) return;
@@ -613,7 +610,9 @@ async function openAssignModal(taskId) {
                 const usersSnap = await getDocs(query(collection(db, "users"), where("status", "==", "approved")));
                 let html = '<div class="flex flex-col gap-1.5">';
                 
-                const currentAssigned = task.assignedManagers || [];
+                const currentAssigned = task.assignedManagers && task.assignedManagers.length > 0 
+                    ? task.assignedManagers 
+                    : (task.staff && task.staff !== '미지정' ? task.staff.split(',').map(s=>s.trim()) : []);
 
                 usersSnap.forEach(uDoc => {
                     const u = uDoc.data();
@@ -636,87 +635,11 @@ async function openAssignModal(taskId) {
         assignModal.classList.remove('hidden');
         assignModal.style.zIndex = "99999";
 
-        // X버튼 및 취소 버튼 닫기 바인딩
         const closeBtn = assignModal.querySelector('.fa-xmark')?.closest('button') || assignModal.querySelector('button[title="닫기"]');
         const cancelBtn = assignModal.querySelector('button.bg-gray-100') || Array.from(assignModal.querySelectorAll('button')).find(b => b.textContent.includes('취소'));
         
         if (closeBtn) closeBtn.onclick = (e) => { e.preventDefault(); assignModal.classList.add('hidden'); };
         if (cancelBtn) cancelBtn.onclick = (e) => { e.preventDefault(); assignModal.classList.add('hidden'); };
-
-        // 🌟 [배정 완료] 버튼 및 폼에 실행 이벤트 바인딩
-        bindAssignSubmitEvents();
-    }
-}
-
-// 🌟 담당자 배정 처리 실행 함수 (작성자 staff 필드는 보존)
-async function executeAssignManagers() {
-    const targetId = currentAssignClientId || currentDetailTaskId;
-    if (!targetId) {
-        alert("대상을 찾을 수 없습니다.");
-        return;
-    }
-
-    const submitBtn = assignModal.querySelector('button[type="submit"]') || 
-                      Array.from(assignModal.querySelectorAll('button')).find(b => b.textContent.includes('배정') || b.textContent.includes('완료'));
-    
-    const origText = submitBtn ? submitBtn.innerText : '배정 완료';
-    if (submitBtn) {
-        submitBtn.innerText = "저장 중...";
-        submitBtn.disabled = true;
-    }
-
-    try {
-        const checkboxes = assignModal.querySelectorAll('.assign-manager-checkbox:checked');
-        const selectedManagers = Array.from(checkboxes).map(cb => cb.value);
-
-        // 🌟 Firestore 업데이트 (staff 작성자는 절대 수정하지 않음)
-        await updateDoc(doc(db, "crm_tasks", targetId), {
-            assignedManagers: selectedManagers
-        });
-
-        if (tasksMap[targetId]) {
-            tasksMap[targetId].assignedManagers = selectedManagers;
-        }
-
-        alert("담당자가 연결되었습니다.");
-        assignModal.classList.add('hidden');
-
-        await fetchTasks();
-
-        if (detailModal && !detailModal.classList.contains('hidden')) {
-            openDetailModal(targetId);
-        }
-    } catch (err) {
-        console.error("담당자 배정 오류:", err);
-        alert("담당자 배정 실패: " + err.message);
-    } finally {
-        if (submitBtn) {
-            submitBtn.innerText = origText;
-            submitBtn.disabled = false;
-        }
-    }
-}
-
-// 배정 완료 버튼 및 폼 이벤트 강제 바인딩
-function bindAssignSubmitEvents() {
-    const submitBtn = assignModal.querySelector('button[type="submit"]') || 
-                      Array.from(assignModal.querySelectorAll('button')).find(b => b.textContent.includes('배정') || b.textContent.includes('완료'));
-    
-    if (submitBtn) {
-        submitBtn.onclick = async (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            await executeAssignManagers();
-        };
-    }
-
-    const assignForm = assignModal.querySelector('form') || document.getElementById('assignForm');
-    if (assignForm) {
-        assignForm.onsubmit = async (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            await executeAssignManagers();
-        };
     }
 }
 
@@ -754,6 +677,55 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
         }
     } catch (err) { 
         alert("이슈 수정 실패: " + err.message); 
+    }
+});
+
+// 외부 모달 폼 제출을 통한 담당자 배정 
+safeAddListener('assignForm', 'submit', async (e) => {
+    e.preventDefault();
+    const targetId = currentAssignClientId || currentDetailTaskId;
+    if (!targetId) return;
+
+    const submitBtn = assignModal.querySelector('button[type="submit"]') || Array.from(assignModal.querySelectorAll('button')).find(b => b.textContent.includes('배정'));
+    const origText = submitBtn ? submitBtn.innerText : '배정 완료';
+    
+    if (submitBtn) { 
+        submitBtn.innerText = "저장 중..."; 
+        submitBtn.disabled = true; 
+    }
+
+    const checkboxes = assignModal.querySelectorAll('.assign-manager-checkbox:checked');
+    const selectedManagers = Array.from(checkboxes).map(cb => cb.value);
+    const staffString = selectedManagers.length > 0 ? selectedManagers.join(', ') : '미지정';
+
+    try {
+        await updateDoc(doc(db, "crm_tasks", targetId), {
+            assignedManagers: selectedManagers,
+            staff: staffString
+        });
+
+        if (tasksMap[targetId]) {
+            tasksMap[targetId].assignedManagers = selectedManagers;
+            tasksMap[targetId].staff = staffString;
+        }
+
+        if (assignModal) {
+            assignModal.classList.add('hidden');
+        }
+        
+        alert("담당자가 배정되었습니다.");
+        await fetchTasks();
+
+        if (detailModal && !detailModal.classList.contains('hidden')) {
+            openDetailModal(targetId);
+        }
+    } catch (err) { 
+        alert("담당자 저장 실패: " + err.message); 
+    } finally {
+        if (submitBtn) { 
+            submitBtn.innerText = origText; 
+            submitBtn.disabled = false; 
+        }
     }
 });
 
@@ -813,7 +785,7 @@ async function fetchTasks() {
 
             const fileButton = renderFileButtons(item);
             const commentCount = item.comments ? item.comments.length : 0;
-            const displayStaff = (item.assignedManagers && item.assignedManagers.length > 0) ? item.assignedManagers.join(', ') : '미지정';
+            const displayStaff = (item.assignedManagers && item.assignedManagers.length > 0) ? item.assignedManagers.join(', ') : (item.staff || '미지정');
 
             rowsHtml += `
                 <tr class="hover:bg-hermes-light/30 transition group border-b border-gray-100 cursor-pointer task-detail-trigger" data-id="${item.id}">
@@ -849,7 +821,7 @@ async function fetchTasks() {
 }
 
 // ============================================================================
-// 6. 이슈 상세 모달 (🌟작성자 / 지정 담당자 분리 및 정확한 렌더링)
+// 6. 이슈 상세 모달 (자연스러운 인라인 에디팅 & 담당자 배정 표기 최적화)
 // ============================================================================
 async function openDetailModal(taskId) {
     const task = tasksMap[taskId];
@@ -873,35 +845,15 @@ async function openDetailModal(taskId) {
     document.getElementById('detailType').innerText = task.type || 'Q&A';
     document.getElementById('detailClient').innerText = task.client || '-';
     
-    // 🌟 작성자 (포스팅 최초 작성자 - 절대 담당자로 변경되지 않음)
-    const authorName = task.staff || task.name || '담당자';
-    const detailStaffEl = document.getElementById('detailStaff');
-    if (detailStaffEl) {
-        detailStaffEl.innerText = authorName;
-    }
-
-    // 🌟 지정 담당자 (다중 배정 연결된 멤버 목록)
-    const assignedStr = (task.assignedManagers && task.assignedManagers.length > 0) 
+    // 지정 담당자 표기 복구 및 디자인 보정
+    const staffDisplay = (task.assignedManagers && task.assignedManagers.length > 0) 
         ? task.assignedManagers.join(', ') 
-        : '미지정';
-
-    const detailAssignEl = document.getElementById('detailAssign') || document.getElementById('detailAssignedManagers');
-    if (detailAssignEl) {
-        detailAssignEl.innerText = assignedStr;
-        detailAssignEl.className = "text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-100 inline-block";
-    } else {
-        // DOM 구조에서 '지정 담당자' 라벨 근처 요소를 직접 검색하여 세팅
-        const labels = detailModal.querySelectorAll('div, span, td, p');
-        labels.forEach(node => {
-            if (node.children.length === 0 && node.textContent.includes('지정 담당자')) {
-                if (node.nextElementSibling) {
-                    node.nextElementSibling.innerText = assignedStr;
-                    node.nextElementSibling.className = "text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-100 inline-block";
-                } else {
-                    node.innerHTML = `지정 담당자: <span class="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-100 inline-block">${assignedStr}</span>`;
-                }
-            }
-        });
+        : (task.staff || '미지정');
+    
+    const staffEl = document.getElementById('detailStaff');
+    if (staffEl) {
+        staffEl.innerText = staffDisplay;
+        staffEl.className = "text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-100 inline-block";
     }
 
     document.getElementById('detailDate').innerText = task.date || '-';
@@ -930,6 +882,7 @@ async function openDetailModal(taskId) {
                 <button type="button" id="btnDetailDelete" class="px-2.5 py-1 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white text-xs font-bold rounded-lg border border-red-200 transition shadow-2xs">삭제</button>
             `;
             document.getElementById('btnDetailDelete').onclick = () => deleteTask(taskId);
+            
             document.getElementById('btnDetailEdit').onclick = () => bindInlineEditMode(taskId);
             document.getElementById('btnDetailAssign').onclick = () => openAssignModal(taskId);
             
@@ -997,7 +950,7 @@ function bindInlineEditMode(taskId) {
 }
 
 // ============================================================================
-// 7. 소통 댓글 모듈 (수정 창 전체 드래그&드롭 + 실시간 이미지 미리보기)
+// 7. 소통 댓글 모듈 (🌟 수정 창 전체 드래그&드롭 + 실시간 이미지 미리보기 구현)
 // ============================================================================
 function renderComments(commentsArr) {
     const listEl = document.getElementById('commentListArea') || document.getElementById('commentList');
@@ -1056,7 +1009,7 @@ function renderComments(commentsArr) {
             if (!bodyArea || bodyArea.querySelector('textarea')) return;
 
             let currentEditFiles = comment.files ? [...comment.files] : [];
-            let newSelectedFiles = [];
+            let newSelectedFiles = []; // 🌟 신규 드래그/선택된 파일 객체 관리 배열
 
             function renderEditFilesList() {
                 if (currentEditFiles.length === 0) return '<span class="text-[10px] text-gray-400 italic">첨부파일 없음</span>';
@@ -1071,6 +1024,7 @@ function renderComments(commentsArr) {
                 }).join(' ');
             }
 
+            // 🌟 실시간 이미지 썸네일 미리보기 함수
             function renderNewFilesPreview() {
                 const prevContainer = document.getElementById(`inline-edit-new-previews-${idx}`);
                 if (!prevContainer) return;
@@ -1096,6 +1050,7 @@ function renderComments(commentsArr) {
                     }
                 });
 
+                // 새로 추가된 미리보기 파일 개별 삭제(✕) 바인딩
                 prevContainer.querySelectorAll('.remove-new-file-btn').forEach(rmBtn => {
                     rmBtn.addEventListener('click', (eEvt) => {
                         eEvt.stopPropagation();
@@ -1106,9 +1061,10 @@ function renderComments(commentsArr) {
                 });
             }
 
+            // 🌟 전체 영역 감싸는 모드 및 UI 개선
             bodyArea.innerHTML = `
                 <div class="mt-1 space-y-2 border-2 border-orange-300 p-3 rounded-2xl bg-orange-50/20 transition-all cursor-pointer" id="inline-edit-box-${idx}">
-                    <textarea id="inline-edit-textarea-${idx}" class="w-full text-xs p-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-hermes/30 transition resize-y bg-white" rows="3" placeholder="댓글 내용을 수정하거나 박스 전체 영역에 파일을 끌어다 놓으세요.">${comment.text}</textarea>
+                    <textarea id="inline-edit-textarea-${idx}" class="w-full text-xs p-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-hermes/30 transition resize-y bg-white" rows="3" placeholder="댓글 내용을 수정하거나 박물 전체 영역에 파일을 끌어다 놓으세요.">${comment.text}</textarea>
                     
                     <div class="space-y-1 bg-white p-2.5 rounded-xl border border-gray-200">
                         <div class="text-[10px] font-bold text-gray-500 flex justify-between">
@@ -1116,10 +1072,12 @@ function renderComments(commentsArr) {
                             <span class="text-orange-500 font-bold text-[9px]">* 이 박스 영역 전체에 파일 드래그 & 드롭 가능</span>
                         </div>
                         
+                        <!-- 기존 보존 파일 리스트 -->
                         <div id="inline-edit-files-container-${idx}" class="flex flex-wrap gap-1">
                             ${renderEditFilesList()}
                         </div>
 
+                        <!-- 🌟 실시간 새로 드래그/선택된 파일 미리보기 영역 -->
                         <div id="inline-edit-new-previews-${idx}" class="flex flex-wrap gap-2 pt-2 border-t border-dashed border-gray-200 empty:hidden">
                         </div>
 
@@ -1138,6 +1096,7 @@ function renderComments(commentsArr) {
                 </div>
             `;
 
+            // 🌟 수정 박스 전체 영역 드래그 앤 드롭 이벤트 바인딩
             const editBox = document.getElementById(`inline-edit-box-${idx}`);
             const fileInput = document.getElementById(`inline-edit-file-input-${idx}`);
             const fileTrigger = document.getElementById(`inline-edit-file-trigger-${idx}`);

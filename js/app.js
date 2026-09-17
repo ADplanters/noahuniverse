@@ -81,7 +81,7 @@ function checkIsAdmin() {
     return false;
 }
 
-// 🌟 작성자 본인 확인 로직
+// 작성자 본인 확인
 function checkIsAuthor(task) {
     if (!auth.currentUser || !task) return false;
     return (task.staff === currentUserName) || 
@@ -117,7 +117,7 @@ function openImageModal(imgUrl) {
     if (!modal) {
         modal = document.createElement('div');
         modal.id = 'globalImageModal';
-        modal.className = 'fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 hidden backdrop-blur-xs transition-opacity duration-200';
+        modal.className = 'fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 hidden backdrop-blur-xs transition-opacity duration-200';
         modal.innerHTML = `
             <div class="relative max-w-5xl max-h-[90vh] flex flex-col items-center">
                 <button type="button" id="closeImageModalBtn" class="absolute -top-10 right-0 text-white text-3xl font-bold hover:text-orange-400 transition cursor-pointer">&times;</button>
@@ -315,7 +315,6 @@ onAuthStateChanged(auth, async (user) => {
             isInitialLoginLogged = true;
         }
 
-        // 1. ADMIN_EMAILS 목록 지정 관리자 자동 승인
         if (ADMIN_EMAILS.includes(user.email)) {
             await setDoc(userRef, { email: user.email, name: currentUserName, role: "admin", status: "approved" }, { merge: true });
             currentUserRole = 'admin';
@@ -323,7 +322,6 @@ onAuthStateChanged(auth, async (user) => {
             return;
         }
 
-        // 2. 이메일 기반 기존 UID 자동 매핑 처리
         if (!userSnap.exists()) {
             const q = query(collection(db, "users"), where("email", "==", user.email));
             const qSnap = await getDocs(q);
@@ -412,7 +410,7 @@ function showPendingPopup() {
 }
 
 // ============================================================================
-// 5. 업무 이슈/요청 게시판 (이슈 제어 로직 모음)
+// 5. 업무 이슈/요청 게시판 (목록 렌더링 및 외부 모달 제어)
 // ============================================================================
 safeAddListener('taskForm', 'submit', async (e) => {
     e.preventDefault();
@@ -479,7 +477,7 @@ safeAddListener('taskForm', 'submit', async (e) => {
     }
 });
 
-// 🌟 게시글 삭제 처리
+// 외부 리스트에서 게시글 삭제 처리
 async function deleteTask(taskId) {
     const task = tasksMap[taskId];
     const title = task ? task.title : '해당 이슈';
@@ -496,83 +494,96 @@ async function deleteTask(taskId) {
     }
 }
 
-// 🌟 게시글 수정 팝업 오픈 (기존 데이터 세팅 복구)
+// 외부 리스트 게시글 수정 모달 팝업 오픈 (빈 공백 방지 완벽 처리)
 function openEditTaskModal(taskId) {
     const task = tasksMap[taskId];
     if (!task) return;
     currentDetailTaskId = taskId;
 
     if (editTaskModal) {
-        // 기존 폼 엘리먼트 데이터 채우기 (빈 칸 방지)
-        const titleIn = document.getElementById('editInputTitle') || editTaskModal.querySelector('input[name="title"]');
-        const contentIn = document.getElementById('editInputContent') || editTaskModal.querySelector('textarea[name="content"]');
-        const typeIn = document.getElementById('editInputType') || editTaskModal.querySelector('select[name="type"]');
-        const clientIn = document.getElementById('editInputClient') || editTaskModal.querySelector('input[name="client"]');
+        const inputs = editTaskModal.querySelectorAll('input[type="text"]');
+        const selects = editTaskModal.querySelectorAll('select');
+        const textareas = editTaskModal.querySelectorAll('textarea');
 
-        if (titleIn) titleIn.value = task.title || '';
-        if (contentIn) contentIn.value = task.content || '';
-        if (typeIn) typeIn.value = task.type || 'Q&A';
+        const clientIn = document.getElementById('editInputClient') || editTaskModal.querySelector('[name="client"]') || inputs[0];
+        const titleIn = document.getElementById('editInputTitle') || editTaskModal.querySelector('[name="title"]') || inputs[1];
+        const typeIn = document.getElementById('editInputType') || editTaskModal.querySelector('[name="type"]') || selects[0];
+        const agencyIn = document.getElementById('editInputAgency') || editTaskModal.querySelector('[name="agency"]') || selects[1];
+        const contentIn = document.getElementById('editInputContent') || editTaskModal.querySelector('[name="content"]') || textareas[0];
+
         if (clientIn) clientIn.value = task.client || '';
+        if (titleIn) titleIn.value = task.title || '';
+        if (typeIn) typeIn.value = task.type || 'Q&A';
+        if (agencyIn) agencyIn.value = task.agency || '';
+        if (contentIn) contentIn.value = task.content || '';
 
-        // 🌟 z-index 최상위 배치하여 상세 모달 앞으로 노출되도록 보정
         editTaskModal.classList.remove('hidden');
-        editTaskModal.style.zIndex = "999"; 
+        editTaskModal.style.zIndex = "9999"; 
     }
 }
 
-// 🌟 담당자 다중 연결 모달 오픈 (멤버 리스트 정상 출력 보정)
+// 외부 리스트 담당자 다중 연결 팝업 오픈 (멤버 리스트 노출 및 X 닫기 복구)
 async function openAssignModal(taskId) {
     const task = tasksMap[taskId];
     if (!task) return;
     currentAssignClientId = taskId;
 
     if (assignModal) {
-        const listContainer = document.getElementById('assignManagerList') || document.querySelector('#assignModal .assign-manager-list');
-        if (listContainer) {
-            listContainer.innerHTML = '<div class="text-xs text-gray-400 p-2"><i class="fa-solid fa-spinner animate-spin mr-1"></i> 멤버 목록 불러오는 중...</div>';
-            try {
-                // 전체 가입 승인된 멤버 리스트 호출
-                const usersSnap = await getDocs(query(collection(db, "users"), where("status", "==", "approved")));
-                let html = '';
-                const currentAssigned = task.assignedManagers || [];
-                
-                usersSnap.forEach(uDoc => {
-                    const u = uDoc.data();
-                    const isChecked = currentAssigned.includes(u.name) || task.staff === u.name ? 'checked' : '';
-                    html += `
-                        <label class="flex items-center gap-2 p-2 hover:bg-orange-50 rounded-lg cursor-pointer text-xs font-bold text-gray-700">
-                            <input type="checkbox" value="${u.name}" class="assign-manager-checkbox rounded text-hermes focus:ring-hermes" ${isChecked} />
-                            <span>${u.name} <span class="text-[10px] text-gray-400 font-normal">(${u.email})</span></span>
-                        </label>
-                    `;
-                });
-                listContainer.innerHTML = html || '<div class="text-xs text-gray-400 p-2">등록된 멤버가 없습니다.</div>';
-            } catch(err) {
-                console.error(err);
-                listContainer.innerHTML = '<div class="text-xs text-red-500 p-2">멤버 목록을 불러오지 못했습니다.</div>';
-            }
-        }
-        
-        // 🌟 z-index 최상위 배치 및 닫기 버튼 이벤트 재바인딩
-        assignModal.classList.remove('hidden');
-        assignModal.style.zIndex = "999";
+        const descP = Array.from(assignModal.querySelectorAll('p, span, div')).find(el => el.textContent.includes('인원을 선택하세요'));
+        let listContainer = descP ? descP.nextElementSibling : document.getElementById('assignManagerList');
 
-        const closeBtn = assignModal.querySelector('.fa-xmark')?.closest('button');
-        const cancelBtn = assignModal.querySelector('button.bg-gray-100');
+        if (!listContainer || listContainer.tagName === 'BUTTON' || listContainer.tagName === 'FORM') {
+             const newDiv = document.createElement('div');
+             descP.parentNode.insertBefore(newDiv, descP.nextSibling);
+             listContainer = newDiv;
+        }
+
+        listContainer.className = "mt-4 bg-gray-50 border border-gray-200 rounded-xl p-3 max-h-48 overflow-y-auto shadow-inner";
+        listContainer.innerHTML = '<div class="text-xs text-gray-400 p-2 text-center"><i class="fa-solid fa-spinner animate-spin"></i> 로딩 중...</div>';
+
+        try {
+            const usersSnap = await getDocs(query(collection(db, "users"), where("status", "==", "approved")));
+            let html = '<div class="flex flex-col gap-1.5">';
+            const currentAssigned = task.assignedManagers || [];
+            
+            usersSnap.forEach(uDoc => {
+                const u = uDoc.data();
+                const isChecked = currentAssigned.includes(u.name) || task.staff === u.name ? 'checked' : '';
+                html += `
+                    <label class="flex items-center gap-2 p-2 hover:bg-white rounded-lg cursor-pointer text-xs font-bold text-gray-700 transition">
+                        <input type="checkbox" value="${u.name}" class="assign-manager-checkbox rounded text-hermes focus:ring-hermes" ${isChecked} />
+                        <span>${u.name} <span class="text-[10px] text-gray-400 font-normal">(${u.email})</span></span>
+                    </label>
+                `;
+            });
+            html += '</div>';
+            listContainer.innerHTML = html;
+        } catch(err) { listContainer.innerHTML = '<div class="text-xs text-red-500">불러오기 실패</div>'; }
+
+        assignModal.classList.remove('hidden');
+        assignModal.style.zIndex = "9999";
+
+        // X버튼 및 취소 기능 복구
+        const closeBtn = assignModal.querySelector('.fa-xmark')?.closest('button') || assignModal.querySelector('button[title="닫기"]');
+        const cancelBtn = assignModal.querySelector('button.bg-gray-100') || Array.from(assignModal.querySelectorAll('button')).find(b => b.textContent.includes('취소'));
         if (closeBtn) closeBtn.onclick = () => assignModal.classList.add('hidden');
         if (cancelBtn) cancelBtn.onclick = () => assignModal.classList.add('hidden');
     }
 }
 
-// 🌟 게시글 수정 폼 제출 (저장 처리)
+// 외부 리스트 게시글 수정 완료 저장
 safeAddListener('editTaskForm', 'submit', async (e) => {
     e.preventDefault();
     if (!currentDetailTaskId) return;
 
-    const titleIn = document.getElementById('editInputTitle') || document.querySelector('#editTaskForm input[name="title"]');
-    const contentIn = document.getElementById('editInputContent') || document.querySelector('#editTaskForm textarea[name="content"]');
-    const typeIn = document.getElementById('editInputType') || document.querySelector('#editTaskForm select[name="type"]');
-    const clientIn = document.getElementById('editInputClient') || document.querySelector('#editTaskForm input[name="client"]');
+    const inputs = editTaskModal.querySelectorAll('input[type="text"]');
+    const selects = editTaskModal.querySelectorAll('select');
+    const textareas = editTaskModal.querySelectorAll('textarea');
+
+    const clientIn = document.getElementById('editInputClient') || editTaskModal.querySelector('[name="client"]') || inputs[0];
+    const titleIn = document.getElementById('editInputTitle') || editTaskModal.querySelector('[name="title"]') || inputs[1];
+    const typeIn = document.getElementById('editInputType') || editTaskModal.querySelector('[name="type"]') || selects[0];
+    const contentIn = document.getElementById('editInputContent') || editTaskModal.querySelector('[name="content"]') || textareas[0];
 
     try {
         await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), {
@@ -586,12 +597,10 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
         alert("이슈 수정이 완료되었습니다.");
         await fetchTasks();
         if (!detailModal.classList.contains('hidden')) openDetailModal(currentDetailTaskId);
-    } catch (err) {
-        alert("이슈 수정 실패: " + err.message);
-    }
+    } catch (err) { alert("이슈 수정 실패: " + err.message); }
 });
 
-// 🌟 담당자 다중 연결 완료 폼 제출 (저장 처리)
+// 외부 리스트 담당자 다중 연결 저장
 safeAddListener('assignForm', 'submit', async (e) => {
     e.preventDefault();
     const targetId = currentAssignClientId || currentDetailTaskId;
@@ -609,9 +618,7 @@ safeAddListener('assignForm', 'submit', async (e) => {
         alert("담당자 연결이 완료되었습니다.");
         await fetchTasks();
         if (!detailModal.classList.contains('hidden')) openDetailModal(targetId);
-    } catch (err) {
-        alert("담당자 연결 실패: " + err.message);
-    }
+    } catch (err) { alert("담당자 연결 실패: " + err.message); }
 });
 
 async function fetchTasks() {
@@ -704,7 +711,9 @@ async function fetchTasks() {
     } catch (e) { console.error("Firestore error:", e); }
 }
 
-// 상세 모달 열기 및 내부에 🌟 작성자/관리자별 수정/삭제/담당자연결 컨트롤 노출
+// ============================================================================
+// 6. 이슈 상세 모달 내부 (🌟자연스러운 인라인 에디팅 & 인라인 담당자 배정 제어)
+// ============================================================================
 async function openDetailModal(taskId) {
     const task = tasksMap[taskId];
     if(!task) return;
@@ -728,7 +737,7 @@ async function openDetailModal(taskId) {
     document.getElementById('detailDate').innerText = task.date || '-';
     document.getElementById('detailContent').innerText = task.content || '등록된 내용이 없습니다.';
 
-    // 🌟 상세 모달 상단 컨트롤 버튼 바 제어 (관리자 vs 작성자 본인)
+    // 🌟 상세 모달 상단 컨트롤러 버튼 생성 (권한 분리)
     const isAdmin = checkIsAdmin();
     const isAuthor = checkIsAuthor(task);
 
@@ -750,14 +759,14 @@ async function openDetailModal(taskId) {
                 <button type="button" id="btnDetailAssign" class="px-2.5 py-1 bg-orange-50 hover:bg-hermes text-hermes hover:text-white text-xs font-bold rounded-lg border border-orange-200 transition shadow-2xs">담당자 연결</button>
                 <button type="button" id="btnDetailDelete" class="px-2.5 py-1 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white text-xs font-bold rounded-lg border border-red-200 transition shadow-2xs">삭제</button>
             `;
-            document.getElementById('btnDetailEdit').onclick = () => openEditTaskModal(taskId);
-            document.getElementById('btnDetailAssign').onclick = () => openAssignModal(taskId);
             document.getElementById('btnDetailDelete').onclick = () => deleteTask(taskId);
+            bindInlineEdit(taskId);
+            bindInlineAssign(taskId);
         } else if (isAuthor) {
             actionArea.innerHTML = `
                 <button type="button" id="btnDetailEdit" class="px-2.5 py-1 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white text-xs font-bold rounded-lg border border-blue-200 transition shadow-2xs">수정</button>
             `;
-            document.getElementById('btnDetailEdit').onclick = () => openEditTaskModal(taskId);
+            bindInlineEdit(taskId);
         } else {
             actionArea.innerHTML = '';
         }
@@ -771,8 +780,88 @@ async function openDetailModal(taskId) {
     logActivity("상세 조회", `[${task.title}] 상세 내용을 조회했습니다.`);
 }
 
+// 🌟 상세 모달 내부 본문 자연스러운 인라인 편집 모드
+function bindInlineEdit(taskId) {
+    const btnEdit = document.getElementById('btnDetailEdit');
+    if(!btnEdit) return;
+
+    btnEdit.onclick = () => {
+        const task = tasksMap[taskId];
+        const titleEl = document.getElementById('detailTitle');
+        const contentEl = document.getElementById('detailContent');
+        const actionArea = document.getElementById('detailTaskActions');
+
+        titleEl.innerHTML = `<input type="text" id="inlineEditTitle" value="${task.title.replace(/"/g, '&quot;')}" class="w-full text-lg font-black border border-orange-400 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-hermes" />`;
+        contentEl.innerHTML = `<textarea id="inlineEditContent" rows="6" class="w-full text-sm font-medium border border-orange-400 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-hermes">${task.content}</textarea>`;
+
+        actionArea.innerHTML = `
+            <button type="button" id="btnInlineSave" class="px-3 py-1.5 bg-hermes hover:bg-orange-600 text-white text-xs font-bold rounded-lg shadow-sm transition">저장</button>
+            <button type="button" id="btnInlineCancel" class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-bold rounded-lg transition">취소</button>
+        `;
+
+        document.getElementById('btnInlineCancel').onclick = () => openDetailModal(taskId);
+        document.getElementById('btnInlineSave').onclick = async () => {
+            const newTitle = document.getElementById('inlineEditTitle').value.trim();
+            const newContent = document.getElementById('inlineEditContent').value.trim();
+            if(!newTitle) { alert("제목을 입력해주세요."); return; }
+
+            document.getElementById('btnInlineSave').innerText = "저장중...";
+            try {
+                await updateDoc(doc(db, "crm_tasks", taskId), { title: newTitle, content: newContent, updatedAt: new Date().toISOString() });
+                tasksMap[taskId].title = newTitle; tasksMap[taskId].content = newContent;
+                alert("수정이 완료되었습니다."); fetchTasks(); openDetailModal(taskId);
+            } catch(err) { alert(err.message); }
+        };
+    };
+}
+
+// 🌟 상세 모달 지정 담당자 영역 드롭다운 리스트 치환 모드
+function bindInlineAssign(taskId) {
+    const btnAssign = document.getElementById('btnDetailAssign');
+    if(!btnAssign) return;
+
+    btnAssign.onclick = async () => {
+        const task = tasksMap[taskId];
+        const staffEl = document.getElementById('detailStaff');
+        staffEl.innerHTML = '<span class="text-gray-400 text-[10px]"><i class="fa-solid fa-spinner animate-spin"></i> 로딩중...</span>';
+
+        const usersSnap = await getDocs(query(collection(db, "users"), where("status", "==", "approved")));
+        let html = `<div class="mt-2 bg-gray-50 border border-gray-200 rounded-xl p-2 w-[220px] max-h-48 overflow-y-auto shadow-inner flex flex-col gap-1">`;
+        const currentAssigned = task.assignedManagers || [];
+
+        usersSnap.forEach(uDoc => {
+            const u = uDoc.data();
+            const isChecked = currentAssigned.includes(u.name) || task.staff === u.name ? 'checked' : '';
+            html += `
+                <label class="flex items-center gap-2 p-1.5 hover:bg-white rounded cursor-pointer text-xs font-bold text-gray-700 border border-transparent hover:border-gray-200 transition">
+                    <input type="checkbox" value="${u.name}" class="inline-assign-checkbox rounded text-hermes focus:ring-hermes" ${isChecked} />
+                    <span>${u.name} <span class="font-normal text-gray-400 text-[9px]">(${u.email})</span></span>
+                </label>
+            `;
+        });
+        html += `</div>
+                 <div class="flex gap-1.5 mt-2">
+                    <button type="button" id="btnInlineAssignSave" class="px-2.5 py-1 bg-gray-800 hover:bg-black text-white text-[10px] font-bold rounded-md shadow-xs">배정완료</button>
+                    <button type="button" id="btnInlineAssignCancel" class="px-2.5 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 text-[10px] font-bold rounded-md">취소</button>
+                 </div>`;
+
+        staffEl.innerHTML = html;
+
+        document.getElementById('btnInlineAssignCancel').onclick = () => openDetailModal(taskId);
+        document.getElementById('btnInlineAssignSave').onclick = async () => {
+            const checked = Array.from(staffEl.querySelectorAll('.inline-assign-checkbox:checked')).map(cb => cb.value);
+            document.getElementById('btnInlineAssignSave').innerText = "배정중...";
+            try {
+                await updateDoc(doc(db, "crm_tasks", taskId), { assignedManagers: checked, staff: checked[0] || '미지정' });
+                tasksMap[taskId].assignedManagers = checked; tasksMap[taskId].staff = checked[0] || '미지정';
+                alert("담당자가 배정되었습니다."); fetchTasks(); openDetailModal(taskId);
+            } catch(err) { alert(err.message); }
+        };
+    };
+}
+
 // ============================================================================
-// 6. 소통 댓글 모듈 (인라인 수정 + 이미지 미리보기 + 드래그앤드롭 연동)
+// 7. 소통 댓글 모듈 (인라인 수정 + 이미지 미리보기 + 드래그앤드롭 연동)
 // ============================================================================
 function renderComments(commentsArr) {
     const listEl = document.getElementById('commentListArea') || document.getElementById('commentList');
@@ -999,7 +1088,7 @@ safeAddListener('submitNewCommentBtn', 'click', async () => {
 });
 
 // ============================================================================
-// 7. 클라이언트 관리 모듈
+// 8. 클라이언트 관리 모듈
 // ============================================================================
 async function fetchClients() {
     const tbody = document.getElementById('clientsTable');
@@ -1090,7 +1179,7 @@ async function fetchClients() {
 }
 
 // ============================================================================
-// 8. 인사이트 라이브러리 모듈
+// 9. 인사이트 라이브러리 모듈
 // ============================================================================
 async function fetchLibraryItems() {
     const grid = document.getElementById('libraryGrid');
@@ -1175,7 +1264,7 @@ function openLibraryViewModal(id) {
 }
 
 // ============================================================================
-// 9. 멤버 관리 / 승인 관리 / 로그 모니터링 모듈
+// 10. 멤버 관리 / 승인 관리 / 로그 모니터링 모듈
 // ============================================================================
 async function fetchMembers() {
     const isAdmin = checkIsAdmin();
@@ -1342,7 +1431,7 @@ async function fetchLogs() {
 }
 
 // ============================================================================
-// 10. 네비게이션 및 핸들러 연결
+// 11. 네비게이션 및 핸들러 연결
 // ============================================================================
 safeAddListener('googleLoginBtn', 'click', () => signInWithPopup(auth, provider));
 safeAddListener('logoutBtn', 'click', () => signOut(auth));
@@ -1398,7 +1487,6 @@ navItems.forEach(item => {
     });
 });
 
-// 테이블 행 및 내부 버튼 클릭 핸들러 (이벤트 위임)
 const boardTableEl = document.getElementById('boardTable');
 if (boardTableEl) {
     boardTableEl.addEventListener('click', (e) => {

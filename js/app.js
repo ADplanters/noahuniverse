@@ -121,6 +121,75 @@ function checkIsAuthor(task) {
            (task.uid === auth.currentUser.uid);
 }
 
+/**
+ * 🌟 24시간 이내 등록된 신규 데이터 존재 여부를 검사하여 메뉴 옆에 빨간색 고급 알림 표식을 표시하는 로직
+ */
+function checkAllNavBadges() {
+    const NOW = Date.now();
+    const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+
+    const isWithin24Hours = (dateInput) => {
+        if (!dateInput) return false;
+        let timeMS = 0;
+        if (typeof dateInput === 'string') {
+            timeMS = new Date(dateInput.replace(/\./g, '-')).getTime();
+        } else if (dateInput.toDate) {
+            timeMS = dateInput.toDate().getTime();
+        } else if (dateInput instanceof Date) {
+            timeMS = dateInput.getTime();
+        }
+        return !isNaN(timeMS) && (NOW - timeMS) < TWENTY_FOUR_HOURS;
+    };
+
+    let hasNewInquiries = false;
+    let hasNewClients = false;
+    let hasNewLibrary = false;
+
+    // 1. 업무 이슈/요청 검사
+    Object.values(tasksMap).forEach(t => {
+        if (isWithin24Hours(t.createdAt || t.date)) {
+            hasNewInquiries = true;
+        }
+    });
+
+    // 2. 클라이언트 목록 검사
+    Object.values(clientsMap).forEach(c => {
+        if (isWithin24Hours(c.createdAt)) {
+            hasNewClients = true;
+        }
+    });
+
+    // 3. 인사이트 라이브러리 검사
+    Object.values(libraryMap).forEach(l => {
+        if (isWithin24Hours(l.createdAt)) {
+            hasNewLibrary = true;
+        }
+    });
+
+    // 메뉴 뱃지 UI 갱신 처리
+    const setMenuBadge = (menuName, showBadge) => {
+        const targetLinks = document.querySelectorAll(`.nav-item[data-menu="${menuName}"]`);
+        targetLinks.forEach(link => {
+            const existingBadge = link.querySelector('.nav-new-badge');
+            if (existingBadge) existingBadge.remove();
+
+            if (showBadge) {
+                const badgeEl = document.createElement('span');
+                badgeEl.className = 'nav-new-badge ml-auto relative flex h-2.5 w-2.5 shrink-0 self-center';
+                badgeEl.innerHTML = `
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)]"></span>
+                `;
+                link.appendChild(badgeEl);
+            }
+        });
+    };
+
+    setMenuBadge('inquiries', hasNewInquiries);
+    setMenuBadge('clients', hasNewClients);
+    setMenuBadge('library', hasNewLibrary);
+}
+
 // 사선 지그재그 바둑판 패턴 워터마크 동적 생성
 function renderWatermark() {
     if (document.getElementById('autoWatermarkLayer')) {
@@ -586,6 +655,8 @@ function showDashboard(user) {
     initNewCommentDragAndDrop();
 
     fetchTasks();
+    fetchClients();
+    fetchLibraryItems();
 }
 
 function showPendingPopup() {
@@ -646,6 +717,7 @@ safeAddListener('taskForm', 'submit', async (e) => {
         status: "답변대기", 
         views: 0,
         date: dateStr,
+        createdAt: new Date().toISOString(), // 🌟 24시간 알림용 생성 시각 기록
         comments: [] 
     };
 
@@ -870,7 +942,6 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
 
 /**
  * 업무 이슈 요청 게시판 리스트 불러오기
- * 🌟 작성자(빨간색) / 담당자(파란색) 시각적 구분 적용
  */
 async function fetchTasks() {
     const tbody = document.getElementById('boardTable');
@@ -902,6 +973,7 @@ async function fetchTasks() {
         tbody.innerHTML = '';
         if (fetchedData.length === 0) {
             if(emptyState) emptyState.style.display = 'flex';
+            checkAllNavBadges();
             return;
         }
 
@@ -937,7 +1009,7 @@ async function fetchTasks() {
             const fileButton = renderFileButtons(item, true);
             const commentCount = item.comments ? item.comments.length : 0;
             
-            // 🌟 작성자(빨간색) 및 담당자(파란색) 시각적 구분 생성
+            // 작성자(빨간색) 및 담당자(파란색) 시각적 구분 생성
             const authorName = item.staff || item.name || '미상';
             const managerList = (item.assignedManagers && item.assignedManagers.length > 0) ? item.assignedManagers.join(', ') : '미배정';
             
@@ -983,6 +1055,9 @@ async function fetchTasks() {
             }
             isInitialDeepLinkChecked = true;
         }
+
+        // 🌟 데이터 로드 후 네비게이션 알림 배지 일괄 갱신
+        checkAllNavBadges();
 
     } catch (e) { console.error("Firestore error:", e); }
 }
@@ -1067,7 +1142,7 @@ async function openDetailModal(taskId) {
     const detailStaffEl = document.getElementById('detailStaff');
     if (detailStaffEl) {
         detailStaffEl.innerText = authorName;
-        detailStaffEl.className = "font-bold text-red-500"; // 🌟 상세창에서도 작성자는 빨간색 표기
+        detailStaffEl.className = "font-bold text-red-500";
     }
 
     const assignedStr = (task.assignedManagers && task.assignedManagers.length > 0) 
@@ -1077,7 +1152,7 @@ async function openDetailModal(taskId) {
     const detailAssignEl = document.getElementById('detailAssign') || document.getElementById('detailAssignedManagers');
     if (detailAssignEl) {
         detailAssignEl.innerText = assignedStr;
-        detailAssignEl.className = "text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 inline-block break-all max-w-full"; // 🌟 상세창 담당자는 파란색 표기
+        detailAssignEl.className = "text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 inline-block break-all max-w-full";
     } else {
         const labels = detailModal.querySelectorAll('div, span, td, p');
         labels.forEach(node => {
@@ -1776,6 +1851,7 @@ async function fetchClients() {
 
         if (querySnapshot.empty) {
             if(emptyState) emptyState.style.display = 'flex';
+            checkAllNavBadges();
             return;
         }
         if(emptyState) emptyState.style.display = 'none';
@@ -1844,6 +1920,8 @@ async function fetchClients() {
             `;
             tbody.innerHTML += tr;
         });
+
+        checkAllNavBadges();
 
     } catch (e) { console.error("Client fetch error:", e); }
 }
@@ -1934,6 +2012,8 @@ async function fetchLibraryItems() {
                 openLibraryViewModal(libId);
             });
         });
+
+        checkAllNavBadges();
 
     } catch (e) { console.error("Library fetch error:", e); }
 }

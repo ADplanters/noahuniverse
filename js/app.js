@@ -71,19 +71,27 @@ const libraryEditModal = document.getElementById('libraryEditModal');
 // ============================================================================
 function safeAddListener(id, eventType, callback) {
     const el = document.getElementById(id);
-    if (el) el.addEventListener(eventType, callback);
+    if (el) {
+        el.addEventListener(eventType, callback);
+    }
 }
 
 // 최상위 관리자 권한 확인
 function checkIsAdmin() {
-    if (currentUserRole === 'admin') return true;
-    if (auth.currentUser && ADMIN_EMAILS.includes(auth.currentUser.email)) return true;
+    if (currentUserRole === 'admin') {
+        return true;
+    }
+    if (auth.currentUser && ADMIN_EMAILS.includes(auth.currentUser.email)) {
+        return true;
+    }
     return false;
 }
 
-// 작성자 본인 확인
+// 작성자 본인 확인 로직
 function checkIsAuthor(task) {
-    if (!auth.currentUser || !task) return false;
+    if (!auth.currentUser || !task) {
+        return false;
+    }
     return (task.staff === currentUserName) || 
            (task.email === auth.currentUser.email) || 
            (task.uid === auth.currentUser.uid);
@@ -91,7 +99,9 @@ function checkIsAuthor(task) {
 
 // 사선 지그재그 바둑판 패턴 워터마크 동적 생성
 function renderWatermark() {
-    if (document.getElementById('autoWatermarkLayer')) return;
+    if (document.getElementById('autoWatermarkLayer')) {
+        return;
+    }
     
     const container = document.createElement('div');
     container.id = 'autoWatermarkLayer';
@@ -114,10 +124,11 @@ function renderWatermark() {
 // 이미지 원본 보기 전용 모달 (ESC / 배경 클릭 닫기 지원)
 function openImageModal(imgUrl) {
     let modal = document.getElementById('globalImageModal');
+    
     if (!modal) {
         modal = document.createElement('div');
         modal.id = 'globalImageModal';
-        modal.className = 'fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 hidden backdrop-blur-xs transition-opacity duration-200';
+        modal.className = 'fixed inset-0 bg-black/80 z-[99999] flex items-center justify-center p-4 hidden backdrop-blur-xs transition-opacity duration-200';
         modal.innerHTML = `
             <div class="relative max-w-5xl max-h-[90vh] flex flex-col items-center">
                 <button type="button" id="closeImageModalBtn" class="absolute -top-10 right-0 text-white text-3xl font-bold hover:text-orange-400 transition cursor-pointer">&times;</button>
@@ -134,30 +145,48 @@ function openImageModal(imgUrl) {
     }
     
     const modalImg = document.getElementById('globalImageModalImg');
-    if (modalImg) modalImg.src = imgUrl;
+    if (modalImg) {
+        modalImg.src = imgUrl;
+    }
     modal.classList.remove('hidden');
 }
 
 // 모든 모달 닫기
 function closeAllModals() {
     const globalImgModal = document.getElementById('globalImageModal');
-    if (globalImgModal) globalImgModal.classList.add('hidden');
+    if (globalImgModal) {
+        globalImgModal.classList.add('hidden');
+    }
 
-    const modals = [createModal, editTaskModal, clientModal, editClientModal, assignModal, detailModal, libraryViewModal, libraryEditModal, pendingModal];
-    modals.forEach(m => { if(m) m.classList.add('hidden'); });
+    const modals = [
+        createModal, editTaskModal, clientModal, 
+        editClientModal, assignModal, detailModal, 
+        libraryViewModal, libraryEditModal, pendingModal
+    ];
+    
+    modals.forEach(m => { 
+        if(m) {
+            m.classList.add('hidden'); 
+        }
+    });
+    
     window.history.pushState({}, '', window.location.pathname);
 }
 
 // 키보드 ESC 키 감지 모달 닫기
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeAllModals();
+    if (e.key === 'Escape') {
+        closeAllModals();
+    }
 });
 
 // 모달 바깥 배경 클릭 시 닫기
 [createModal, editTaskModal, clientModal, editClientModal, assignModal, detailModal, libraryViewModal, libraryEditModal].forEach(modalEl => {
     if (modalEl) {
         modalEl.addEventListener('click', (e) => {
-            if (e.target === modalEl) closeAllModals();
+            if (e.target === modalEl) {
+                closeAllModals();
+            }
         });
     }
 });
@@ -169,7 +198,9 @@ document.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
         const url = imgTrigger.getAttribute('data-url');
-        if (url) openImageModal(url);
+        if (url) {
+            openImageModal(url);
+        }
     }
 });
 
@@ -200,7 +231,10 @@ async function uploadFilesToStorage(fileList, folderName) {
 function setupDragAndDrop(dropAreaId, fileInputId) {
     const dropArea = document.getElementById(dropAreaId);
     const fileInput = document.getElementById(fileInputId);
-    if (!dropArea || !fileInput) return;
+    
+    if (!dropArea || !fileInput) {
+        return;
+    }
 
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
         dropArea.addEventListener(eventName, (e) => {
@@ -258,7 +292,11 @@ function renderFileButtons(item) {
                 `;
             }
 
-            return `<a href="${url}" target="_blank" download="${fileName}" class="download-link inline-flex items-center gap-1 bg-gray-100 hover:bg-orange-100 text-gray-700 hover:text-hermes text-[10px] font-bold px-2 py-1.5 rounded-lg border border-gray-200 transition my-0.5 shadow-sm"><i class="fa-solid fa-download text-hermes"></i> ${fileName}</a>`;
+            return `
+                <a href="${url}" target="_blank" download="${fileName}" class="download-link inline-flex items-center gap-1 bg-gray-100 hover:bg-orange-100 text-gray-700 hover:text-hermes text-[10px] font-bold px-2 py-1.5 rounded-lg border border-gray-200 transition my-0.5 shadow-sm">
+                    <i class="fa-solid fa-download text-hermes"></i> ${fileName}
+                </a>
+            `;
         }).join(' ');
     }
     return `<span class="text-gray-300 text-[10px]">첨부파일 없음</span>`;
@@ -266,7 +304,9 @@ function renderFileButtons(item) {
 
 // 활동 로그 기록
 async function logActivity(action, details = "") {
-    if (!auth.currentUser) return;
+    if (!auth.currentUser) {
+        return;
+    }
     try {
         await addDoc(collection(db, "activity_logs"), {
             uid: auth.currentUser.uid,
@@ -276,7 +316,9 @@ async function logActivity(action, details = "") {
             details: details,
             timestamp: new Date().toISOString()
         });
-    } catch (e) { console.error("Log error:", e); }
+    } catch (e) {
+        console.error("Log error:", e);
+    }
 }
 
 // 클립보드 복사 헬퍼
@@ -308,20 +350,30 @@ onAuthStateChanged(auth, async (user) => {
         currentUserName = user.displayName || "담당자";
         
         const staffInput = document.getElementById('inputStaff');
-        if(staffInput) staffInput.value = currentUserName;
+        if(staffInput) {
+            staffInput.value = currentUserName;
+        }
 
         if(!isInitialLoginLogged) {
             logActivity("로그인", "시스템에 성공적으로 접속했습니다.");
             isInitialLoginLogged = true;
         }
 
+        // 1. ADMIN_EMAILS 목록 지정 관리자 자동 승인
         if (ADMIN_EMAILS.includes(user.email)) {
-            await setDoc(userRef, { email: user.email, name: currentUserName, role: "admin", status: "approved" }, { merge: true });
+            await setDoc(userRef, { 
+                email: user.email, 
+                name: currentUserName, 
+                role: "admin", 
+                status: "approved" 
+            }, { merge: true });
+            
             currentUserRole = 'admin';
             showDashboard(user);
             return;
         }
 
+        // 2. 이메일 기반 기존 UID 자동 매핑 처리
         if (!userSnap.exists()) {
             const q = query(collection(db, "users"), where("email", "==", user.email));
             const qSnap = await getDocs(q);
@@ -380,7 +432,10 @@ function showDashboard(user) {
     if(pendingModal) pendingModal.classList.add('hidden');
     if(dashboardSection) dashboardSection.classList.remove('hidden');
 
-    if(document.getElementById('currentUserName')) document.getElementById('currentUserName').innerText = user.displayName || '사용자';
+    if(document.getElementById('currentUserName')) {
+        document.getElementById('currentUserName').innerText = user.displayName || '사용자';
+    }
+    
     if(document.getElementById('currentUserRoleName')) {
         const roleLabel = currentUserRole === 'admin' ? '최상위 관리자 (Admin)' : (currentUserRole === 'leader' ? '리더 (노아 대표)' : 'Player (담당 직원)');
         document.getElementById('currentUserRoleName').innerText = roleLabel;
@@ -390,6 +445,7 @@ function showDashboard(user) {
     if(isAdmin) {
         const adminMenu = document.getElementById('adminMenuSection');
         if(adminMenu) adminMenu.classList.remove('hidden');
+        
         const openLibBtn = document.getElementById('openLibraryModalBtn');
         if(openLibBtn) openLibBtn.classList.remove('hidden');
     } else {
@@ -481,6 +537,7 @@ safeAddListener('taskForm', 'submit', async (e) => {
 async function deleteTask(taskId) {
     const task = tasksMap[taskId];
     const title = task ? task.title : '해당 이슈';
+    
     if (confirm(`[${title}] 이슈를 정말 삭제하시겠습니까?`)) {
         try {
             await deleteDoc(doc(db, "crm_tasks", taskId));
@@ -518,56 +575,72 @@ function openEditTaskModal(taskId) {
         if (contentIn) contentIn.value = task.content || '';
 
         editTaskModal.classList.remove('hidden');
-        editTaskModal.style.zIndex = "9999"; 
+        editTaskModal.style.zIndex = "99999"; 
     }
 }
 
-// 외부 리스트 담당자 다중 연결 팝업 오픈 (멤버 리스트 노출 및 X 닫기 복구)
+// 담당자 다중 연결 중앙 플로팅 모달 오픈
 async function openAssignModal(taskId) {
     const task = tasksMap[taskId];
     if (!task) return;
     currentAssignClientId = taskId;
 
     if (assignModal) {
-        const descP = Array.from(assignModal.querySelectorAll('p, span, div')).find(el => el.textContent.includes('인원을 선택하세요'));
-        let listContainer = descP ? descP.nextElementSibling : document.getElementById('assignManagerList');
+        // 모달 내부 구조 탐색 및 컨테이너 강제 생성
+        const modalCard = assignModal.querySelector('.bg-white') || assignModal.firstElementChild;
+        let listContainer = assignModal.querySelector('#assignManagerList') || assignModal.querySelector('.assign-manager-list');
 
-        if (!listContainer || listContainer.tagName === 'BUTTON' || listContainer.tagName === 'FORM') {
-             const newDiv = document.createElement('div');
-             descP.parentNode.insertBefore(newDiv, descP.nextSibling);
-             listContainer = newDiv;
+        if (!listContainer && modalCard) {
+            const formContainer = modalCard.querySelector('form') || modalCard;
+            listContainer = document.createElement('div');
+            listContainer.id = 'assignManagerList';
+            listContainer.className = 'my-4 bg-gray-50 border border-gray-200 rounded-xl p-3 max-h-52 overflow-y-auto shadow-inner';
+            
+            const pDesc = modalCard.querySelector('p');
+            if (pDesc) {
+                pDesc.after(listContainer);
+            } else {
+                formContainer.prepend(listContainer);
+            }
         }
 
-        listContainer.className = "mt-4 bg-gray-50 border border-gray-200 rounded-xl p-3 max-h-48 overflow-y-auto shadow-inner";
-        listContainer.innerHTML = '<div class="text-xs text-gray-400 p-2 text-center"><i class="fa-solid fa-spinner animate-spin"></i> 로딩 중...</div>';
+        if (listContainer) {
+            listContainer.innerHTML = '<div class="text-xs text-gray-400 p-3 text-center font-bold"><i class="fa-solid fa-spinner animate-spin mr-1"></i> 멤버 목록 불러오는 중...</div>';
+            try {
+                const usersSnap = await getDocs(query(collection(db, "users"), where("status", "==", "approved")));
+                let html = '<div class="flex flex-col gap-1.5">';
+                
+                const currentAssigned = task.assignedManagers && task.assignedManagers.length > 0 
+                    ? task.assignedManagers 
+                    : (task.staff && task.staff !== '미지정' ? task.staff.split(',').map(s=>s.trim()) : []);
 
-        try {
-            const usersSnap = await getDocs(query(collection(db, "users"), where("status", "==", "approved")));
-            let html = '<div class="flex flex-col gap-1.5">';
-            const currentAssigned = task.assignedManagers || [];
-            
-            usersSnap.forEach(uDoc => {
-                const u = uDoc.data();
-                const isChecked = currentAssigned.includes(u.name) || task.staff === u.name ? 'checked' : '';
-                html += `
-                    <label class="flex items-center gap-2 p-2 hover:bg-white rounded-lg cursor-pointer text-xs font-bold text-gray-700 transition">
-                        <input type="checkbox" value="${u.name}" class="assign-manager-checkbox rounded text-hermes focus:ring-hermes" ${isChecked} />
-                        <span>${u.name} <span class="text-[10px] text-gray-400 font-normal">(${u.email})</span></span>
-                    </label>
-                `;
-            });
-            html += '</div>';
-            listContainer.innerHTML = html;
-        } catch(err) { listContainer.innerHTML = '<div class="text-xs text-red-500">불러오기 실패</div>'; }
+                usersSnap.forEach(uDoc => {
+                    const u = uDoc.data();
+                    const isChecked = currentAssigned.includes(u.name) ? 'checked' : '';
+                    html += `
+                        <label class="flex items-center gap-2 p-2 hover:bg-white rounded-lg cursor-pointer text-xs font-bold text-gray-700 transition border border-transparent hover:border-gray-200 shadow-2xs">
+                            <input type="checkbox" value="${u.name}" class="assign-manager-checkbox rounded text-hermes focus:ring-hermes" ${isChecked} />
+                            <span>${u.name} <span class="text-[10px] text-gray-400 font-normal">(${u.email})</span></span>
+                        </label>
+                    `;
+                });
+                html += '</div>';
+                listContainer.innerHTML = html;
+            } catch(err) {
+                console.error(err);
+                listContainer.innerHTML = '<div class="text-xs text-red-500 p-2 text-center">멤버 로드 실패</div>';
+            }
+        }
 
         assignModal.classList.remove('hidden');
-        assignModal.style.zIndex = "9999";
+        assignModal.style.zIndex = "99999";
 
-        // X버튼 및 취소 기능 복구
+        // X버튼 및 취소 버튼 닫기 바인딩
         const closeBtn = assignModal.querySelector('.fa-xmark')?.closest('button') || assignModal.querySelector('button[title="닫기"]');
         const cancelBtn = assignModal.querySelector('button.bg-gray-100') || Array.from(assignModal.querySelectorAll('button')).find(b => b.textContent.includes('취소'));
-        if (closeBtn) closeBtn.onclick = () => assignModal.classList.add('hidden');
-        if (cancelBtn) cancelBtn.onclick = () => assignModal.classList.add('hidden');
+        
+        if (closeBtn) closeBtn.onclick = (e) => { e.preventDefault(); assignModal.classList.add('hidden'); };
+        if (cancelBtn) cancelBtn.onclick = (e) => { e.preventDefault(); assignModal.classList.add('hidden'); };
     }
 }
 
@@ -593,32 +666,69 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
             client: clientIn ? clientIn.value : tasksMap[currentDetailTaskId].client,
             updatedAt: new Date().toISOString()
         });
-        if (editTaskModal) editTaskModal.classList.add('hidden');
+        
+        if (editTaskModal) {
+            editTaskModal.classList.add('hidden');
+        }
         alert("이슈 수정이 완료되었습니다.");
+        
         await fetchTasks();
-        if (!detailModal.classList.contains('hidden')) openDetailModal(currentDetailTaskId);
-    } catch (err) { alert("이슈 수정 실패: " + err.message); }
+        if (!detailModal.classList.contains('hidden')) {
+            openDetailModal(currentDetailTaskId);
+        }
+    } catch (err) { 
+        alert("이슈 수정 실패: " + err.message); 
+    }
 });
 
-// 외부 리스트 담당자 다중 연결 저장
+// 외부 모달 폼 제출을 통한 담당자 배정 
 safeAddListener('assignForm', 'submit', async (e) => {
     e.preventDefault();
     const targetId = currentAssignClientId || currentDetailTaskId;
     if (!targetId) return;
 
-    const checkboxes = document.querySelectorAll('.assign-manager-checkbox:checked');
+    const submitBtn = assignModal.querySelector('button[type="submit"]') || Array.from(assignModal.querySelectorAll('button')).find(b => b.textContent.includes('배정'));
+    const origText = submitBtn ? submitBtn.innerText : '배정 완료';
+    
+    if (submitBtn) { 
+        submitBtn.innerText = "저장 중..."; 
+        submitBtn.disabled = true; 
+    }
+
+    // 🌟 모달창 안의 체크박스를 정확히 타겟팅
+    const checkboxes = assignModal.querySelectorAll('.assign-manager-checkbox:checked');
     const selectedManagers = Array.from(checkboxes).map(cb => cb.value);
+    const staffString = selectedManagers.length > 0 ? selectedManagers.join(', ') : '미지정';
 
     try {
         await updateDoc(doc(db, "crm_tasks", targetId), {
             assignedManagers: selectedManagers,
-            staff: selectedManagers[0] || '미지정'
+            staff: staffString
         });
-        if (assignModal) assignModal.classList.add('hidden');
-        alert("담당자 연결이 완료되었습니다.");
+
+        if (tasksMap[targetId]) {
+            tasksMap[targetId].assignedManagers = selectedManagers;
+            tasksMap[targetId].staff = staffString;
+        }
+
+        if (assignModal) {
+            assignModal.classList.add('hidden');
+        }
+        
+        alert("담당자가 배정되었습니다.");
         await fetchTasks();
-        if (!detailModal.classList.contains('hidden')) openDetailModal(targetId);
-    } catch (err) { alert("담당자 연결 실패: " + err.message); }
+
+        if (detailModal && !detailModal.classList.contains('hidden')) {
+            openDetailModal(targetId);
+        }
+    } catch (err) { 
+        alert("담당자 저장 실패: " + err.message); 
+    } finally {
+        if (submitBtn) { 
+            submitBtn.innerText = origText; 
+            submitBtn.disabled = false; 
+        }
+    }
 });
 
 async function fetchTasks() {
@@ -647,7 +757,6 @@ async function fetchTasks() {
         }
 
         if(emptyState) emptyState.style.display = 'none';
-
         let rowsHtml = '';
 
         fetchedData.forEach(item => {
@@ -678,6 +787,7 @@ async function fetchTasks() {
 
             const fileButton = renderFileButtons(item);
             const commentCount = item.comments ? item.comments.length : 0;
+            const displayStaff = (item.assignedManagers && item.assignedManagers.length > 0) ? item.assignedManagers.join(', ') : (item.staff || '미지정');
 
             rowsHtml += `
                 <tr class="hover:bg-hermes-light/30 transition group border-b border-gray-100 cursor-pointer task-detail-trigger" data-id="${item.id}">
@@ -690,13 +800,14 @@ async function fetchTasks() {
                         </div>
                     </td>
                     <td class="p-3 md:p-4 align-middle">${fileButton}</td>
-                    <td class="p-3 md:p-4 align-middle text-xs">${item.staff || '미지정'}</td>
+                    <td class="p-3 md:p-4 align-middle text-xs font-bold text-gray-700">${displayStaff}</td>
                     <td class="p-3 md:p-4 align-middle text-center"><span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-[10px] font-bold border border-blue-100">${item.status || '답변대기'}</span></td>
                     <td class="p-3 md:p-4 align-middle text-gray-400 text-[11px] font-medium">${item.date || '-'}</td>
                     ${adminActions}
                 </tr>
             `;
         });
+        
         tbody.innerHTML = rowsHtml;
 
         if (!isInitialDeepLinkChecked) {
@@ -712,7 +823,7 @@ async function fetchTasks() {
 }
 
 // ============================================================================
-// 6. 이슈 상세 모달 내부 (🌟자연스러운 인라인 에디팅 & 인라인 담당자 배정 제어)
+// 6. 이슈 상세 모달 (🌟자연스러운 인라인 에디팅 & 담당자 배정 표기 최적화)
 // ============================================================================
 async function openDetailModal(taskId) {
     const task = tasksMap[taskId];
@@ -728,16 +839,29 @@ async function openDetailModal(taskId) {
     } catch (e) { console.error("View increment error:", e); }
 
     const viewCountEl = document.getElementById('detailViews') || document.querySelector('#detailModal .fa-eye')?.parentElement;
-    if (viewCountEl) viewCountEl.innerHTML = `<i class="fa-solid fa-eye mr-1"></i> ${task.views}`;
+    if (viewCountEl) {
+        viewCountEl.innerHTML = `<i class="fa-solid fa-eye mr-1"></i> ${task.views}`;
+    }
 
     document.getElementById('detailTitle').innerText = task.title || '제목 없음';
     document.getElementById('detailType').innerText = task.type || 'Q&A';
     document.getElementById('detailClient').innerText = task.client || '-';
-    document.getElementById('detailStaff').innerText = task.staff || '미지정';
+    
+    // 🌟 지정 담당자 표기 복구 및 디자인 보정
+    const staffDisplay = (task.assignedManagers && task.assignedManagers.length > 0) 
+        ? task.assignedManagers.join(', ') 
+        : (task.staff || '미지정');
+    
+    const staffEl = document.getElementById('detailStaff');
+    if (staffEl) {
+        staffEl.innerText = staffDisplay;
+        staffEl.className = "text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-100 inline-block";
+    }
+
     document.getElementById('detailDate').innerText = task.date || '-';
     document.getElementById('detailContent').innerText = task.content || '등록된 내용이 없습니다.';
 
-    // 🌟 상세 모달 상단 컨트롤러 버튼 생성 (권한 분리)
+    // 상단 컨트롤러 버튼 바 제어 (관리자 vs 작성자 본인)
     const isAdmin = checkIsAdmin();
     const isAuthor = checkIsAuthor(task);
 
@@ -760,20 +884,25 @@ async function openDetailModal(taskId) {
                 <button type="button" id="btnDetailDelete" class="px-2.5 py-1 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white text-xs font-bold rounded-lg border border-red-200 transition shadow-2xs">삭제</button>
             `;
             document.getElementById('btnDetailDelete').onclick = () => deleteTask(taskId);
-            bindInlineEdit(taskId);
-            bindInlineAssign(taskId);
+            
+            // 🌟 상세 모달 상단 수정(인라인) 및 담당자연결(플로팅) 바인딩
+            document.getElementById('btnDetailEdit').onclick = () => bindInlineEditMode(taskId);
+            document.getElementById('btnDetailAssign').onclick = () => openAssignModal(taskId);
+            
         } else if (isAuthor) {
             actionArea.innerHTML = `
                 <button type="button" id="btnDetailEdit" class="px-2.5 py-1 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white text-xs font-bold rounded-lg border border-blue-200 transition shadow-2xs">수정</button>
             `;
-            bindInlineEdit(taskId);
+            document.getElementById('btnDetailEdit').onclick = () => bindInlineEditMode(taskId);
         } else {
             actionArea.innerHTML = '';
         }
     }
 
     const fileBtnArea = document.getElementById('detailFileBtn');
-    if (fileBtnArea) fileBtnArea.innerHTML = renderFileButtons(task);
+    if (fileBtnArea) {
+        fileBtnArea.innerHTML = renderFileButtons(task);
+    }
 
     renderComments(task.comments || []);
     detailModal.classList.remove('hidden');
@@ -781,19 +910,18 @@ async function openDetailModal(taskId) {
 }
 
 // 🌟 상세 모달 내부 본문 자연스러운 인라인 편집 모드
-function bindInlineEdit(taskId) {
-    const btnEdit = document.getElementById('btnDetailEdit');
-    if(!btnEdit) return;
+function bindInlineEditMode(taskId) {
+    const task = tasksMap[taskId];
+    const titleEl = document.getElementById('detailTitle');
+    const contentEl = document.getElementById('detailContent');
+    const actionArea = document.getElementById('detailTaskActions');
 
-    btnEdit.onclick = () => {
-        const task = tasksMap[taskId];
-        const titleEl = document.getElementById('detailTitle');
-        const contentEl = document.getElementById('detailContent');
-        const actionArea = document.getElementById('detailTaskActions');
+    if (!titleEl || !contentEl) return;
 
-        titleEl.innerHTML = `<input type="text" id="inlineEditTitle" value="${task.title.replace(/"/g, '&quot;')}" class="w-full text-lg font-black border border-orange-400 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-hermes" />`;
-        contentEl.innerHTML = `<textarea id="inlineEditContent" rows="6" class="w-full text-sm font-medium border border-orange-400 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-hermes">${task.content}</textarea>`;
+    titleEl.innerHTML = `<input type="text" id="inlineEditTitle" value="${task.title.replace(/"/g, '&quot;')}" class="w-full text-lg font-black border border-orange-400 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-hermes" />`;
+    contentEl.innerHTML = `<textarea id="inlineEditContent" rows="6" class="w-full text-sm font-medium border border-orange-400 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-hermes">${task.content}</textarea>`;
 
+    if (actionArea) {
         actionArea.innerHTML = `
             <button type="button" id="btnInlineSave" class="px-3 py-1.5 bg-hermes hover:bg-orange-600 text-white text-xs font-bold rounded-lg shadow-sm transition">저장</button>
             <button type="button" id="btnInlineCancel" class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-bold rounded-lg transition">취소</button>
@@ -807,69 +935,35 @@ function bindInlineEdit(taskId) {
 
             document.getElementById('btnInlineSave').innerText = "저장중...";
             try {
-                await updateDoc(doc(db, "crm_tasks", taskId), { title: newTitle, content: newContent, updatedAt: new Date().toISOString() });
-                tasksMap[taskId].title = newTitle; tasksMap[taskId].content = newContent;
-                alert("수정이 완료되었습니다."); fetchTasks(); openDetailModal(taskId);
-            } catch(err) { alert(err.message); }
+                await updateDoc(doc(db, "crm_tasks", taskId), { 
+                    title: newTitle, 
+                    content: newContent, 
+                    updatedAt: new Date().toISOString() 
+                });
+                tasksMap[taskId].title = newTitle; 
+                tasksMap[taskId].content = newContent;
+                alert("수정이 반영되었습니다."); 
+                fetchTasks(); 
+                openDetailModal(taskId);
+            } catch(err) { 
+                alert(err.message); 
+            }
         };
-    };
-}
-
-// 🌟 상세 모달 지정 담당자 영역 드롭다운 리스트 치환 모드
-function bindInlineAssign(taskId) {
-    const btnAssign = document.getElementById('btnDetailAssign');
-    if(!btnAssign) return;
-
-    btnAssign.onclick = async () => {
-        const task = tasksMap[taskId];
-        const staffEl = document.getElementById('detailStaff');
-        staffEl.innerHTML = '<span class="text-gray-400 text-[10px]"><i class="fa-solid fa-spinner animate-spin"></i> 로딩중...</span>';
-
-        const usersSnap = await getDocs(query(collection(db, "users"), where("status", "==", "approved")));
-        let html = `<div class="mt-2 bg-gray-50 border border-gray-200 rounded-xl p-2 w-[220px] max-h-48 overflow-y-auto shadow-inner flex flex-col gap-1">`;
-        const currentAssigned = task.assignedManagers || [];
-
-        usersSnap.forEach(uDoc => {
-            const u = uDoc.data();
-            const isChecked = currentAssigned.includes(u.name) || task.staff === u.name ? 'checked' : '';
-            html += `
-                <label class="flex items-center gap-2 p-1.5 hover:bg-white rounded cursor-pointer text-xs font-bold text-gray-700 border border-transparent hover:border-gray-200 transition">
-                    <input type="checkbox" value="${u.name}" class="inline-assign-checkbox rounded text-hermes focus:ring-hermes" ${isChecked} />
-                    <span>${u.name} <span class="font-normal text-gray-400 text-[9px]">(${u.email})</span></span>
-                </label>
-            `;
-        });
-        html += `</div>
-                 <div class="flex gap-1.5 mt-2">
-                    <button type="button" id="btnInlineAssignSave" class="px-2.5 py-1 bg-gray-800 hover:bg-black text-white text-[10px] font-bold rounded-md shadow-xs">배정완료</button>
-                    <button type="button" id="btnInlineAssignCancel" class="px-2.5 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 text-[10px] font-bold rounded-md">취소</button>
-                 </div>`;
-
-        staffEl.innerHTML = html;
-
-        document.getElementById('btnInlineAssignCancel').onclick = () => openDetailModal(taskId);
-        document.getElementById('btnInlineAssignSave').onclick = async () => {
-            const checked = Array.from(staffEl.querySelectorAll('.inline-assign-checkbox:checked')).map(cb => cb.value);
-            document.getElementById('btnInlineAssignSave').innerText = "배정중...";
-            try {
-                await updateDoc(doc(db, "crm_tasks", taskId), { assignedManagers: checked, staff: checked[0] || '미지정' });
-                tasksMap[taskId].assignedManagers = checked; tasksMap[taskId].staff = checked[0] || '미지정';
-                alert("담당자가 배정되었습니다."); fetchTasks(); openDetailModal(taskId);
-            } catch(err) { alert(err.message); }
-        };
-    };
+    }
 }
 
 // ============================================================================
-// 7. 소통 댓글 모듈 (인라인 수정 + 이미지 미리보기 + 드래그앤드롭 연동)
+// 7. 소통 댓글 모듈 (인라인 수정 및 드래그앤드롭 첨부 보존)
 // ============================================================================
 function renderComments(commentsArr) {
     const listEl = document.getElementById('commentListArea') || document.getElementById('commentList');
     const countEl = document.getElementById('commentCountBadge') || document.getElementById('commentCount');
+    
     if (countEl) countEl.innerText = commentsArr.length;
     if (!listEl) return;
     
     listEl.innerHTML = '';
+    
     if(commentsArr.length === 0) {
         listEl.innerHTML = '<p class="text-xs text-gray-400 italic text-center py-4">등록된 소통 댓글이 없습니다.</p>';
         return;
@@ -987,6 +1081,7 @@ function renderComments(commentsArr) {
             saveBtn.addEventListener('click', async (eEvt) => {
                 eEvt.stopPropagation();
                 const updatedText = textarea.value.trim();
+                
                 if (!updatedText && currentEditFiles.length === 0 && (!newFileInput.files || newFileInput.files.length === 0)) {
                     alert("댓글 내용이나 첨부파일을 지정해 주세요.");
                     return;

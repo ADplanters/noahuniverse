@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>DB 마이그레이션 도구</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="p-10 bg-gray-50 flex flex-col items-center">
+    <h1 class="text-2xl font-black text-gray-900 mb-2">ADplanters 데이터 마이그레이션</h1>
+    <p class="mb-8 text-gray-500 font-medium">기존 프로젝트의 고객/이슈/라이브러리 데이터를 새 프로젝트로 안전하게 복사합니다.</p>
+    
+    <button id="startBtn" class="px-8 py-4 bg-orange-600 text-white font-bold rounded-xl shadow-lg hover:bg-orange-700 transition">
+        데이터 이전 시작하기
+    </button>
+    <div id="status" class="mt-8 font-mono text-sm text-gray-700 whitespace-pre-line w-full max-w-2xl bg-white p-6 rounded-2xl border shadow-sm h-64 overflow-y-auto">대기 중... 버튼을 클릭하세요.</div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, setDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        // 기존(Old) 프로젝트: partner-noah
+        const oldConfig = {
+            apiKey: "AIzaSyABMgjiEEqx1b4tBxl5CKQWL_3ifuVxKPI",
+            authDomain: "partner-noah.firebaseapp.com",
+            projectId: "partner-noah"
+        };
+
+        // 신규(New) 프로젝트: adplanters
+        const newConfig = {
+            apiKey: "AIzaSyCwKR7IiuasOe9bPd7vKyp4aa_VmGjhXzQ",
+            authDomain: "adplanters.firebaseapp.com",
+            projectId: "adplanters"
+        };
+
+        const oldApp = initializeApp(oldConfig, "OLD");
+        const newApp = initializeApp(newConfig, "NEW");
+        const oldDb = getFirestore(oldApp);
+        const newDb = getFirestore(newApp);
+        const newAuth = getAuth(newApp);
+
+        const statusEl = document.getElementById("status");
+        function log(msg) {
+            statusEl.innerHTML += msg + "<br>";
+            statusEl.scrollTop = statusEl.scrollHeight;
+        }
+
+        document.getElementById('startBtn').addEventListener('click', async () => {
+            log("1. 보안 권한 획득을 위한 로그인을 시작합니다...");
+            try {
+                const provider = new GoogleAuthProvider();
+                await signInWithPopup(newAuth, provider);
+                log("✅ 로그인 성공. 데이터 이전을 본격적으로 시작합니다.\n");
+
+                // 복사할 컬렉션 목록
+                const collections = ["users", "clients", "crm_tasks", "crm_library"];
+                
+                for (const col of collections) {
+                    log(`⏳ [${col}] 컬렉션 복사 중...`);
+                    const snapshot = await getDocs(collection(oldDb, col));
+                    if (snapshot.empty) {
+                        log(`  - 데이터가 없습니다. 패스합니다.`);
+                        continue;
+                    }
+                    
+                    let count = 0;
+                    for (const document of snapshot.docs) {
+                        await setDoc(doc(newDb, col, document.id), document.data());
+                        count++;
+                    }
+                    log(`  ✅ [${col}] 총 ${count}개 항목 복사 완료!`);
+                }
+                
+                log(`\n🎉 모든 마이그레이션이 성공적으로 완료되었습니다! 이제 이 창을 닫아주세요.`);
+            } catch (error) {
+                log(`\n❌ 에러 발생: ${error.message}`);
+            }
+        });
+    </script>
+</body>
+</html>

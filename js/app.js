@@ -122,7 +122,7 @@ function checkIsAuthor(task) {
 }
 
 /**
- * 🌟 고유 URL 기반 탭 전환 및 최상위 관리자 권한 검증 라우터
+ * 고유 URL 기반 탭 전환 및 최상위 관리자 권한 검증 라우터
  * @param {string} tabName - 이동할 탭 구분값 (dashboard, clients, inquiries, library, members, approvals, logs)
  * @param {boolean} pushHistory - URL 히스토리 누적 여부
  */
@@ -130,7 +130,7 @@ function switchTab(tabName, pushHistory = true) {
     const adminOnlyTabs = ['members', 'approvals', 'logs'];
     const isAdmin = checkIsAdmin();
 
-    // 🌟 최상위 관리자 전용 탭 비권한 계정 접근 제어
+    // 최상위 관리자 전용 탭 비권한 계정 접근 제어
     if (adminOnlyTabs.includes(tabName) && !isAdmin) {
         alert("최상위 관리자(Admin) 권한이 필요한 메뉴입니다.");
         tabName = 'dashboard';
@@ -369,8 +369,20 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// 글로벌 모바일 햄버거 메뉴, 신규 클라이언트 추가, 이미지 확대, 링크 복사 클릭 이벤트 캐치
+// 🌟 글로벌 클릭 이벤트 감지 (사이드바 닫기, 햄버거 메뉴, 모달 트리거 등)
 document.addEventListener('click', (e) => {
+    // 🌟 모바일 사이드바 상단 X(닫기) 버튼 클릭 시 사이드바 닫기 처리
+    const closeSidebarTrigger = e.target.closest('#closeSidebarBtn') || 
+                                e.target.closest('#closeSidebar') || 
+                                (e.target.closest('button') && e.target.closest('button').querySelector('#closeSidebarBtn'));
+    if (closeSidebarTrigger) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleMobileSidebar(false);
+        return;
+    }
+
+    // 모바일 햄버거 메뉴 열기 버튼 클릭 감지
     const mobileMenuTrigger = e.target.closest('#mobileMenuBtn') || 
                               e.target.closest('#hamburgerBtn') || 
                               e.target.closest('#openSidebarBtn') || 
@@ -384,6 +396,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
+    // 모바일 배경 오버레이 터치 시 사이드바 닫기
     if (e.target.closest('#mobileOverlay')) {
         toggleMobileSidebar(false);
         return;
@@ -711,7 +724,7 @@ function showDashboard(user) {
     setupDragAndDrop('inputContent', 'inputFile');
     initNewCommentDragAndDrop();
 
-    // 🌟 URL 쿼리 파라미터 기반 초기 탭 딥링크 파싱 및 이동 (?tab=메뉴명)
+    // URL 쿼리 파라미터 기반 초기 탭 딥링크 파싱 및 이동 (?tab=메뉴명)
     const urlParams = new URLSearchParams(window.location.search);
     const initialTab = urlParams.get('tab') || urlParams.get('menu') || 'dashboard';
     switchTab(initialTab, false);
@@ -932,7 +945,7 @@ async function executeAssignManagers() {
     } catch (err) {
         console.error("담당자 배정 오류:", err);
         alert("담당자 배정 실패: " + err.message);
-    } finally {
+    } fontally {
         if (submitBtn) {
             submitBtn.innerText = origText;
             submitBtn.disabled = false;
@@ -2288,7 +2301,7 @@ safeAddListener('googleLoginBtn', 'click', () => signInWithPopup(auth, provider)
 safeAddListener('logoutBtn', 'click', () => signOut(auth));
 safeAddListener('closePendingBtn', 'click', () => signOut(auth));
 
-// 🌟 메뉴 탭 클릭 시 고유 URL 딥링크 저장 및 라우팅 수행
+// 메뉴 탭 클릭 시 고유 URL 딥링크 저장 및 라우팅 수행
 navItems.forEach(item => {
     item.addEventListener('click', (e) => {
         e.preventDefault();
@@ -2297,7 +2310,7 @@ navItems.forEach(item => {
     });
 });
 
-// 🌟 브라우저 뒤로가기 / 앞으로가기 클릭 시 탭 상태 자동 동기화
+// 브라우저 뒤로가기 / 앞으로가기 클릭 시 탭 상태 자동 동기화
 window.addEventListener('popstate', (e) => {
     const urlParams = new URLSearchParams(window.location.search);
     const currentTab = urlParams.get('tab') || urlParams.get('menu') || 'dashboard';

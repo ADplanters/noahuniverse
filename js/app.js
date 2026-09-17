@@ -1,12 +1,3 @@
-업무 이슈 리스트(메인 테이블)의 첨부파일 영역이 이미지 썸네일로 인해 비대해지는 현상을 해결했습니다.
-메인 목록 화면에서는 [이미지 1], [이미지 2] 또는 [파일 1] 형태의 깔끔한 컴팩트 뱃지로 단정하게 표시하여 행 높이를 균일하게 유지하고, 게시글을 클릭해 들어간 상세 모달창 및 소통 댓글 영역에서는 기존처럼 원본 미리보기 썸네일이 그대로 유지되도록 구분 적용했습니다.
- 1. 첨부파일 표시 모드 이중화 (컴팩트 / 썸네일)
-   1단계
-   renderFileButtons 함수에 목록 구분 파라미터(isTableList)를 추가하여, 게시판 리스트에서는 [이미지 N], [파일 N] 뱃지로 소형화하고, 상세 보기 및 댓글 영역에서는 기존 썸네일로 표시되도록 분리했습니다.
- 2. 최신 통합 전체 소스 코드(app.js) 덮어쓰기
-   2단계
-   아래의 100% 무손실 전체 소스 코드를 복사하여 기존 app.js 파일 전체에 덮어쓰기(Ctrl+A 후 Ctrl+V)합니다.
-최신 통합 전체 소스 코드 (app.js)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, getDocs, query, where, deleteDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -2167,4 +2158,3 @@ if (boardTableEl) {
         }
     });
 }
-

@@ -233,17 +233,22 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// Firebase Storage 원본 파일 업로드
+/**
+ * Firebase Storage 원본 파일 업로드 (디버깅 강화 및 완벽 파일명 정제)
+ */
 async function uploadFilesToStorage(fileList, folderName) {
     const uploadedFiles = [];
-    for (let i = 0; i < fileList.length; i++) {
-        const file = fileList[i];
+    const filesArray = Array.from(fileList); 
+
+    for (let i = 0; i < filesArray.length; i++) {
+        const file = filesArray[i];
         
-        // 🌟 [수정됨] 파일명 정제 로직 추가 (특수문자 및 공백 제거)
+        // 파일명 정제: 특수문자, 한글, 공백 등 파싱 오류 유발 요소를 안전하게 치환
         const extIndex = file.name.lastIndexOf('.');
         const nameWithoutExt = extIndex !== -1 ? file.name.substring(0, extIndex) : file.name;
         const ext = extIndex !== -1 ? file.name.substring(extIndex) : '';
-        const safeName = nameWithoutExt.replace(/[#?%\\/]/g, '_').replace(/\s+/g, '_');
+        
+        const safeName = nameWithoutExt.replace(/[^a-zA-Z0-9._-]/g, '_');
         
         const uniqueFileName = `${Date.now()}_${Math.floor(Math.random()*1000)}_${safeName}${ext}`;
         const storageReference = ref(storage, `${folderName}/${uniqueFileName}`);
@@ -256,8 +261,9 @@ async function uploadFilesToStorage(fileList, folderName) {
                 fileUrl: downloadUrl 
             });
         } catch (error) {
-            console.error("Storage 업로드 오류:", error);
-            throw new Error(`[${file.name}] 파일 업로드 처리에 실패했습니다.`);
+            console.error("Storage 업로드 상세 오류 객체:", error);
+            const detailMsg = error.code ? `코드: ${error.code} / 메시지: ${error.message}` : error.message;
+            throw new Error(`[${file.name}] 업로드 실패 (${detailMsg})`);
         }
     }
     return uploadedFiles;
@@ -1369,7 +1375,6 @@ safeAddListener('clientForm', 'submit', async (e) => {
     if (!clientModal) return;
 
     const inputs = clientModal.querySelectorAll('input');
-    // 명시적인 ID가 없을 경우를 대비해 QuerySelector 및 인덱스로 예비 탐색
     const nameIn = document.getElementById('inputClientName') || clientModal.querySelector('[name="name"]') || inputs[0];
     const homeIn = document.getElementById('inputClientHomeUrl') || clientModal.querySelector('[name="homeUrl"]') || inputs[1];
     const instaIn = document.getElementById('inputClientInstaUrl') || clientModal.querySelector('[name="instaUrl"]') || inputs[2];
@@ -1448,7 +1453,6 @@ function openEditClientModal(clientId) {
         const metaIdIn = document.getElementById('editClientMetaId') || editClientModal.querySelector('[name="metaId"]') || inputs[3];
         const metaPwIn = document.getElementById('editClientMetaPw') || editClientModal.querySelector('[name="metaPw"]') || inputs[4];
         const budgetIn = document.getElementById('editClientBudget') || editClientModal.querySelector('[name="budget"]') || inputs[5];
-        // 🌟 수정 모달 시에도 날짜 필드값을 올바르게 채워줌
         const instaDateIn = document.getElementById('editClientInstaDate') || editClientModal.querySelector('[name="instaDate"]') || inputs[6];
         const metaDateIn = document.getElementById('editClientMetaDate') || editClientModal.querySelector('[name="metaDate"]') || inputs[7];
 
@@ -1477,7 +1481,6 @@ safeAddListener('editClientForm', 'submit', async (e) => {
     const metaIdIn = document.getElementById('editClientMetaId') || editClientModal.querySelector('[name="metaId"]') || inputs[3];
     const metaPwIn = document.getElementById('editClientMetaPw') || editClientModal.querySelector('[name="metaPw"]') || inputs[4];
     const budgetIn = document.getElementById('editClientBudget') || editClientModal.querySelector('[name="budget"]') || inputs[5];
-    // 🌟 수정 폼 제출 시 인스타 날짜 / 메타 날짜를 함께 Firestore에 업데이트
     const instaDateIn = document.getElementById('editClientInstaDate') || editClientModal.querySelector('[name="instaDate"]') || inputs[6];
     const metaDateIn = document.getElementById('editClientMetaDate') || editClientModal.querySelector('[name="metaDate"]') || inputs[7];
 
@@ -1591,7 +1594,6 @@ async function fetchClients() {
     } catch (e) { console.error("Client fetch error:", e); }
 }
 
-// 🌟 클라이언트 테이블 내 수정/삭제 버튼 이벤트 맵핑 보완
 const clientsTableEl = document.getElementById('clientsTable');
 if (clientsTableEl) {
     clientsTableEl.addEventListener('click', (e) => {

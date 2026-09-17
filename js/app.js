@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, getDocs, query, where, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, getDocs, query, where, deleteDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
 // ============================================================================
@@ -23,7 +23,7 @@ const storage = getStorage(app);
 const provider = new GoogleAuthProvider();
 
 // 어드민 이메일 및 전역 상태 데이터
-const ADMIN_EMAILS = ["hhjhhj422@gmail.com", "adp@adplanters.com"];
+const ADMIN_EMAILS = ["hhjhhj422@gmail.com", "adp@adplanters.com", "dlghgus9997@gmail.com"];
 let currentUserRole = ''; 
 let currentUserName = ''; 
 let currentAssignClientId = null; 
@@ -67,7 +67,7 @@ const libraryViewModal = document.getElementById('libraryViewModal');
 const libraryEditModal = document.getElementById('libraryEditModal');
 
 // ============================================================================
-// 3. 공통 유틸리티 및 Helper 함수
+// 3. 공통 유틸리티 & 모달 제어 (ESC / 배경 클릭 이벤트 포함)
 // ============================================================================
 function safeAddListener(id, eventType, callback) {
     const el = document.getElementById(id);
@@ -80,7 +80,28 @@ function checkIsAdmin() {
     return false;
 }
 
-// Firebase Storage 원본 파일 업로드 (용량 한도 제한 방지)
+// 모든 모달 닫기
+function closeAllModals() {
+    const modals = [createModal, editTaskModal, clientModal, editClientModal, assignModal, detailModal, libraryViewModal, libraryEditModal, pendingModal];
+    modals.forEach(m => { if(m) m.classList.add('hidden'); });
+    window.history.pushState({}, '', window.location.pathname);
+}
+
+// 키보드 ESC 키 감지 모달 닫기
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeAllModals();
+});
+
+// 모달 바깥 배경 클릭 시 닫기
+[createModal, editTaskModal, clientModal, editClientModal, assignModal, detailModal, libraryViewModal, libraryEditModal].forEach(modalEl => {
+    if (modalEl) {
+        modalEl.addEventListener('click', (e) => {
+            if (e.target === modalEl) closeAllModals();
+        });
+    }
+});
+
+// Firebase Storage 원본 파일 업로드
 async function uploadFilesToStorage(fileList, folderName) {
     const uploadedFiles = [];
     for (let i = 0; i < fileList.length; i++) {
@@ -101,6 +122,37 @@ async function uploadFilesToStorage(fileList, folderName) {
         }
     }
     return uploadedFiles;
+}
+
+// 드래그 & 드롭 파일 첨부 바인딩 헬퍼
+function setupDragAndDrop(dropAreaId, fileInputId) {
+    const dropArea = document.getElementById(dropAreaId);
+    const fileInput = document.getElementById(fileInputId);
+    if (!dropArea || !fileInput) return;
+
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        }, false);
+    });
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropArea.addEventListener(eventName, () => dropArea.classList.add('border-hermes', 'bg-orange-50/40'), false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, () => dropArea.classList.remove('border-hermes', 'bg-orange-50/40'), false);
+    });
+
+    dropArea.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files && files.length > 0) {
+            fileInput.files = files;
+            alert(`${files.length}개의 파일이 성공적으로 첨부되었습니다.`);
+        }
+    }, false);
 }
 
 // 첨부파일 다운로드 UI 버튼 생성
@@ -180,21 +232,18 @@ onAuthStateChanged(auth, async (user) => {
                 const oldDoc = qSnap.docs[0];
                 const oldData = oldDoc.data();
                 
-                // 기존 데이터 기반으로 새 UID 문서 생성
                 await setDoc(userRef, { 
                     ...oldData, 
                     uid: user.uid,
                     updatedAt: new Date().toISOString()
                 });
 
-                // 구 UID 문서가 별도로 존재한다면 정리
                 if (oldDoc.id !== user.uid) {
                     await deleteDoc(doc(db, "users", oldDoc.id));
                 }
                 
                 currentUserRole = oldData.role || 'player';
                 
-                // 기존 승인 유저만 대시보드 진입, 대기 상태 유저는 대기 팝업 노출
                 if (oldData.status === 'approved') {
                     showDashboard(user);
                 } else {
@@ -203,7 +252,6 @@ onAuthStateChanged(auth, async (user) => {
                 return;
             }
 
-            // 완전 신규 가입자만 대기 상태로 새로 생성
             await setDoc(userRef, { 
                 email: user.email, 
                 name: currentUserName, 
@@ -213,7 +261,6 @@ onAuthStateChanged(auth, async (user) => {
             });
             showPendingPopup();
         } else {
-            // 이미 새 UID 문서가 존재하는 유저 처리
             const userData = userSnap.data();
             if (userData.status === 'approved') {
                 currentUserRole = userData.role || 'player';
@@ -251,6 +298,10 @@ function showDashboard(user) {
         const adminMenu = document.getElementById('adminMenuSection');
         if(adminMenu) adminMenu.classList.add('hidden');
     }
+
+    // 드래그앤드롭 이벤트 바인딩 초기화
+    setupDragAndDrop('commentInputBox', 'commentFileInputBox');
+    setupDragAndDrop('inputContent', 'inputFile');
 
     fetchTasks();
 }
@@ -307,6 +358,7 @@ safeAddListener('taskForm', 'submit', async (e) => {
         staff: document.getElementById('inputStaff').value,
         assignedManagers: assignedManagersArr,
         status: "답변대기", 
+        views: 0,
         date: dateStr,
         comments: [] 
     };
@@ -397,13 +449,24 @@ async function fetchTasks() {
     } catch (e) { console.error("Firestore error:", e); }
 }
 
-function openDetailModal(taskId) {
+// 상세 모달 열기 및 조회수 실시간 누적 (+1)
+async function openDetailModal(taskId) {
     const task = tasksMap[taskId];
     if(!task) return;
     
     currentDetailTaskId = taskId;
     const newUrl = `${window.location.pathname}?id=${taskId}`;
     window.history.pushState({ path: newUrl }, '', newUrl);
+
+    // 🌟 조회수 누적 업데이트
+    task.views = (task.views || 0) + 1;
+    try {
+        await updateDoc(doc(db, "crm_tasks", taskId), { views: increment(1) });
+    } catch (e) { console.error("View increment error:", e); }
+
+    // 조회수 렌더링
+    const viewCountEl = document.getElementById('detailViews') || document.querySelector('#detailModal .fa-eye')?.parentElement;
+    if (viewCountEl) viewCountEl.innerHTML = `<i class="fa-solid fa-eye mr-1"></i> ${task.views}`;
 
     document.getElementById('detailTitle').innerText = task.title || '제목 없음';
     document.getElementById('detailType').innerText = task.type || 'Q&A';
@@ -417,14 +480,15 @@ function openDetailModal(taskId) {
 
     renderComments(task.comments || []);
     detailModal.classList.remove('hidden');
+    logActivity("상세 조회", `[${task.title}] 상세 내용을 조회했습니다.`);
 }
 
 // ============================================================================
-// 6. 댓글 시스템
+// 6. 소통 댓글 모듈 (관리자 수정/삭제 완전 지원)
 // ============================================================================
 function renderComments(commentsArr) {
-    const listEl = document.getElementById('commentListArea');
-    const countEl = document.getElementById('commentCountBadge');
+    const listEl = document.getElementById('commentListArea') || document.getElementById('commentList');
+    const countEl = document.getElementById('commentCountBadge') || document.getElementById('commentCount');
     if (countEl) countEl.innerText = commentsArr.length;
     if (!listEl) return;
     
@@ -437,11 +501,12 @@ function renderComments(commentsArr) {
     const isAdmin = checkIsAdmin();
 
     commentsArr.forEach((c, index) => {
+        // 관리자이거나 작성자 본인이면 수정/삭제 권한 부여
         const canManage = (c.author === currentUserName) || isAdmin;
         const actionBtns = canManage ? `
             <div class="flex items-center gap-1.5 ml-2">
-                <button type="button" class="edit-comment-btn text-[10px] font-bold text-gray-400 hover:text-blue-600 transition" data-index="${index}">수정</button>
-                <button type="button" class="delete-comment-btn text-[10px] font-bold text-gray-400 hover:text-red-500 transition" data-index="${index}">삭제</button>
+                <button type="button" class="edit-comment-btn text-[10px] font-bold text-blue-600 hover:underline transition" data-index="${index}">수정</button>
+                <button type="button" class="delete-comment-btn text-[10px] font-bold text-red-500 hover:underline transition" data-index="${index}">삭제</button>
             </div>
         ` : '';
 
@@ -465,10 +530,31 @@ function renderComments(commentsArr) {
         `;
     });
 
+    // 🌟 댓글 수정 처리
+    listEl.querySelectorAll('.edit-comment-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const idx = parseInt(btn.getAttribute('data-index'));
+            const comment = commentsArr[idx];
+            const newText = prompt("댓글 내용을 수정하세요:", comment.text);
+            if (newText !== null && newText.trim() !== "") {
+                commentsArr[idx].text = newText.trim();
+                try {
+                    await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), { comments: commentsArr });
+                    renderComments(commentsArr);
+                    fetchTasks();
+                    alert("댓글이 수정되었습니다.");
+                } catch(err) { alert("댓글 수정 실패: " + err.message); }
+            }
+        });
+    });
+
+    // 🌟 댓글 삭제 처리
     listEl.querySelectorAll('.delete-comment-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
             const idx = parseInt(btn.getAttribute('data-index'));
-            if (confirm("댓글을 삭제하시겠습니까?")) {
+            if (confirm("댓글을 완전히 삭제하시겠습니까?")) {
                 commentsArr.splice(idx, 1);
                 await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), { comments: commentsArr });
                 renderComments(commentsArr);
@@ -522,7 +608,7 @@ safeAddListener('submitNewCommentBtn', 'click', async () => {
     try {
         await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), { comments: updatedComments });
         textInput.value = '';
-        fileInput.value = '';
+        if(fileInput) fileInput.value = '';
         task.comments = updatedComments;
         renderComments(updatedComments);
         fetchTasks();
@@ -599,7 +685,93 @@ async function fetchClients() {
 }
 
 // ============================================================================
-// 8. 멤버 관리 / 승인 관리 / 로그 모니터링 모듈
+// 8. 인사이트 라이브러리 모듈 (사각 배너형 복원)
+// ============================================================================
+async function fetchLibraryItems() {
+    const grid = document.getElementById('libraryGrid');
+    if (!grid) return;
+    grid.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin text-hermes mr-2"></i> 라이브러리 로딩 중...</div>';
+
+    try {
+        const querySnapshot = await getDocs(collection(db, "crm_library"));
+        libraryMap = {};
+        let libList = [];
+
+        querySnapshot.forEach(docSnap => {
+            const item = { id: docSnap.id, ...docSnap.data() };
+            libList.push(item);
+            libraryMap[docSnap.id] = item;
+        });
+
+        grid.innerHTML = '';
+        const isAdmin = checkIsAdmin();
+
+        libList.forEach(item => {
+            const adminBtns = isAdmin ? `
+                <div class="flex items-center gap-1.5 ml-auto">
+                    <button class="edit-lib-btn text-[11px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-600 hover:text-white px-2 py-1 rounded transition" data-id="${item.id}">수정</button>
+                    <button class="delete-lib-btn text-[11px] font-bold text-red-500 bg-red-50 hover:bg-red-500 hover:text-white px-2 py-1 rounded transition" data-id="${item.id}">삭제</button>
+                </div>
+            ` : '';
+
+            const pdfBtn = item.pdfUrl ? `
+                <a href="${item.pdfUrl}" target="_blank" download class="px-3 py-1.5 bg-gray-50 hover:bg-hermes hover:text-white text-hermes text-xs font-bold rounded-lg border border-gray-200 transition shadow-sm flex items-center gap-1.5">
+                    <i class="fa-solid fa-download"></i> PDF
+                </a>
+            ` : '';
+
+            // 🌟 고급 사각 배너 카드 UI 적용
+            grid.innerHTML += `
+                <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 group flex flex-col cursor-pointer lib-card-trigger" data-id="${item.id}">
+                    <div class="h-36 bg-gray-50 relative overflow-hidden flex items-center justify-center border-b border-gray-100">
+                        <div class="absolute inset-0 bg-gradient-to-br from-orange-100/30 to-transparent"></div>
+                        <i class="${item.iconClass || 'fa-solid fa-file-lines text-hermes'} text-5xl group-hover:scale-110 transition duration-300"></i>
+                    </div>
+                    <div class="p-5 flex-1 flex flex-col">
+                        <div class="mb-3 flex items-center justify-between">
+                            <span class="inline-block px-2.5 py-1 bg-orange-50 text-hermes text-[10px] font-bold rounded-md border border-orange-100">${item.category || '가이드'}</span>
+                            ${adminBtns}
+                        </div>
+                        <h3 class="font-black text-gray-900 mb-2 leading-snug group-hover:text-hermes transition">${item.title}</h3>
+                        <p class="text-xs text-gray-500 mb-5 line-clamp-2 leading-relaxed flex-1">${item.desc || ''}</p>
+                        <div class="flex justify-between items-center border-t border-gray-100 pt-4 mt-auto">
+                            <button class="text-xs font-bold text-gray-600 hover:text-hermes transition flex items-center gap-1.5"><i class="fa-solid fa-book-open"></i> HTML 열람</button>
+                            ${pdfBtn}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        document.querySelectorAll('.lib-card-trigger').forEach(card => {
+            card.addEventListener('click', (e) => {
+                if (e.target.closest('.edit-lib-btn') || e.target.closest('.delete-lib-btn') || e.target.closest('a')) return;
+                const libId = card.getAttribute('data-id');
+                openLibraryViewModal(libId);
+            });
+        });
+
+    } catch (e) { console.error("Library fetch error:", e); }
+}
+
+function openLibraryViewModal(id) {
+    const item = libraryMap[id];
+    if (!item) return;
+
+    currentViewLibId = id;
+    const newUrl = `${window.location.pathname}?libId=${id}`;
+    window.history.pushState({ path: newUrl }, '', newUrl);
+
+    if (document.getElementById('libViewCategory')) document.getElementById('libViewCategory').innerText = item.category || '가이드';
+    if (document.getElementById('libViewTitle')) document.getElementById('libViewTitle').innerText = item.title;
+    if (document.getElementById('libViewHtmlContent')) document.getElementById('libViewHtmlContent').innerHTML = item.htmlContent || '<p>상세 내용이 없습니다.</p>';
+
+    if (libraryViewModal) libraryViewModal.classList.remove('hidden');
+    logActivity("라이브러리 열람", `[${item.title}] 가이드북 HTML 열람`);
+}
+
+// ============================================================================
+// 9. 멤버 관리 / 승인 관리 / 로그 모니터링 모듈
 // ============================================================================
 async function fetchMembers() {
     const isAdmin = checkIsAdmin();
@@ -765,30 +937,8 @@ async function fetchLogs() {
     } catch (error) { console.error("Log error:", error); }
 }
 
-async function fetchLibraryItems() {
-    const grid = document.getElementById('libraryGrid');
-    if (!grid) return;
-    grid.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin text-hermes mr-2"></i> 라이브러리 로딩 중...</div>';
-
-    try {
-        const querySnapshot = await getDocs(collection(db, "crm_library"));
-        grid.innerHTML = '';
-
-        querySnapshot.forEach(docSnap => {
-            const item = docSnap.data();
-            grid.innerHTML += `
-                <div class="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
-                    <span class="px-2.5 py-1 bg-orange-50 text-hermes text-[10px] font-bold rounded-md">${item.category || '가이드'}</span>
-                    <h3 class="font-black text-gray-900 mt-2 mb-1">${item.title}</h3>
-                    <p class="text-xs text-gray-500 line-clamp-2">${item.desc || ''}</p>
-                </div>
-            `;
-        });
-    } catch (e) { console.error("Library fetch error:", e); }
-}
-
 // ============================================================================
-// 9. 네비게이션 및 모달 이벤트 핸들러
+// 10. 네비게이션 및 핸들러 연결
 // ============================================================================
 safeAddListener('googleLoginBtn', 'click', () => signInWithPopup(auth, provider));
 safeAddListener('logoutBtn', 'click', () => signOut(auth));
@@ -798,24 +948,18 @@ safeAddListener('openModalBtn', 'click', () => createModal.classList.remove('hid
 safeAddListener('closeModalBtn', 'click', () => createModal.classList.add('hidden'));
 safeAddListener('cancelBtn', 'click', () => createModal.classList.add('hidden'));
 
-safeAddListener('closeDetailModalBtn', 'click', () => {
-    detailModal.classList.add('hidden');
-    window.history.pushState({}, '', window.location.pathname);
-});
+safeAddListener('closeDetailModalBtn', 'click', () => closeAllModals());
 
-// 메뉴 네비게이션 및 탭별 데이터 호출 연결
 navItems.forEach(item => {
     item.addEventListener('click', (e) => {
         e.preventDefault();
         const menu = e.currentTarget.getAttribute('data-menu');
         
-        // 탭 스타일 활성화
         navItems.forEach(n => {
             n.className = "nav-item flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition";
         });
         e.currentTarget.className = "nav-item flex items-center gap-3 bg-hermes text-white px-4 py-3 rounded-lg font-bold shadow-md shadow-orange-200/50 transition";
 
-        // 컨테이너 초기화
         if (statsContainer) statsContainer.classList.add('hidden');
         if (tasksContainer) tasksContainer.classList.add('hidden');
         if (clientsContainer) clientsContainer.classList.add('hidden');
@@ -824,7 +968,6 @@ navItems.forEach(item => {
         if (logsContainer) logsContainer.classList.add('hidden');
         if (libraryContainer) libraryContainer.classList.add('hidden');
 
-        // 선택 메뉴 노출 및 데이터 로드
         if (menu === 'dashboard') {
             if (statsContainer) statsContainer.classList.remove('hidden');
             if (tasksContainer) tasksContainer.classList.remove('hidden');
@@ -851,7 +994,6 @@ navItems.forEach(item => {
     });
 });
 
-// 이슈 목록 테이블 클릭 상세 열기
 const boardTableEl = document.getElementById('boardTable');
 if (boardTableEl) {
     boardTableEl.addEventListener('click', (e) => {

@@ -67,7 +67,7 @@ const libraryViewModal = document.getElementById('libraryViewModal');
 const libraryEditModal = document.getElementById('libraryEditModal');
 
 // ============================================================================
-// 3. 공통 유틸리티 & 워터마크 실시간 동적 생성
+// 3. 공통 유틸리티 & 워터마크 & 이미지 확대 모달 제어
 // ============================================================================
 function safeAddListener(id, eventType, callback) {
     const el = document.getElementById(id);
@@ -102,8 +102,38 @@ function renderWatermark() {
     document.body.prepend(container);
 }
 
+// 이미지 원본 보기 전용 모달 (ESC / 배경 클릭 닫기 지원)
+function openImageModal(imgUrl) {
+    let modal = document.getElementById('globalImageModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'globalImageModal';
+        modal.className = 'fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 hidden backdrop-blur-xs transition-opacity duration-200';
+        modal.innerHTML = `
+            <div class="relative max-w-5xl max-h-[90vh] flex flex-col items-center">
+                <button type="button" id="closeImageModalBtn" class="absolute -top-10 right-0 text-white text-3xl font-bold hover:text-orange-400 transition cursor-pointer">&times;</button>
+                <img id="globalImageModalImg" src="" class="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl border border-white/10" />
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal || e.target.id === 'closeImageModalBtn') {
+                modal.classList.add('hidden');
+            }
+        });
+    }
+    
+    const modalImg = document.getElementById('globalImageModalImg');
+    if (modalImg) modalImg.src = imgUrl;
+    modal.classList.remove('hidden');
+}
+
 // 모든 모달 닫기
 function closeAllModals() {
+    const globalImgModal = document.getElementById('globalImageModal');
+    if (globalImgModal) globalImgModal.classList.add('hidden');
+
     const modals = [createModal, editTaskModal, clientModal, editClientModal, assignModal, detailModal, libraryViewModal, libraryEditModal, pendingModal];
     modals.forEach(m => { if(m) m.classList.add('hidden'); });
     window.history.pushState({}, '', window.location.pathname);
@@ -120,6 +150,17 @@ document.addEventListener('keydown', (e) => {
         modalEl.addEventListener('click', (e) => {
             if (e.target === modalEl) closeAllModals();
         });
+    }
+});
+
+// 이미지 썸네일 클릭 이벤트 위임
+document.addEventListener('click', (e) => {
+    const imgTrigger = e.target.closest('.img-preview-btn');
+    if (imgTrigger) {
+        e.preventDefault();
+        e.stopPropagation();
+        const url = imgTrigger.getAttribute('data-url');
+        if (url) openImageModal(url);
     }
 });
 
@@ -146,7 +187,7 @@ async function uploadFilesToStorage(fileList, folderName) {
     return uploadedFiles;
 }
 
-// 🌟 드래그 & 드롭 파일 첨부 바인딩 헬퍼 (댓글창/수정창 완벽 대응)
+// 드래그 & 드롭 파일 첨부 바인딩 헬퍼
 function setupDragAndDrop(dropAreaId, fileInputId) {
     const dropArea = document.getElementById(dropAreaId);
     const fileInput = document.getElementById(fileInputId);
@@ -181,7 +222,7 @@ function setupDragAndDrop(dropAreaId, fileInputId) {
     }, false);
 }
 
-// 🌟 이미지 파일 판별 헬퍼
+// 이미지 파일 판별 헬퍼
 function isImageFile(fileName, url) {
     const imgExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp'];
     const lowerName = (fileName || '').toLowerCase();
@@ -190,28 +231,24 @@ function isImageFile(fileName, url) {
     return isDataImg || imgExts.some(ext => lowerName.endsWith(ext) || lowerUrl.includes(ext));
 }
 
-// 🌟 이미지 썸네일 미리보기 + 일반 첨부파일 다운로드 버튼 렌더링
+// 이미지 썸네일 미리보기 + 첨부파일 렌더링
 function renderFileButtons(item) {
     if (item.files && item.files.length > 0) {
         return item.files.map(f => {
             const url = f.fileUrl || f.fileData; 
             const fileName = f.fileName || '첨부파일';
 
-            // 이미지 파일인 경우: 썸네일 미리보기 렌더링 (클릭 시 새 탭 원본 열람)
             if (isImageFile(fileName, url)) {
                 return `
                     <div class="inline-block relative group my-1 mr-2 align-top">
-                        <a href="${url}" target="_blank" title="클릭하여 원본 이미지 보기: ${fileName}">
-                            <img src="${url}" alt="${fileName}" class="w-20 h-20 object-cover rounded-xl border border-gray-200 shadow-xs hover:shadow-md hover:scale-105 transition duration-200 cursor-pointer" />
-                        </a>
-                        <a href="${url}" target="_blank" download="${fileName}" class="absolute bottom-1 right-1 bg-black/60 hover:bg-black text-white text-[9px] px-1.5 py-0.5 rounded shadow transition" title="다운로드">
+                        <img src="${url}" alt="${fileName}" data-url="${url}" class="img-preview-btn w-20 h-20 object-cover rounded-xl border border-gray-200 shadow-xs hover:shadow-md hover:scale-105 transition duration-200 cursor-pointer" title="클릭하여 확대 보기" />
+                        <a href="${url}" target="_blank" download="${fileName}" onclick="event.stopPropagation();" class="absolute bottom-1 right-1 bg-black/60 hover:bg-black text-white text-[9px] px-1.5 py-0.5 rounded shadow transition" title="다운로드">
                             <i class="fa-solid fa-download"></i>
                         </a>
                     </div>
                 `;
             }
 
-            // 일반 파일인 경우: 다운로드 배지 버튼
             return `<a href="${url}" target="_blank" download="${fileName}" class="download-link inline-flex items-center gap-1 bg-gray-100 hover:bg-orange-100 text-gray-700 hover:text-hermes text-[10px] font-bold px-2 py-1.5 rounded-lg border border-gray-200 transition my-0.5 shadow-sm"><i class="fa-solid fa-download text-hermes"></i> ${fileName}</a>`;
         }).join(' ');
     }
@@ -353,7 +390,6 @@ function showDashboard(user) {
         if(adminMenu) adminMenu.classList.add('hidden');
     }
 
-    // 🌟 드래그앤드롭 파일 첨부 이벤트 바인딩
     setupDragAndDrop('commentInputBox', 'commentFileInputBox');
     setupDragAndDrop('inputContent', 'inputFile');
 
@@ -632,7 +668,6 @@ function renderComments(commentsArr) {
                 </div>
             `;
 
-            // 🌟 수정 모드 드래그 앤 드롭 바인딩
             setupDragAndDrop(`inline-edit-textarea-${idx}`, `inline-edit-file-input-${idx}`);
 
             const filesContainer = document.getElementById(`inline-edit-files-container-${idx}`);
@@ -766,7 +801,7 @@ safeAddListener('submitNewCommentBtn', 'click', async () => {
 });
 
 // ============================================================================
-// 7. 클라이언트 관리 모듈
+// 7. 클라이언트 관리 모듈 (🌟 연결된 담당자 최대 2명 표시 및 마우스 오버 전체 모달 팝업)
 // ============================================================================
 async function fetchClients() {
     const tbody = document.getElementById('clientsTable');
@@ -791,9 +826,33 @@ async function fetchClients() {
 
         querySnapshot.forEach((docSnap) => {
             const data = docSnap.data();
+            
+            // 🌟 연결된 담당자 축약 표기 및 hover 툴팁 모달 구현
             let managersHtml = '<span class="text-gray-400 text-xs">미배정</span>';
             if (data.managers && data.managers.length > 0) {
-                managersHtml = data.managers.map(m => `<span class="inline-block bg-blue-50 text-noah text-[10px] px-2 py-1 rounded border border-blue-100 mr-1 mb-1 font-bold">${m}</span>`).join('');
+                const maxVisible = 2; // 기본 노출 인원수
+                const visibleManagers = data.managers.slice(0, maxVisible);
+                const hiddenCount = data.managers.length - maxVisible;
+
+                let badges = visibleManagers.map(m => `<span class="inline-block bg-blue-50 text-noah text-[10px] px-2 py-1 rounded border border-blue-100 mr-1 mb-1 font-bold">${m}</span>`).join('');
+                
+                if (hiddenCount > 0) {
+                    const allList = data.managers.map(m => `<div class="py-0.5 flex items-center gap-1"><i class="fa-solid fa-user text-orange-400 text-[9px]"></i> ${m}</div>`).join('');
+                    badges += `
+                        <div class="inline-block relative group align-middle mb-1">
+                            <span class="inline-block bg-gray-100 hover:bg-orange-100 text-gray-600 hover:text-hermes text-[10px] px-2 py-1 rounded border border-gray-200 cursor-pointer font-bold transition shadow-2xs">
+                                ... (+${hiddenCount}명)
+                            </span>
+                            <div class="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-3 bg-gray-900/95 text-white text-[11px] rounded-xl shadow-2xl z-50 whitespace-nowrap min-w-[120px] border border-gray-700/80 backdrop-blur-xs">
+                                <div class="font-bold border-b border-gray-700 pb-1.5 mb-1.5 text-orange-400 text-[10px] flex items-center gap-1">
+                                    <i class="fa-solid fa-users"></i> 전체 담당자 (${data.managers.length}명)
+                                </div>
+                                <div class="space-y-0.5 text-left text-gray-200 font-medium">${allList}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                managersHtml = badges;
             }
 
             const isAdmin = checkIsAdmin();
@@ -819,7 +878,7 @@ async function fetchClients() {
                     <td class="p-3 md:p-4 font-bold text-hermes text-xs align-middle">${data.budget || '-'}</td>
                     <td class="p-3 md:p-4 text-xs text-gray-600 align-middle"><div>인스타: ${data.instaDate || '-'}</div><div>메타: ${data.metaDate || '-'}</div></td>
                     <td class="p-3 md:p-4 text-xs font-bold text-gray-500 align-middle">${data.registeredBy || '-'}</td>
-                    <td class="p-3 md:p-4 max-w-[120px] whitespace-normal align-middle">${managersHtml}</td>
+                    <td class="p-3 md:p-4 max-w-[150px] whitespace-normal align-middle">${managersHtml}</td>
                     ${adminActions}
                 </tr>
             `;
@@ -992,7 +1051,7 @@ async function fetchApprovals() {
     const tbody = document.getElementById('approvalsTable');
     const emptyState = document.getElementById('emptyApprovals');
     if(!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin text-hermes mr-2"></i> 로딩 중...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 로딩 중...</td></tr>';
 
     try {
         const q = query(collection(db, "users"), where("status", "==", "pending"));
@@ -1048,7 +1107,7 @@ async function fetchLogs() {
     const tbody = document.getElementById('logsTable');
     const emptyState = document.getElementById('emptyLogs');
     if(!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin text-hermes mr-2"></i> 로그 데이터 수집 중...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 로그 데이터 수집 중...</td></tr>';
 
     try {
         const logsSnap = await getDocs(collection(db, "activity_logs"));

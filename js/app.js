@@ -22,7 +22,7 @@ const db = getFirestore(app);
 const storage = getStorage(app); 
 const provider = new GoogleAuthProvider();
 
-// 어드민 이메일 및 전역 상태 데이터
+// 어드민 이메일 및 전역 상태 데이터 보존
 const ADMIN_EMAILS = ["hhjhhj422@gmail.com", "adp@adplanters.com", "dlghgus9997@gmail.com"];
 let currentUserRole = ''; 
 let currentUserName = ''; 
@@ -174,26 +174,54 @@ function closeAllModals() {
     window.history.pushState({}, '', window.location.pathname);
 }
 
-// 키보드 ESC 키 감지 모달 닫기
+// 🌟 키보드 ESC 키 감지 모달 닫기
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         closeAllModals();
     }
 });
 
-// 모달 바깥 배경 클릭 시 닫기
-[createModal, editTaskModal, clientModal, editClientModal, assignModal, detailModal, libraryViewModal, libraryEditModal].forEach(modalEl => {
+// 🌟 모달 바깥 배경 클릭 및 내부 X(닫기) / 취소 버튼 강제 바인딩 (클라이언트 창 오류 해결)
+[createModal, editTaskModal, clientModal, editClientModal, assignModal, detailModal, libraryViewModal, libraryEditModal, pendingModal].forEach(modalEl => {
     if (modalEl) {
+        // 배경 클릭 시 닫기
         modalEl.addEventListener('click', (e) => {
             if (e.target === modalEl) {
                 closeAllModals();
             }
         });
+
+        // X 아이콘 및 취소 텍스트 버튼을 찾아 강제로 이벤트 바인딩
+        const closeBtns = modalEl.querySelectorAll('.fa-xmark, button[title="닫기"]');
+        closeBtns.forEach(icon => {
+            const btn = icon.closest('button') || icon;
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                closeAllModals();
+            });
+        });
+
+        const cancelBtns = Array.from(modalEl.querySelectorAll('button')).filter(b => b.textContent.trim() === '취소');
+        cancelBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                closeAllModals();
+            });
+        });
     }
 });
 
-// 이미지 썸네일 클릭 이벤트 위임
+// 🌟 글로벌 신규 클라이언트 추가 버튼(id가 없을 경우 텍스트 기반) 캐치
 document.addEventListener('click', (e) => {
+    const addClientBtn = e.target.closest('#openClientModalBtn') || (e.target.textContent && e.target.textContent.includes('신규 클라이언트 추가'));
+    if (addClientBtn && clientModal) {
+        e.preventDefault();
+        clientModal.classList.remove('hidden');
+        clientModal.style.zIndex = "99999";
+    }
+
     const imgTrigger = e.target.closest('.img-preview-btn');
     if (imgTrigger) {
         e.preventDefault();
@@ -360,7 +388,7 @@ onAuthStateChanged(auth, async (user) => {
             isInitialLoginLogged = true;
         }
 
-        // 1. ADMIN_EMAILS 목록 지정 관리자 자동 승인
+        // ADMIN_EMAILS 목록 지정 관리자 자동 승인
         if (ADMIN_EMAILS.includes(user.email)) {
             await setDoc(userRef, { 
                 email: user.email, 
@@ -374,7 +402,7 @@ onAuthStateChanged(auth, async (user) => {
             return;
         }
 
-        // 2. 이메일 기반 기존 UID 자동 매핑 처리
+        // 이메일 기반 기존 UID 자동 매핑 처리
         if (!userSnap.exists()) {
             const q = query(collection(db, "users"), where("email", "==", user.email));
             const qSnap = await getDocs(q);
@@ -502,7 +530,6 @@ safeAddListener('taskForm', 'submit', async (e) => {
         assignedManagersArr = Array.from(checkboxes).map(cb => cb.value);
     }
 
-    // staff는 최초 포스팅 작성자 이름으로 고정
     const authorStaffName = document.getElementById('inputStaff').value || currentUserName || '담당자';
 
     const newTask = {
@@ -512,7 +539,7 @@ safeAddListener('taskForm', 'submit', async (e) => {
         title: tTitle,
         content: document.getElementById('inputContent').value,
         files: filesArr, 
-        staff: authorStaffName, // 작성자 이름 영구 보존
+        staff: authorStaffName, 
         email: auth.currentUser ? auth.currentUser.email : '',
         uid: auth.currentUser ? auth.currentUser.uid : '',
         assignedManagers: assignedManagersArr,
@@ -537,7 +564,6 @@ safeAddListener('taskForm', 'submit', async (e) => {
     }
 });
 
-// 외부 리스트에서 게시글 삭제 처리
 async function deleteTask(taskId) {
     const task = tasksMap[taskId];
     const title = task ? task.title : '해당 이슈';
@@ -555,20 +581,12 @@ async function deleteTask(taskId) {
     }
 }
 
-// [수정] 게시글 수정(editTaskModal) 창 오픈 및 상태/담당자 변경 항목 주입
 function openEditTaskModal(taskId) {
     const task = tasksMap[taskId];
     if (!task) return;
     currentDetailTaskId = taskId;
 
     if (editTaskModal) {
-        // [수정 1] X 버튼과 취소 버튼에 대해 명시적 닫기(closeAllModals) 강제 바인딩 (클릭 무반응 문제 해결)
-        const closeBtn = editTaskModal.querySelector('.fa-xmark')?.closest('button') || editTaskModal.querySelector('button[title="닫기"]') || (editTaskModal.querySelector('svg') ? editTaskModal.querySelector('svg').closest('button') : null);
-        const cancelBtn = Array.from(editTaskModal.querySelectorAll('button')).find(b => b.textContent.includes('취소'));
-        
-        if (closeBtn) closeBtn.onclick = (e) => { e.preventDefault(); closeAllModals(); };
-        if (cancelBtn) cancelBtn.onclick = (e) => { e.preventDefault(); closeAllModals(); };
-
         const inputs = editTaskModal.querySelectorAll('input[type="text"]');
         const selects = editTaskModal.querySelectorAll('select');
         const textareas = editTaskModal.querySelectorAll('textarea');
@@ -585,125 +603,11 @@ function openEditTaskModal(taskId) {
         if (agencyIn) agencyIn.value = task.agency || '';
         if (contentIn) contentIn.value = task.content || '';
 
-        // [수정 2] 진행 상태 및 담당자 목록 동적 렌더링 영역 생성 및 주입
-        let extraFieldsArea = document.getElementById('editTaskExtraFields');
-        if (!extraFieldsArea) {
-            extraFieldsArea = document.createElement('div');
-            extraFieldsArea.id = 'editTaskExtraFields';
-            extraFieldsArea.className = 'w-full mb-4 flex flex-col gap-4 border-t border-gray-100 pt-4 mt-4';
-            
-            if (contentIn) {
-                const contentParent = contentIn.closest('div'); // textarea를 감싼 div
-                if (contentParent && contentParent.parentNode) {
-                    contentParent.parentNode.insertBefore(extraFieldsArea, contentParent.nextSibling);
-                }
-            } else {
-                const form = editTaskModal.querySelector('form');
-                if (form) form.insertBefore(extraFieldsArea, form.lastElementChild);
-            }
-        }
-
-        extraFieldsArea.innerHTML = '<div class="text-xs text-gray-400 p-2 text-center font-bold"><i class="fa-solid fa-spinner animate-spin"></i> 상태 및 멤버 목록 불러오는 중...</div>';
-
-        const currentStatus = task.status || '답변대기';
-        let statusHtml = `
-            <div>
-                <label class="block text-xs font-bold text-gray-700 mb-1">진행 상태</label>
-                <select id="editInputStatus" class="w-full text-sm font-medium border border-gray-300 rounded-lg p-2 focus:outline-none focus:border-hermes transition">
-                    <option value="답변대기" ${currentStatus === '답변대기' ? 'selected' : ''}>답변대기</option>
-                    <option value="진행중" ${currentStatus === '진행중' ? 'selected' : ''}>진행중</option>
-                    <option value="처리완료" ${currentStatus === '처리완료' ? 'selected' : ''}>처리완료</option>
-                    <option value="보류" ${currentStatus === '보류' ? 'selected' : ''}>보류</option>
-                </select>
-            </div>
-        `;
-
-        // Firestore DB에서 최신 멤버를 불러와 체크박스 렌더링
-        (async () => {
-            try {
-                const usersSnap = await getDocs(query(collection(db, "users"), where("status", "==", "approved")));
-                let managersHtml = '<div><label class="block text-xs font-bold text-gray-700 mb-1">담당자 배정 연결</label><div class="bg-gray-50 border border-gray-200 rounded-lg p-2 max-h-36 overflow-y-auto grid grid-cols-2 gap-1">';
-                
-                const currentAssigned = task.assignedManagers || [];
-                
-                usersSnap.forEach(uDoc => {
-                    const u = uDoc.data();
-                    const isChecked = currentAssigned.includes(u.name) ? 'checked' : '';
-                    managersHtml += `
-                        <label class="flex items-center gap-2 p-1.5 hover:bg-white rounded cursor-pointer text-xs font-medium text-gray-700 transition border border-transparent hover:border-gray-200 shadow-2xs">
-                            <input type="checkbox" value="${u.name}" class="edit-assign-manager-checkbox rounded text-hermes focus:ring-hermes" ${isChecked} />
-                            <span class="truncate">${u.name}</span>
-                        </label>
-                    `;
-                });
-                managersHtml += '</div></div>';
-                extraFieldsArea.innerHTML = statusHtml + managersHtml;
-            } catch(err) {
-                console.error("멤버 로드 실패:", err);
-                extraFieldsArea.innerHTML = statusHtml + '<div class="text-xs text-red-500 mt-2">멤버 로드 실패</div>';
-            }
-        })();
-
         editTaskModal.classList.remove('hidden');
         editTaskModal.style.zIndex = "99999"; 
     }
 }
 
-// [수정] 외부 리스트 게시글 수정 완료(submit) 시 상태와 담당자 데이터 업데이트 반영
-safeAddListener('editTaskForm', 'submit', async (e) => {
-    e.preventDefault();
-    if (!currentDetailTaskId) return;
-
-    const inputs = editTaskModal.querySelectorAll('input[type="text"]');
-    const selects = editTaskModal.querySelectorAll('select');
-    const textareas = editTaskModal.querySelectorAll('textarea');
-
-    const clientIn = document.getElementById('editInputClient') || editTaskModal.querySelector('[name="client"]') || inputs[0];
-    const titleIn = document.getElementById('editInputTitle') || editTaskModal.querySelector('[name="title"]') || inputs[1];
-    const typeIn = document.getElementById('editInputType') || editTaskModal.querySelector('[name="type"]') || selects[0];
-    const agencyIn = document.getElementById('editInputAgency') || editTaskModal.querySelector('[name="agency"]') || selects[1];
-    const contentIn = document.getElementById('editInputContent') || editTaskModal.querySelector('[name="content"]') || textareas[0];
-
-    // [추가] 동적으로 추가한 상태(Status) 및 담당자(Managers) 값 추출
-    const statusIn = document.getElementById('editInputStatus');
-    const newStatus = statusIn ? statusIn.value : tasksMap[currentDetailTaskId].status;
-
-    let newManagers = tasksMap[currentDetailTaskId].assignedManagers || [];
-    const extraArea = document.getElementById('editTaskExtraFields');
-    if (extraArea) {
-        const checkedBoxes = editTaskModal.querySelectorAll('.edit-assign-manager-checkbox:checked');
-        newManagers = Array.from(checkedBoxes).map(cb => cb.value);
-    }
-
-    try {
-        await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), {
-            title: titleIn ? titleIn.value : tasksMap[currentDetailTaskId].title,
-            content: contentIn ? contentIn.value : tasksMap[currentDetailTaskId].content,
-            type: typeIn ? typeIn.value : tasksMap[currentDetailTaskId].type,
-            client: clientIn ? clientIn.value : tasksMap[currentDetailTaskId].client,
-            agency: agencyIn ? agencyIn.value : (tasksMap[currentDetailTaskId].agency || ''),
-            status: newStatus,              // 상태 업데이트
-            assignedManagers: newManagers,  // 선택된 담당자 전체 배열 업데이트
-            updatedAt: new Date().toISOString()
-        });
-        
-        if (editTaskModal) {
-            editTaskModal.classList.add('hidden');
-        }
-        alert("게시글 수정이 완료되었습니다.");
-        
-        await fetchTasks(); // 리스트 갱신
-        
-        // 상세 모달이 열려있는 상태에서 밖에서 수정한 경우 상세 모달도 리렌더링
-        if (detailModal && !detailModal.classList.contains('hidden')) {
-            openDetailModal(currentDetailTaskId);
-        }
-    } catch (err) { 
-        alert("이슈 수정 실패: " + err.message); 
-    }
-});
-
-// 담당자 다중 연결 중앙 플로팅 모달 오픈
 async function openAssignModal(taskId) {
     const task = tasksMap[taskId];
     if (!task) return;
@@ -755,20 +659,10 @@ async function openAssignModal(taskId) {
 
         assignModal.classList.remove('hidden');
         assignModal.style.zIndex = "99999";
-
-        // X버튼 및 취소 버튼 닫기 바인딩
-        const closeBtn = assignModal.querySelector('.fa-xmark')?.closest('button') || assignModal.querySelector('button[title="닫기"]');
-        const cancelBtn = assignModal.querySelector('button.bg-gray-100') || Array.from(assignModal.querySelectorAll('button')).find(b => b.textContent.includes('취소'));
-        
-        if (closeBtn) closeBtn.onclick = (e) => { e.preventDefault(); assignModal.classList.add('hidden'); };
-        if (cancelBtn) cancelBtn.onclick = (e) => { e.preventDefault(); assignModal.classList.add('hidden'); };
-
-        // 🌟 [배정 완료] 버튼 및 폼 이벤트 바인딩
         bindAssignSubmitEvents();
     }
 }
 
-// 🌟 담당자 배정 처리 실행 함수 (작성자 staff 필드는 보존, assignedManagers만 저장)
 async function executeAssignManagers() {
     const targetId = currentAssignClientId || currentDetailTaskId;
     if (!targetId) {
@@ -789,7 +683,6 @@ async function executeAssignManagers() {
         const checkboxes = assignModal.querySelectorAll('.assign-manager-checkbox:checked');
         const selectedManagers = Array.from(checkboxes).map(cb => cb.value);
 
-        // 🌟 Firestore 업데이트 (staff 작성자는 수정하지 않고 assignedManagers만 업데이트)
         await updateDoc(doc(db, "crm_tasks", targetId), {
             assignedManagers: selectedManagers
         });
@@ -817,7 +710,6 @@ async function executeAssignManagers() {
     }
 }
 
-// 배정 완료 버튼 및 폼 이벤트 강제 바인딩
 function bindAssignSubmitEvents() {
     const submitBtn = assignModal.querySelector('button[type="submit"]') || 
                       Array.from(assignModal.querySelectorAll('button')).find(b => b.textContent.includes('배정') || b.textContent.includes('완료'));
@@ -840,6 +732,41 @@ function bindAssignSubmitEvents() {
     }
 }
 
+safeAddListener('editTaskForm', 'submit', async (e) => {
+    e.preventDefault();
+    if (!currentDetailTaskId) return;
+
+    const inputs = editTaskModal.querySelectorAll('input[type="text"]');
+    const selects = editTaskModal.querySelectorAll('select');
+    const textareas = editTaskModal.querySelectorAll('textarea');
+
+    const clientIn = document.getElementById('editInputClient') || editTaskModal.querySelector('[name="client"]') || inputs[0];
+    const titleIn = document.getElementById('editInputTitle') || editTaskModal.querySelector('[name="title"]') || inputs[1];
+    const typeIn = document.getElementById('editInputType') || editTaskModal.querySelector('[name="type"]') || selects[0];
+    const contentIn = document.getElementById('editInputContent') || editTaskModal.querySelector('[name="content"]') || textareas[0];
+
+    try {
+        await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), {
+            title: titleIn ? titleIn.value : tasksMap[currentDetailTaskId].title,
+            content: contentIn ? contentIn.value : tasksMap[currentDetailTaskId].content,
+            type: typeIn ? typeIn.value : tasksMap[currentDetailTaskId].type,
+            client: clientIn ? clientIn.value : tasksMap[currentDetailTaskId].client,
+            updatedAt: new Date().toISOString()
+        });
+        
+        if (editTaskModal) {
+            editTaskModal.classList.add('hidden');
+        }
+        alert("이슈 수정이 완료되었습니다.");
+        
+        await fetchTasks();
+        if (!detailModal.classList.contains('hidden')) {
+            openDetailModal(currentDetailTaskId);
+        }
+    } catch (err) { 
+        alert("이슈 수정 실패: " + err.message); 
+    }
+});
 
 async function fetchTasks() {
     const tbody = document.getElementById('boardTable');
@@ -899,7 +826,6 @@ async function fetchTasks() {
             const commentCount = item.comments ? item.comments.length : 0;
             const displayStaff = (item.assignedManagers && item.assignedManagers.length > 0) ? item.assignedManagers.join(', ') : '미지정';
 
-            // 🌟 상태별 클래스 지정
             let statusBadgeClass = 'bg-blue-50 text-blue-600 border-blue-100';
             if (item.status === '진행중') statusBadgeClass = 'bg-amber-50 text-amber-600 border-amber-200';
             else if (item.status === '처리완료') statusBadgeClass = 'bg-green-50 text-green-600 border-green-200';
@@ -938,9 +864,6 @@ async function fetchTasks() {
     } catch (e) { console.error("Firestore error:", e); }
 }
 
-// ============================================================================
-// 6. 이슈 상세 모달 (🌟작성자 / 지정 담당자 완벽 분리 및 상태 셀렉터 추가)
-// ============================================================================
 async function openDetailModal(taskId) {
     const task = tasksMap[taskId];
     if(!task) return;
@@ -962,7 +885,6 @@ async function openDetailModal(taskId) {
     document.getElementById('detailTitle').innerText = task.title || '제목 없음';
     document.getElementById('detailType').innerText = task.type || 'Q&A';
     
-    // 🌟 상세 모달 상단 상태 셀렉터 바인딩
     const typeEl = document.getElementById('detailType');
     if (typeEl && typeEl.parentElement) {
         let statusSelectEl = document.getElementById('detailStatusSelect');
@@ -997,14 +919,12 @@ async function openDetailModal(taskId) {
 
     document.getElementById('detailClient').innerText = task.client || '-';
     
-    // 🌟 작성자 (최초 포스팅 작성자 명확히 표기)
     const authorName = task.staff || task.name || '담당자';
     const detailStaffEl = document.getElementById('detailStaff');
     if (detailStaffEl) {
         detailStaffEl.innerText = authorName;
     }
 
-    // 🌟 지정 담당자 (다중 배정 연결된 멤버 목록 표기)
     const assignedStr = (task.assignedManagers && task.assignedManagers.length > 0) 
         ? task.assignedManagers.join(', ') 
         : '미지정';
@@ -1030,7 +950,6 @@ async function openDetailModal(taskId) {
     document.getElementById('detailDate').innerText = task.date || '-';
     document.getElementById('detailContent').innerText = task.content || '등록된 내용이 없습니다.';
 
-    // 상단 컨트롤러 버튼 바 제어 (관리자 vs 작성자 본인)
     const isAdmin = checkIsAdmin();
     const isAuthor = checkIsAuthor(task);
 
@@ -1076,7 +995,6 @@ async function openDetailModal(taskId) {
     logActivity("상세 조회", `[${task.title}] 상세 내용을 조회했습니다.`);
 }
 
-// 상세 모달 내부 본문 자연스러운 인라인 편집 모드
 function bindInlineEditMode(taskId) {
     const task = tasksMap[taskId];
     const titleEl = document.getElementById('detailTitle');
@@ -1120,7 +1038,7 @@ function bindInlineEditMode(taskId) {
 }
 
 // ============================================================================
-// 7. 소통 댓글 모듈 (수정 창 전체 드래그&드롭 + 실시간 이미지 미리보기)
+// 7. 소통 댓글 모듈 (인라인 수정 + 전체 영역 드래그앤드롭 + 실시간 미리보기)
 // ============================================================================
 function renderComments(commentsArr) {
     const listEl = document.getElementById('commentListArea') || document.getElementById('commentList');
@@ -1169,6 +1087,7 @@ function renderComments(commentsArr) {
         `;
     });
 
+    // 인라인 수정 모드 바인딩
     listEl.querySelectorAll('.edit-comment-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -1179,7 +1098,7 @@ function renderComments(commentsArr) {
             if (!bodyArea || bodyArea.querySelector('textarea')) return;
 
             let currentEditFiles = comment.files ? [...comment.files] : [];
-            let newSelectedFiles = [];
+            let newSelectedFiles = []; // 드래그/선택된 신규 첨부파일 배열
 
             function renderEditFilesList() {
                 if (currentEditFiles.length === 0) return '<span class="text-[10px] text-gray-400 italic">첨부파일 없음</span>';
@@ -1231,11 +1150,11 @@ function renderComments(commentsArr) {
 
             bodyArea.innerHTML = `
                 <div class="mt-1 space-y-2 border-2 border-orange-300 p-3 rounded-2xl bg-orange-50/20 transition-all cursor-pointer" id="inline-edit-box-${idx}">
-                    <textarea id="inline-edit-textarea-${idx}" class="w-full text-xs p-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-hermes/30 transition resize-y bg-white" rows="3" placeholder="댓글 내용을 수정하거나 박스 전체 영역에 파일을 끌어다 놓으세요.">${comment.text}</textarea>
+                    <textarea id="inline-edit-textarea-${idx}" class="w-full text-xs p-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-hermes/30 transition resize-y bg-white" rows="3" placeholder="댓글 내용을 수정하거나 전체 영역에 파일을 끌어다 놓으세요.">${comment.text}</textarea>
                     
                     <div class="space-y-1 bg-white p-2.5 rounded-xl border border-gray-200">
                         <div class="text-[10px] font-bold text-gray-500 flex justify-between">
-                            <span>첨부파일 관리:</span>
+                            <span>기존 첨부파일:</span>
                             <span class="text-orange-500 font-bold text-[9px]">* 이 박스 영역 전체에 파일 드래그 & 드롭 가능</span>
                         </div>
                         
@@ -1249,7 +1168,7 @@ function renderComments(commentsArr) {
                         <div class="pt-1 flex items-center gap-2">
                             <input type="file" id="inline-edit-file-input-${idx}" multiple class="hidden" />
                             <button type="button" id="inline-edit-file-trigger-${idx}" class="text-xs bg-gray-100 hover:bg-orange-100 text-gray-700 px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1 border border-gray-200">
-                                <i class="fa-solid fa-paperclip text-hermes"></i> 파일 선택
+                                <i class="fa-solid fa-paperclip text-hermes"></i> PC 파일 선택
                             </button>
                         </div>
                     </div>
@@ -1434,8 +1353,66 @@ safeAddListener('submitNewCommentBtn', 'click', async () => {
 });
 
 // ============================================================================
-// 8. 클라이언트 관리 모듈 (수정/삭제 완벽 연동)
+// 8. 클라이언트 관리 (날짜 저장 복구 및 수정/삭제 연동)
 // ============================================================================
+
+// 🌟 신규 클라이언트 추가 폼 처리 (인스타/메타 날짜 정상 전송 로직 복원)
+safeAddListener('clientForm', 'submit', async (e) => {
+    e.preventDefault();
+    if (!clientModal) return;
+
+    const inputs = clientModal.querySelectorAll('input');
+    // 명시적인 ID가 없을 경우를 대비해 QuerySelector 및 인덱스로 예비 탐색
+    const nameIn = document.getElementById('inputClientName') || clientModal.querySelector('[name="name"]') || inputs[0];
+    const homeIn = document.getElementById('inputClientHomeUrl') || clientModal.querySelector('[name="homeUrl"]') || inputs[1];
+    const instaIn = document.getElementById('inputClientInstaUrl') || clientModal.querySelector('[name="instaUrl"]') || inputs[2];
+    const metaIdIn = document.getElementById('inputClientMetaId') || clientModal.querySelector('[name="metaId"]') || inputs[3];
+    const metaPwIn = document.getElementById('inputClientMetaPw') || clientModal.querySelector('[name="metaPw"]') || inputs[4];
+    const budgetIn = document.getElementById('inputClientBudget') || clientModal.querySelector('[name="budget"]') || inputs[5];
+    const instaDateIn = document.getElementById('inputClientInstaDate') || clientModal.querySelector('[name="instaDate"]') || inputs[6];
+    const metaDateIn = document.getElementById('inputClientMetaDate') || clientModal.querySelector('[name="metaDate"]') || inputs[7];
+
+    const submitBtn = clientModal.querySelector('button[type="submit"]');
+    const origText = submitBtn ? submitBtn.innerText : '저장';
+    if(submitBtn) { 
+        submitBtn.innerText = '저장 중...'; 
+        submitBtn.disabled = true; 
+    }
+
+    try {
+        const newClient = {
+            name: nameIn ? nameIn.value : '',
+            homeUrl: homeIn ? homeIn.value : '',
+            instaUrl: instaIn ? instaIn.value : '',
+            metaId: metaIdIn ? metaIdIn.value : '',
+            metaPw: metaPwIn ? metaPwIn.value : '',
+            budget: budgetIn ? budgetIn.value : '',
+            instaDate: instaDateIn ? instaDateIn.value : '',
+            metaDate: metaDateIn ? metaDateIn.value : '',
+            registeredBy: currentUserName,
+            managers: [],
+            createdAt: new Date().toISOString()
+        };
+
+        await addDoc(collection(db, "clients"), newClient);
+        clientModal.classList.add('hidden');
+        
+        const form = document.getElementById('clientForm');
+        if(form) form.reset();
+        
+        await logActivity("클라이언트 등록", `[${newClient.name}] 신규 등록 완료`);
+        alert("클라이언트가 성공적으로 등록되었습니다.");
+        fetchClients();
+    } catch (err) {
+        alert("등록 실패: " + err.message);
+    } finally {
+        if(submitBtn) { 
+            submitBtn.innerText = origText; 
+            submitBtn.disabled = false; 
+        }
+    }
+});
+
 async function deleteClient(clientId) {
     const client = clientsMap[clientId];
     const cName = client ? client.name : '해당 클라이언트';
@@ -1464,6 +1441,9 @@ function openEditClientModal(clientId) {
         const metaIdIn = document.getElementById('editClientMetaId') || editClientModal.querySelector('[name="metaId"]') || inputs[3];
         const metaPwIn = document.getElementById('editClientMetaPw') || editClientModal.querySelector('[name="metaPw"]') || inputs[4];
         const budgetIn = document.getElementById('editClientBudget') || editClientModal.querySelector('[name="budget"]') || inputs[5];
+        // 🌟 수정 모달 시에도 날짜 필드값을 올바르게 채워줌
+        const instaDateIn = document.getElementById('editClientInstaDate') || editClientModal.querySelector('[name="instaDate"]') || inputs[6];
+        const metaDateIn = document.getElementById('editClientMetaDate') || editClientModal.querySelector('[name="metaDate"]') || inputs[7];
 
         if (nameIn) nameIn.value = client.name || '';
         if (homeIn) homeIn.value = client.homeUrl || '';
@@ -1471,6 +1451,8 @@ function openEditClientModal(clientId) {
         if (metaIdIn) metaIdIn.value = client.metaId || '';
         if (metaPwIn) metaPwIn.value = client.metaPw || '';
         if (budgetIn) budgetIn.value = client.budget || '';
+        if (instaDateIn) instaDateIn.value = client.instaDate || '';
+        if (metaDateIn) metaDateIn.value = client.metaDate || '';
 
         editClientModal.classList.remove('hidden');
         editClientModal.style.zIndex = "99999";
@@ -1488,6 +1470,9 @@ safeAddListener('editClientForm', 'submit', async (e) => {
     const metaIdIn = document.getElementById('editClientMetaId') || editClientModal.querySelector('[name="metaId"]') || inputs[3];
     const metaPwIn = document.getElementById('editClientMetaPw') || editClientModal.querySelector('[name="metaPw"]') || inputs[4];
     const budgetIn = document.getElementById('editClientBudget') || editClientModal.querySelector('[name="budget"]') || inputs[5];
+    // 🌟 수정 폼 제출 시 인스타 날짜 / 메타 날짜를 함께 Firestore에 업데이트
+    const instaDateIn = document.getElementById('editClientInstaDate') || editClientModal.querySelector('[name="instaDate"]') || inputs[6];
+    const metaDateIn = document.getElementById('editClientMetaDate') || editClientModal.querySelector('[name="metaDate"]') || inputs[7];
 
     try {
         await updateDoc(doc(db, "clients", currentEditClientId), {
@@ -1497,6 +1482,8 @@ safeAddListener('editClientForm', 'submit', async (e) => {
             metaId: metaIdIn ? metaIdIn.value : clientsMap[currentEditClientId].metaId,
             metaPw: metaPwIn ? metaPwIn.value : clientsMap[currentEditClientId].metaPw,
             budget: budgetIn ? budgetIn.value : clientsMap[currentEditClientId].budget,
+            instaDate: instaDateIn ? instaDateIn.value : (clientsMap[currentEditClientId].instaDate || ''),
+            metaDate: metaDateIn ? metaDateIn.value : (clientsMap[currentEditClientId].metaDate || ''),
             updatedAt: new Date().toISOString()
         });
         editClientModal.classList.add('hidden');
@@ -1597,6 +1584,7 @@ async function fetchClients() {
     } catch (e) { console.error("Client fetch error:", e); }
 }
 
+// 🌟 클라이언트 테이블 내 수정/삭제 버튼 이벤트 맵핑 보완
 const clientsTableEl = document.getElementById('clientsTable');
 if (clientsTableEl) {
     clientsTableEl.addEventListener('click', (e) => {
@@ -1876,12 +1864,6 @@ async function fetchLogs() {
 safeAddListener('googleLoginBtn', 'click', () => signInWithPopup(auth, provider));
 safeAddListener('logoutBtn', 'click', () => signOut(auth));
 safeAddListener('closePendingBtn', 'click', () => signOut(auth));
-
-safeAddListener('openModalBtn', 'click', () => createModal.classList.remove('hidden'));
-safeAddListener('closeModalBtn', 'click', () => createModal.classList.add('hidden'));
-safeAddListener('cancelBtn', 'click', () => createModal.classList.add('hidden'));
-
-safeAddListener('closeDetailModalBtn', 'click', () => closeAllModals());
 
 navItems.forEach(item => {
     item.addEventListener('click', (e) => {

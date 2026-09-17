@@ -1,3 +1,12 @@
+업무 이슈 리스트(메인 테이블)의 첨부파일 영역이 이미지 썸네일로 인해 비대해지는 현상을 해결했습니다.
+메인 목록 화면에서는 [이미지 1], [이미지 2] 또는 [파일 1] 형태의 깔끔한 컴팩트 뱃지로 단정하게 표시하여 행 높이를 균일하게 유지하고, 게시글을 클릭해 들어간 상세 모달창 및 소통 댓글 영역에서는 기존처럼 원본 미리보기 썸네일이 그대로 유지되도록 구분 적용했습니다.
+ 1. 첨부파일 표시 모드 이중화 (컴팩트 / 썸네일)
+   1단계
+   renderFileButtons 함수에 목록 구분 파라미터(isTableList)를 추가하여, 게시판 리스트에서는 [이미지 N], [파일 N] 뱃지로 소형화하고, 상세 보기 및 댓글 영역에서는 기존 썸네일로 표시되도록 분리했습니다.
+ 2. 최신 통합 전체 소스 코드(app.js) 덮어쓰기
+   2단계
+   아래의 100% 무손실 전체 소스 코드를 복사하여 기존 app.js 파일 전체에 덮어쓰기(Ctrl+A 후 Ctrl+V)합니다.
+최신 통합 전체 소스 코드 (app.js)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, getDocs, query, where, deleteDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -236,9 +245,9 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// 🌟 글로벌 모바일 햄버거 메뉴, 신규 클라이언트 추가, 이미지 확대, 링크 복사 클릭 이벤트 캐치
+// 글로벌 모바일 햄버거 메뉴, 신규 클라이언트 추가, 이미지 확대, 링크 복사 클릭 이벤트 캐치
 document.addEventListener('click', (e) => {
-    // 🌟 모바일 햄버거 메뉴 버튼 클릭 감지 및 토글
+    // 모바일 햄버거 메뉴 버튼 클릭 감지 및 토글
     const mobileMenuTrigger = e.target.closest('#mobileMenuBtn') || 
                               e.target.closest('#hamburgerBtn') || 
                               e.target.closest('#openSidebarBtn') || 
@@ -372,14 +381,30 @@ function isImageFile(fileName, url) {
     return isDataImg || imgExts.some(ext => lowerName.endsWith(ext) || lowerUrl.includes(ext));
 }
 
-// 이미지 썸네일 미리보기 + 첨부파일 렌더링
-function renderFileButtons(item) {
+/**
+ * 🌟 첨부파일 렌더링 헬퍼 (테이블 목록 / 상세 모달 이중화 지원)
+ * @param {Object} item - 파일 목록을 포함하는 객체 ({ files: [...] })
+ * @param {boolean} isTableList - true일 경우 목록용 콤팩트 뱃지([이미지 1], [파일 1])로 표시
+ */
+function renderFileButtons(item, isTableList = false) {
     if (item.files && item.files.length > 0) {
-        return item.files.map(f => {
+        return item.files.map((f, idx) => {
             const url = f.fileUrl || f.fileData; 
             const fileName = f.fileName || '첨부파일';
+            const isImg = isImageFile(fileName, url);
 
-            if (isImageFile(fileName, url)) {
+            // 🌟 1. 메인 목록(게시판 테이블)용: 이미지 썸네일 대신 깔끔한 컴팩트 뱃지 표시
+            if (isTableList) {
+                const badgeLabel = isImg ? `[이미지 ${idx + 1}]` : `[파일 ${idx + 1}]`;
+                return `
+                    <a href="${url}" target="_blank" download="${fileName}" onclick="event.stopPropagation();" class="download-link inline-flex items-center gap-1 bg-orange-50 hover:bg-orange-100 text-hermes hover:text-orange-700 text-[10px] font-bold px-1.5 py-0.5 rounded border border-orange-200 transition my-0.5 shadow-2xs" title="${fileName}">
+                        <i class="${isImg ? 'fa-solid fa-image' : 'fa-solid fa-paperclip'} text-[9px]"></i> ${badgeLabel}
+                    </a>
+                `;
+            }
+
+            // 🌟 2. 상세 모달창 및 댓글용: 기존의 이미지 썸네일 미리보기 그대로 유지
+            if (isImg) {
                 return `
                     <div class="inline-block relative group my-1 mr-2 align-top">
                         <img src="${url}" alt="${fileName}" data-url="${url}" class="img-preview-btn w-20 h-20 object-cover rounded-xl border border-gray-200 shadow-xs hover:shadow-md hover:scale-105 transition duration-200 cursor-pointer" title="클릭하여 확대 보기" />
@@ -906,7 +931,8 @@ async function fetchTasks() {
                 `;
             }
 
-            const fileButton = renderFileButtons(item);
+            // 🌟 테이블 메인 목록 전용: 두 번째 파라미터를 true로 전달하여 컴팩트 뱃지 표시
+            const fileButton = renderFileButtons(item, true);
             const commentCount = item.comments ? item.comments.length : 0;
             const displayStaff = (item.assignedManagers && item.assignedManagers.length > 0) ? item.assignedManagers.join(', ') : '미지정';
 
@@ -1083,9 +1109,10 @@ async function openDetailModal(taskId) {
         }
     }
 
+    // 🌟 게시글 상세 창 영역: 썸네일 미리보기를 그대로 출력 (두 번째 인자 false)
     const fileBtnArea = document.getElementById('detailFileBtn');
     if (fileBtnArea) {
-        fileBtnArea.innerHTML = renderFileButtons(task);
+        fileBtnArea.innerHTML = renderFileButtons(task, false);
     }
 
     renderComments(task.comments || []);
@@ -1256,9 +1283,10 @@ function renderComments(commentsArr) {
             </div>
         ` : '';
 
+        // 🌟 댓글 영역: 기존 이미지 썸네일 미리보기 출력 (두 번째 인자 false)
         let filesHtml = '';
         if (c.files && c.files.length > 0) {
-            filesHtml = `<div class="flex flex-wrap gap-2 pt-2 mt-2 border-t border-gray-100">${renderFileButtons({ files: c.files })}</div>`;
+            filesHtml = `<div class="flex flex-wrap gap-2 pt-2 mt-2 border-t border-gray-100">${renderFileButtons({ files: c.files }, false)}</div>`;
         }
 
         listEl.innerHTML += `
@@ -2139,3 +2167,4 @@ if (boardTableEl) {
         }
     });
 }
+

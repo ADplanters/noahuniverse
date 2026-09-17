@@ -388,7 +388,7 @@ function renderFileButtons(item, isTableList = false) {
             if (isTableList) {
                 const badgeLabel = isImg ? `[이미지 ${idx + 1}]` : `[파일 ${idx + 1}]`;
                 return `
-                    <a href="${url}" target="_blank" download="${fileName}" onclick="event.stopPropagation();" class="download-link inline-flex items-center gap-1 bg-orange-50 hover:bg-orange-100 text-hermes hover:text-orange-700 text-[10px] font-bold px-1.5 py-0.5 rounded border border-orange-200 transition my-0.5 shadow-2xs" title="${fileName}">
+                    <a href="${url}" target="_blank" download="${fileName}" onclick="event.stopPropagation();" class="download-link inline-flex items-center gap-1 bg-orange-50 hover:bg-orange-100 text-hermes hover:text-orange-700 text-[10px] font-bold px-1.5 py-0.5 rounded border border-orange-200 transition my-0.5 shadow-2xs whitespace-nowrap" title="${fileName}">
                         <i class="${isImg ? 'fa-solid fa-image' : 'fa-solid fa-paperclip'} text-[9px]"></i> ${badgeLabel}
                     </a>
                 `;
@@ -413,7 +413,7 @@ function renderFileButtons(item, isTableList = false) {
             `;
         }).join(' ');
     }
-    return `<span class="text-gray-300 text-[10px]">첨부파일 없음</span>`;
+    return `<span class="text-gray-300 text-[10px] whitespace-nowrap">첨부파일 없음</span>`;
 }
 
 // 활동 로그 기록
@@ -869,12 +869,21 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
 });
 
 /**
- * 🌟 업무 이슈 요청 게시판 리스트 불러오기 (등록일 -> 진행 상태가 가장 먼저 배치되도록 변경)
+ * 🌟 업무 이슈 요청 게시판 리스트 불러오기 (모바일 한글 세로 쏠림 방지 및 가로 터치 스크롤 강화)
  */
 async function fetchTasks() {
     const tbody = document.getElementById('boardTable');
     const emptyState = document.getElementById('emptyState');
     if(!tbody) return;
+
+    // 🌟 모바일 대응: 테이블 상위 부모 요소에 가로 스크롤 및 최소 너비 보장 클래스 부여
+    if (tbody.parentElement) {
+        tbody.parentElement.classList.add('overflow-x-auto', 'block', 'w-full', '-mx-2', 'sm:mx-0');
+        if (tbody.parentElement.tagName === 'TABLE') {
+            tbody.parentElement.classList.add('min-w-[650px]', 'w-full');
+        }
+    }
+
     tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 로딩 중...</td></tr>';
 
     try {
@@ -903,15 +912,15 @@ async function fetchTasks() {
             const isAdmin = checkIsAdmin();
             const isAuthor = checkIsAuthor(item);
 
-            let adminActions = `<td class="admin-only-col p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 align-middle"><span class="text-gray-300 text-xs">-</span></td>`;
+            let adminActions = `<td class="admin-only-col p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 align-middle whitespace-nowrap"><span class="text-gray-300 text-xs">-</span></td>`;
 
             if (isAdmin) {
                 adminActions = `
                     <td class="p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col align-middle whitespace-nowrap">
                         <div class="flex items-center justify-center gap-1">
-                            <button type="button" class="edit-task-btn bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-2 py-1 rounded transition text-[11px] font-bold" data-id="${item.id}">수정</button>
-                            <button type="button" class="assign-task-btn bg-orange-50 text-hermes hover:bg-hermes hover:text-white px-2 py-1 rounded transition text-[11px] font-bold" data-id="${item.id}">담당자</button>
-                            <button type="button" class="delete-task-btn bg-red-50 text-red-500 hover:bg-red-500 hover:text-white px-2 py-1 rounded transition text-[11px] font-bold" data-id="${item.id}" data-t="${item.title}">삭제</button>
+                            <button type="button" class="edit-task-btn bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-2 py-1 rounded transition text-[11px] font-bold whitespace-nowrap" data-id="${item.id}">수정</button>
+                            <button type="button" class="assign-task-btn bg-orange-50 text-hermes hover:bg-hermes hover:text-white px-2 py-1 rounded transition text-[11px] font-bold whitespace-nowrap" data-id="${item.id}">담당자</button>
+                            <button type="button" class="delete-task-btn bg-red-50 text-red-500 hover:bg-red-500 hover:text-white px-2 py-1 rounded transition text-[11px] font-bold whitespace-nowrap" data-id="${item.id}" data-t="${item.title}">삭제</button>
                         </div>
                     </td>
                 `;
@@ -919,13 +928,12 @@ async function fetchTasks() {
                 adminActions = `
                     <td class="p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col align-middle whitespace-nowrap">
                         <div class="flex items-center justify-center gap-1">
-                            <button type="button" class="edit-task-btn bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-2 py-1 rounded transition text-[11px] font-bold" data-id="${item.id}">수정</button>
+                            <button type="button" class="edit-task-btn bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-2 py-1 rounded transition text-[11px] font-bold whitespace-nowrap" data-id="${item.id}">수정</button>
                         </div>
                     </td>
                 `;
             }
 
-            // 테이블 메인 목록 전용: 두 번째 파라미터를 true로 전달하여 컴팩트 뱃지 표시
             const fileButton = renderFileButtons(item, true);
             const commentCount = item.comments ? item.comments.length : 0;
             const displayStaff = (item.assignedManagers && item.assignedManagers.length > 0) ? item.assignedManagers.join(', ') : '미지정';
@@ -935,21 +943,21 @@ async function fetchTasks() {
             else if (item.status === '처리완료') statusBadgeClass = 'bg-green-50 text-green-600 border-green-200';
             else if (item.status === '보류') statusBadgeClass = 'bg-gray-100 text-gray-600 border-gray-200';
 
-            // 🌟 요구사항 반영: 1컬럼 - 등록일, 2컬럼 - 진행 상태, 3컬럼 - 클라이언트 ... 순서 변경
+            // 🌟 텍스트 찌그러짐 방지: whitespace-nowrap, break-keep, min-w 속성 추가로 모바일 글자 세로 노출 해결
             rowsHtml += `
-                <tr class="hover:bg-hermes-light/30 transition group border-b border-gray-100 cursor-pointer task-detail-trigger" data-id="${item.id}">
+                <tr class="hover:bg-hermes-light/30 transition group border-b border-gray-100 cursor-pointer task-detail-trigger break-keep" data-id="${item.id}">
                     <td class="p-3 md:p-4 align-middle text-gray-900 text-[11px] font-bold whitespace-nowrap">${item.date || '-'}</td>
-                    <td class="p-3 md:p-4 align-middle text-center whitespace-nowrap"><span class="${statusBadgeClass} px-2 py-0.5 rounded text-[10px] font-bold border">${item.status || '답변대기'}</span></td>
-                    <td class="p-3 md:p-4 font-bold text-gray-900 align-middle text-xs">${item.client || '-'}</td>
-                    <td class="p-3 md:p-4 align-middle"><span class="bg-gray-100 text-gray-600 text-[10px] px-1.5 py-0.5 rounded font-bold">${item.type || '-'}</span></td>
-                    <td class="p-3 md:p-4 align-middle">
-                        <div class="font-bold text-gray-900 group-hover:text-hermes transition flex items-center gap-1">
-                            <span class="truncate max-w-[150px] sm:max-w-xs">${item.title || '-'}</span> 
-                            ${commentCount > 0 ? `<span class="text-hermes text-[10px] font-black">[${commentCount}]</span>` : ''}
+                    <td class="p-3 md:p-4 align-middle text-center whitespace-nowrap"><span class="${statusBadgeClass} px-2 py-0.5 rounded text-[10px] font-bold border whitespace-nowrap">${item.status || '답변대기'}</span></td>
+                    <td class="p-3 md:p-4 font-bold text-gray-900 align-middle text-xs whitespace-nowrap min-w-[80px]">${item.client || '-'}</td>
+                    <td class="p-3 md:p-4 align-middle whitespace-nowrap"><span class="bg-gray-100 text-gray-600 text-[10px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap">${item.type || '-'}</span></td>
+                    <td class="p-3 md:p-4 align-middle min-w-[150px]">
+                        <div class="font-bold text-gray-900 group-hover:text-hermes transition flex items-center gap-1 break-keep">
+                            <span class="line-clamp-2 max-w-[180px] sm:max-w-xs break-all">${item.title || '-'}</span> 
+                            ${commentCount > 0 ? `<span class="text-hermes text-[10px] font-black shrink-0">[${commentCount}]</span>` : ''}
                         </div>
                     </td>
-                    <td class="p-3 md:p-4 align-middle">${fileButton}</td>
-                    <td class="p-3 md:p-4 align-middle text-xs font-bold text-gray-700">${displayStaff}</td>
+                    <td class="p-3 md:p-4 align-middle whitespace-nowrap">${fileButton}</td>
+                    <td class="p-3 md:p-4 align-middle text-xs font-bold text-gray-700 break-keep min-w-[110px]">${displayStaff}</td>
                     ${adminActions}
                 </tr>
             `;
@@ -1743,6 +1751,14 @@ async function fetchClients() {
     const tbody = document.getElementById('clientsTable');
     const emptyState = document.getElementById('emptyClients');
     if(!tbody) return;
+
+    if (tbody.parentElement) {
+        tbody.parentElement.classList.add('overflow-x-auto', 'block', 'w-full');
+        if (tbody.parentElement.tagName === 'TABLE') {
+            tbody.parentElement.classList.add('min-w-[650px]', 'w-full');
+        }
+    }
+
     tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 로딩 중...</td></tr>';
 
     try {
@@ -1765,7 +1781,7 @@ async function fetchClients() {
             const data = docSnap.data();
             clientsMap[docSnap.id] = { id: docSnap.id, ...data };
             
-            let managersHtml = '<span class="text-gray-400 text-xs">미배정</span>';
+            let managersHtml = '<span class="text-gray-400 text-xs whitespace-nowrap">미배정</span>';
             if (data.managers && data.managers.length > 0) {
                 const maxVisible = 1; 
                 const visibleManagers = data.managers.slice(0, maxVisible);
@@ -1781,7 +1797,7 @@ async function fetchClients() {
                     const allList = data.managers.map(m => `<div class="py-0.5 flex items-center gap-1"><i class="fa-solid fa-user text-orange-400 text-[9px]"></i> ${m}</div>`).join('');
                     badges += `
                         <div class="inline-block relative group align-middle">
-                            <span class="inline-flex items-center bg-gray-100 hover:bg-orange-100 text-gray-600 hover:text-hermes text-[10px] px-1.5 py-0.5 rounded border border-gray-200 cursor-pointer font-bold transition shadow-2xs">
+                            <span class="inline-flex items-center bg-gray-100 hover:bg-orange-100 text-gray-600 hover:text-hermes text-[10px] px-1.5 py-0.5 rounded border border-gray-200 cursor-pointer font-bold transition shadow-2xs whitespace-nowrap">
                                 +${hiddenCount}명
                             </span>
                             <div class="hidden group-hover:block absolute bottom-full right-0 mb-2 p-3 bg-gray-900/95 text-white text-[11px] rounded-xl shadow-2xl z-50 whitespace-nowrap min-w-[120px] border border-gray-700/80 backdrop-blur-xs">
@@ -1800,25 +1816,25 @@ async function fetchClients() {
             const adminActions = isAdmin ? 
                 `<td class="p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col align-middle whitespace-nowrap">
                     <div class="flex items-center justify-center gap-1.5">
-                        <button class="edit-client-btn bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-2.5 py-1.5 rounded transition shadow-sm" data-id="${docSnap.id}">수정</button>
-                        <button class="delete-client-btn bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold px-2.5 py-1.5 rounded transition shadow-sm" data-id="${docSnap.id}" data-name="${data.name}">삭제</button>
+                        <button class="edit-client-btn bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-2.5 py-1.5 rounded transition shadow-sm whitespace-nowrap" data-id="${docSnap.id}">수정</button>
+                        <button class="delete-client-btn bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold px-2.5 py-1.5 rounded transition shadow-sm whitespace-nowrap" data-id="${docSnap.id}" data-name="${data.name}">삭제</button>
                     </div>
                 </td>` : `<td class="admin-only-col hidden"></td>`;
 
             const tr = `
-                <tr class="hover:bg-orange-50/30 transition border-b border-gray-100">
-                    <td class="p-3 md:p-4 font-black text-gray-900 align-middle">${data.name}</td>
-                    <td class="p-3 md:p-4 text-xs text-gray-500 align-middle">
+                <tr class="hover:bg-orange-50/30 transition border-b border-gray-100 break-keep">
+                    <td class="p-3 md:p-4 font-black text-gray-900 align-middle whitespace-nowrap">${data.name}</td>
+                    <td class="p-3 md:p-4 text-xs text-gray-500 align-middle whitespace-nowrap">
                         ${data.homeUrl ? `<a href="${data.homeUrl}" target="_blank" class="text-blue-500 hover:underline"><i class="fa-solid fa-link"></i> 웹</a> ` : ''}
                         ${data.instaUrl ? `<a href="${data.instaUrl}" target="_blank" class="text-pink-500 hover:underline"><i class="fa-brands fa-instagram"></i> 인스타</a>` : ''}
                     </td>
-                    <td class="p-3 md:p-4 text-xs align-middle">
+                    <td class="p-3 md:p-4 text-xs align-middle whitespace-nowrap">
                         <div class="text-gray-700 font-medium">ID: ${data.metaId || '-'}</div>
                         <div class="text-gray-900 font-bold flex items-center gap-1 mt-0.5">PW: ${data.metaPw || '-'}</div>
                     </td>
-                    <td class="p-3 md:p-4 font-bold text-hermes text-xs align-middle">${data.budget || '-'}</td>
-                    <td class="p-3 md:p-4 text-xs text-gray-600 align-middle"><div>인스타: ${data.instaDate || '-'}</div><div>메타: ${data.metaDate || '-'}</div></td>
-                    <td class="p-3 md:p-4 text-xs font-bold text-gray-500 align-middle">${data.registeredBy || '-'}</td>
+                    <td class="p-3 md:p-4 font-bold text-hermes text-xs align-middle whitespace-nowrap">${data.budget || '-'}</td>
+                    <td class="p-3 md:p-4 text-xs text-gray-600 align-middle whitespace-nowrap"><div>인스타: ${data.instaDate || '-'}</div><div>메타: ${data.metaDate || '-'}</div></td>
+                    <td class="p-3 md:p-4 text-xs font-bold text-gray-500 align-middle whitespace-nowrap">${data.registeredBy || '-'}</td>
                     <td class="p-3 md:p-4 max-w-[130px] overflow-hidden align-middle">${managersHtml}</td>
                     ${adminActions}
                 </tr>
@@ -1875,13 +1891,13 @@ async function fetchLibraryItems() {
         libList.forEach(item => {
             const adminBtns = isAdmin ? `
                 <div class="flex items-center gap-1.5 ml-auto">
-                    <button class="edit-lib-btn text-[11px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-600 hover:text-white px-2 py-1 rounded transition" data-id="${item.id}">수정</button>
-                    <button class="delete-lib-btn text-[11px] font-bold text-red-500 bg-red-50 hover:bg-red-500 hover:text-white px-2 py-1 rounded transition" data-id="${item.id}">삭제</button>
+                    <button class="edit-lib-btn text-[11px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-600 hover:text-white px-2 py-1 rounded transition whitespace-nowrap" data-id="${item.id}">수정</button>
+                    <button class="delete-lib-btn text-[11px] font-bold text-red-500 bg-red-50 hover:bg-red-500 hover:text-white px-2 py-1 rounded transition whitespace-nowrap" data-id="${item.id}">삭제</button>
                 </div>
             ` : '';
 
             const pdfBtn = item.pdfUrl ? `
-                <a href="${item.pdfUrl}" target="_blank" download class="px-3 py-1.5 bg-gray-50 hover:bg-hermes hover:text-white text-hermes text-xs font-bold rounded-lg border border-gray-200 transition shadow-sm flex items-center gap-1.5">
+                <a href="${item.pdfUrl}" target="_blank" download class="px-3 py-1.5 bg-gray-50 hover:bg-hermes hover:text-white text-hermes text-xs font-bold rounded-lg border border-gray-200 transition shadow-sm flex items-center gap-1.5 whitespace-nowrap">
                     <i class="fa-solid fa-download"></i> PDF
                 </a>
             ` : '';
@@ -1894,13 +1910,13 @@ async function fetchLibraryItems() {
                     </div>
                     <div class="p-5 flex-1 flex flex-col">
                         <div class="mb-3 flex items-center justify-between">
-                            <span class="inline-block px-2.5 py-1 bg-orange-50 text-hermes text-[10px] font-bold rounded-md border border-orange-100">${item.category || '가이드'}</span>
+                            <span class="inline-block px-2.5 py-1 bg-orange-50 text-hermes text-[10px] font-bold rounded-md border border-orange-100 whitespace-nowrap">${item.category || '가이드'}</span>
                             ${adminBtns}
                         </div>
-                        <h3 class="font-black text-gray-900 mb-2 leading-snug group-hover:text-hermes transition">${item.title}</h3>
-                        <p class="text-xs text-gray-500 mb-5 line-clamp-2 leading-relaxed flex-1">${item.desc || ''}</p>
+                        <h3 class="font-black text-gray-900 mb-2 leading-snug group-hover:text-hermes transition break-keep">${item.title}</h3>
+                        <p class="text-xs text-gray-500 mb-5 line-clamp-2 leading-relaxed flex-1 break-keep">${item.desc || ''}</p>
                         <div class="flex justify-between items-center border-t border-gray-100 pt-4 mt-auto">
-                            <button class="text-xs font-bold text-gray-600 hover:text-hermes transition flex items-center gap-1.5"><i class="fa-solid fa-book-open"></i> HTML 열람</button>
+                            <button class="text-xs font-bold text-gray-600 hover:text-hermes transition flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-book-open"></i> HTML 열람</button>
                             ${pdfBtn}
                         </div>
                     </div>
@@ -1943,6 +1959,14 @@ async function fetchMembers() {
     if(!isAdmin) return;
     const tbody = document.getElementById('membersTable');
     if(!tbody) return;
+
+    if (tbody.parentElement) {
+        tbody.parentElement.classList.add('overflow-x-auto', 'block', 'w-full');
+        if (tbody.parentElement.tagName === 'TABLE') {
+            tbody.parentElement.classList.add('min-w-[650px]', 'w-full');
+        }
+    }
+
     tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin text-hermes mr-2"></i> 로딩 중...</td></tr>';
 
     try {
@@ -1952,26 +1976,26 @@ async function fetchMembers() {
         querySnapshot.forEach((docSnap) => {
             const user = docSnap.data();
             const statusBadge = user.status === 'approved' 
-                ? '<span class="bg-blue-50 text-blue-600 px-2 py-1 rounded text-[10px] font-bold border border-blue-100">승인완료</span>'
-                : '<span class="bg-red-50 text-red-500 px-2 py-1 rounded text-[10px] font-bold border border-red-100">대기중</span>';
+                ? '<span class="bg-blue-50 text-blue-600 px-2 py-1 rounded text-[10px] font-bold border border-blue-100 whitespace-nowrap">승인완료</span>'
+                : '<span class="bg-red-50 text-red-500 px-2 py-1 rounded text-[10px] font-bold border border-red-100 whitespace-nowrap">대기중</span>';
 
             const tr = `
-                <tr class="hover:bg-gray-50 transition border-b border-gray-100">
-                    <td class="p-3 md:p-4 font-bold text-gray-900 align-middle">${user.name}</td>
-                    <td class="p-3 md:p-4 text-gray-500 text-xs align-middle">${user.email}</td>
-                    <td class="p-3 md:p-4 align-middle">${statusBadge}</td>
-                    <td class="p-3 md:p-4 align-middle">
+                <tr class="hover:bg-gray-50 transition border-b border-gray-100 break-keep">
+                    <td class="p-3 md:p-4 font-bold text-gray-900 align-middle whitespace-nowrap">${user.name}</td>
+                    <td class="p-3 md:p-4 text-gray-500 text-xs align-middle whitespace-nowrap">${user.email}</td>
+                    <td class="p-3 md:p-4 align-middle whitespace-nowrap">${statusBadge}</td>
+                    <td class="p-3 md:p-4 align-middle whitespace-nowrap">
                         <select class="role-update-select text-xs font-bold border border-gray-300 rounded p-1.5 focus:border-hermes outline-none" data-uid="${docSnap.id}">
                             <option value="player" ${user.role==='player'?'selected':''}>Player (담당 직원)</option>
                             <option value="leader" ${user.role==='leader'?'selected':''}>리더 (노아 대표)</option>
                             <option value="admin" ${user.role==='admin'?'selected':''}>최상위 관리자 (Admin)</option>
                         </select>
                     </td>
-                    <td class="p-3 md:p-4 text-center align-middle">
-                        <button class="update-member-btn bg-gray-800 hover:bg-black text-white text-[11px] font-bold px-3 py-1.5 rounded transition shadow-sm" data-uid="${docSnap.id}" data-name="${user.name}">권한수정</button>
+                    <td class="p-3 md:p-4 text-center align-middle whitespace-nowrap">
+                        <button class="update-member-btn bg-gray-800 hover:bg-black text-white text-[11px] font-bold px-3 py-1.5 rounded transition shadow-sm whitespace-nowrap" data-uid="${docSnap.id}" data-name="${user.name}">권한수정</button>
                     </td>
-                    <td class="p-3 md:p-4 text-center align-middle">
-                        <button class="delete-member-btn bg-red-50 hover:bg-red-500 text-red-500 hover:text-white border border-red-100 hover:border-red-500 text-[11px] font-bold px-3 py-1.5 rounded transition shadow-sm" data-uid="${docSnap.id}" data-name="${user.name}">강제탈퇴</button>
+                    <td class="p-3 md:p-4 text-center align-middle whitespace-nowrap">
+                        <button class="delete-member-btn bg-red-50 hover:bg-red-500 text-red-500 hover:text-white border border-red-100 hover:border-red-500 text-[11px] font-bold px-3 py-1.5 rounded transition shadow-sm whitespace-nowrap" data-uid="${docSnap.id}" data-name="${user.name}">강제탈퇴</button>
                     </td>
                 </tr>
             `;
@@ -2013,6 +2037,14 @@ async function fetchApprovals() {
     const tbody = document.getElementById('approvalsTable');
     const emptyState = document.getElementById('emptyApprovals');
     if(!tbody) return;
+
+    if (tbody.parentElement) {
+        tbody.parentElement.classList.add('overflow-x-auto', 'block', 'w-full');
+        if (tbody.parentElement.tagName === 'TABLE') {
+            tbody.parentElement.classList.add('min-w-[650px]', 'w-full');
+        }
+    }
+
     tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 로딩 중...</td></tr>';
 
     try {
@@ -2029,18 +2061,18 @@ async function fetchApprovals() {
         querySnapshot.forEach((docSnap) => {
             const user = docSnap.data();
             const tr = `
-                <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
-                    <td class="p-3 md:p-4 font-bold text-gray-900 align-middle">${user.name}</td>
-                    <td class="p-3 md:p-4 text-gray-500 font-medium align-middle">${user.email}</td>
-                    <td class="p-3 md:p-4 align-middle">
+                <tr class="border-b border-gray-100 hover:bg-gray-50 transition break-keep">
+                    <td class="p-3 md:p-4 font-bold text-gray-900 align-middle whitespace-nowrap">${user.name}</td>
+                    <td class="p-3 md:p-4 text-gray-500 font-medium align-middle whitespace-nowrap">${user.email}</td>
+                    <td class="p-3 md:p-4 align-middle whitespace-nowrap">
                         <select class="role-select text-xs font-bold border border-gray-300 rounded p-1.5 focus:border-hermes outline-none" data-uid="${docSnap.id}">
                             <option value="player">Player (담당 직원)</option>
                             <option value="leader">리더 (노아 대표)</option>
                             <option value="admin">최상위 관리자 (Admin)</option>
                         </select>
                     </td>
-                    <td class="p-3 md:p-4 text-center align-middle">
-                        <button class="approve-btn bg-hermes hover:bg-hermes-hover text-white text-xs font-bold px-3 py-1.5 rounded-lg transition shadow-sm" data-uid="${docSnap.id}" data-name="${user.name}">승인</button>
+                    <td class="p-3 md:p-4 text-center align-middle whitespace-nowrap">
+                        <button class="approve-btn bg-hermes hover:bg-hermes-hover text-white text-xs font-bold px-3 py-1.5 rounded-lg transition shadow-sm whitespace-nowrap" data-uid="${docSnap.id}" data-name="${user.name}">승인</button>
                     </td>
                 </tr>
             `;
@@ -2069,6 +2101,14 @@ async function fetchLogs() {
     const tbody = document.getElementById('logsTable');
     const emptyState = document.getElementById('emptyLogs');
     if(!tbody) return;
+
+    if (tbody.parentElement) {
+        tbody.parentElement.classList.add('overflow-x-auto', 'block', 'w-full');
+        if (tbody.parentElement.tagName === 'TABLE') {
+            tbody.parentElement.classList.add('min-w-[650px]', 'w-full');
+        }
+    }
+
     tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 로그 데이터 수집 중...</td></tr>';
 
     try {
@@ -2090,11 +2130,11 @@ async function fetchLogs() {
             const dateStr = dateObj.toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false });
             
             const tr = `
-                <tr class="hover:bg-gray-50 transition border-b border-gray-100">
-                    <td class="p-3 md:p-4 text-xs font-medium text-gray-500 align-middle">${dateStr}</td>
-                    <td class="p-3 md:p-4 text-xs font-bold text-gray-800 align-middle">${log.name} (${log.email})</td>
-                    <td class="p-3 md:p-4 align-middle"><span class="bg-gray-100 text-gray-600 px-2 py-1 rounded font-bold text-[11px]">${log.action}</span></td>
-                    <td class="p-3 md:p-4 text-xs text-gray-600 font-medium whitespace-normal align-middle">${log.details || '-'}</td>
+                <tr class="hover:bg-gray-50 transition border-b border-gray-100 break-keep">
+                    <td class="p-3 md:p-4 text-xs font-medium text-gray-500 align-middle whitespace-nowrap">${dateStr}</td>
+                    <td class="p-3 md:p-4 text-xs font-bold text-gray-800 align-middle whitespace-nowrap">${log.name} (${log.email})</td>
+                    <td class="p-3 md:p-4 align-middle whitespace-nowrap"><span class="bg-gray-100 text-gray-600 px-2 py-1 rounded font-bold text-[11px] whitespace-nowrap">${log.action}</span></td>
+                    <td class="p-3 md:p-4 text-xs text-gray-600 font-medium whitespace-normal align-middle break-all">${log.details || '-'}</td>
                 </tr>
             `;
             tbody.innerHTML += tr;

@@ -869,14 +869,14 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
 });
 
 /**
- * 업무 이슈 요청 게시판 리스트 불러오기 (모바일 한글 세로 쏠림 방지 및 가로 터치 스크롤 강화)
+ * 업무 이슈 요청 게시판 리스트 불러오기
+ * 🌟 작성자(빨간색) / 담당자(파란색) 시각적 구분 적용
  */
 async function fetchTasks() {
     const tbody = document.getElementById('boardTable');
     const emptyState = document.getElementById('emptyState');
     if(!tbody) return;
 
-    // 모바일 대응: 테이블 상위 부모 요소에 가로 스크롤 및 최소 너비 보장 클래스 부여
     if (tbody.parentElement) {
         tbody.parentElement.classList.add('overflow-x-auto', 'block', 'w-full', '-mx-2', 'sm:mx-0');
         if (tbody.parentElement.tagName === 'TABLE') {
@@ -936,14 +936,24 @@ async function fetchTasks() {
 
             const fileButton = renderFileButtons(item, true);
             const commentCount = item.comments ? item.comments.length : 0;
-            const displayStaff = (item.assignedManagers && item.assignedManagers.length > 0) ? item.assignedManagers.join(', ') : '미지정';
+            
+            // 🌟 작성자(빨간색) 및 담당자(파란색) 시각적 구분 생성
+            const authorName = item.staff || item.name || '미상';
+            const managerList = (item.assignedManagers && item.assignedManagers.length > 0) ? item.assignedManagers.join(', ') : '미배정';
+            
+            const displayStaffHtml = `
+                <div class="inline-flex items-center gap-1.5 break-keep whitespace-nowrap text-xs">
+                    <span class="text-red-500 font-extrabold" title="작성자">${authorName}</span>
+                    <span class="text-gray-300 font-normal">/</span>
+                    <span class="text-blue-600 font-bold" title="담당자">${managerList}</span>
+                </div>
+            `;
 
             let statusBadgeClass = 'bg-blue-50 text-blue-600 border-blue-100';
             if (item.status === '진행중') statusBadgeClass = 'bg-amber-50 text-amber-600 border-amber-200';
             else if (item.status === '처리완료') statusBadgeClass = 'bg-green-50 text-green-600 border-green-200';
             else if (item.status === '보류') statusBadgeClass = 'bg-gray-100 text-gray-600 border-gray-200';
 
-            // 텍스트 찌그러짐 방지: whitespace-nowrap, break-keep, min-w 속성 추가로 모바일 글자 세로 노출 해결
             rowsHtml += `
                 <tr class="hover:bg-hermes-light/30 transition group border-b border-gray-100 cursor-pointer task-detail-trigger break-keep" data-id="${item.id}">
                     <td class="p-3 md:p-4 align-middle text-gray-900 text-[11px] font-bold whitespace-nowrap">${item.date || '-'}</td>
@@ -957,7 +967,7 @@ async function fetchTasks() {
                         </div>
                     </td>
                     <td class="p-3 md:p-4 align-middle whitespace-nowrap">${fileButton}</td>
-                    <td class="p-3 md:p-4 align-middle text-xs font-bold text-gray-700 break-keep min-w-[110px]">${displayStaff}</td>
+                    <td class="p-3 md:p-4 align-middle text-xs font-bold break-keep min-w-[140px]">${displayStaffHtml}</td>
                     ${adminActions}
                 </tr>
             `;
@@ -985,21 +995,18 @@ async function openDetailModal(taskId) {
     const newUrl = `${window.location.pathname}?id=${taskId}`;
     window.history.pushState({ path: newUrl }, '', newUrl);
 
-    // 모바일 가로 이탈 완벽 방지: 모달 메인 카드 레이아웃에 모바일 전용 반응형 너비 및 자동 줄바꿈 강제
     if (detailModal) {
         const modalCard = detailModal.querySelector('.bg-white') || detailModal.firstElementChild;
         if (modalCard) {
             modalCard.classList.add('max-w-[95vw]', 'sm:max-w-3xl', 'w-full', 'overflow-x-hidden', 'box-border', 'p-4', 'sm:p-6');
         }
 
-        // 모달 헤더 영역 감싸기(flex-wrap) 적용
         const topHeader = detailModal.querySelector('.flex.justify-between') || detailModal.querySelector('header');
         if (topHeader) {
             topHeader.classList.add('flex-wrap', 'gap-2', 'max-w-full', 'items-center');
         }
     }
 
-    // 상세 모달 전환 시 댓글 첨부파일 임시 저장소 초기화
     newCommentSelectedFiles = [];
     renderNewCommentFilePreviews();
 
@@ -1060,6 +1067,7 @@ async function openDetailModal(taskId) {
     const detailStaffEl = document.getElementById('detailStaff');
     if (detailStaffEl) {
         detailStaffEl.innerText = authorName;
+        detailStaffEl.className = "font-bold text-red-500"; // 🌟 상세창에서도 작성자는 빨간색 표기
     }
 
     const assignedStr = (task.assignedManagers && task.assignedManagers.length > 0) 
@@ -1069,16 +1077,16 @@ async function openDetailModal(taskId) {
     const detailAssignEl = document.getElementById('detailAssign') || document.getElementById('detailAssignedManagers');
     if (detailAssignEl) {
         detailAssignEl.innerText = assignedStr;
-        detailAssignEl.className = "text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-100 inline-block break-all max-w-full";
+        detailAssignEl.className = "text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 inline-block break-all max-w-full"; // 🌟 상세창 담당자는 파란색 표기
     } else {
         const labels = detailModal.querySelectorAll('div, span, td, p');
         labels.forEach(node => {
             if (node.children.length === 0 && node.textContent.includes('지정 담당자')) {
                 if (node.nextElementSibling) {
                     node.nextElementSibling.innerText = assignedStr;
-                    node.nextElementSibling.className = "text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-100 inline-block break-all max-w-full";
+                    node.nextElementSibling.className = "text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 inline-block break-all max-w-full";
                 } else {
-                    node.innerHTML = `지정 담당자: <span class="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-100 inline-block break-all max-w-full">${assignedStr}</span>`;
+                    node.innerHTML = `지정 담당자: <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 inline-block break-all max-w-full">${assignedStr}</span>`;
                 }
             }
         });
@@ -1086,14 +1094,12 @@ async function openDetailModal(taskId) {
 
     document.getElementById('detailDate').innerText = task.date || '-';
     
-    // 모바일 화면 가로 늘어남 방지: 본문 텍스트 및 긴 URL(링크) 자동 줄바꿈(break-all) 강제 적용
     const contentEl = document.getElementById('detailContent');
     if (contentEl) {
         contentEl.innerText = task.content || '등록된 내용이 없습니다.';
         contentEl.className = "text-xs sm:text-sm text-gray-700 whitespace-pre-line break-all max-w-full overflow-x-auto leading-relaxed";
     }
 
-    // 상단 '링크 복사' 버튼에 클립보드 이벤트 직접 연결 및 반응형 래핑
     const shareBtn = document.getElementById('shareLinkBtn') || Array.from(detailModal.querySelectorAll('button')).find(b => b.textContent.includes('링크 복사'));
     if (shareBtn) {
         shareBtn.classList.add('whitespace-nowrap', 'shrink-0');
@@ -1141,7 +1147,6 @@ async function openDetailModal(taskId) {
         }
     }
 
-    // 게시글 상세 창 영역: 썸네일 미리보기를 그대로 출력 (두 번째 인자 false)
     const fileBtnArea = document.getElementById('detailFileBtn');
     if (fileBtnArea) {
         fileBtnArea.className = "flex flex-wrap gap-2 max-w-full overflow-x-auto";
@@ -1316,7 +1321,6 @@ function renderComments(commentsArr) {
             </div>
         ` : '';
 
-        // 댓글 영역: 기존 이미지 썸네일 미리보기 출력 (두 번째 인자 false)
         let filesHtml = '';
         if (c.files && c.files.length > 0) {
             filesHtml = `<div class="flex flex-wrap gap-2 pt-2 mt-2 border-t border-gray-100 max-w-full">${renderFileButtons({ files: c.files }, false)}</div>`;
@@ -1350,7 +1354,7 @@ function renderComments(commentsArr) {
             if (!bodyArea || bodyArea.querySelector('textarea')) return;
 
             let currentEditFiles = comment.files ? [...comment.files] : [];
-            let newSelectedFiles = []; // 인라인 수정 드래그/선택 첨부파일 배열
+            let newSelectedFiles = []; 
 
             function renderEditFilesList() {
                 if (currentEditFiles.length === 0) return '<span class="text-[10px] text-gray-400 italic">첨부파일 없음</span>';
@@ -1592,7 +1596,6 @@ safeAddListener('submitNewCommentBtn', 'click', async () => {
     try {
         await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), { comments: updatedComments });
         
-        // 입력창 및 첨부파일 임시 저장소/미리보기 리셋
         if(textInput) textInput.value = '';
         newCommentSelectedFiles = [];
         renderNewCommentFilePreviews();

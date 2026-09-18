@@ -417,30 +417,31 @@
         </div>
     </div>
 
+    <!-- 🌟 등록된 게시글 전체 항목 수정 모달 (클라이언트, 분류, 소속, 담당자, 파일 등 완벽 수정) -->
     <div id="editTaskModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-lg p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-5 border-b pb-3">
-                <h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-pen-to-square text-blue-600 mr-2"></i> 게시글 제목 및 본문 수정</h3>
+                <h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-pen-to-square text-blue-600 mr-2"></i> 업무 게시글 전체 내용 수정</h3>
                 <button id="closeEditTaskModalBtn" type="button" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
             <form id="editTaskForm" class="space-y-4">
                 <div>
                     <label class="block text-xs font-bold text-gray-700 mb-1">클라이언트명</label>
-                    <input type="text" id="editTaskClient" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-blue-600 outline-none">
+                    <input type="text" id="editTaskClient" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-blue-600 outline-none font-bold">
                 </div>
 
                 <div id="editAssignManagerArea" class="hidden">
                     <label class="block text-xs font-bold text-gray-700 mb-1">
-                        <i class="fa-solid fa-user-gear text-blue-600 mr-1"></i> 담당자 변경 (최상위 관리자 전용 / 다중 선택 가능)
+                        <i class="fa-solid fa-user-gear text-blue-600 mr-1"></i> 지정 담당자 변경 (최상위 관리자 전용)
                     </label>
-                    <div id="editAssignManagerList" class="flex flex-col gap-2 max-h-32 overflow-y-auto p-2 bg-blue-50/30 border border-blue-200 rounded-lg">
+                    <div id="editAssignManagerList" class="flex flex-col gap-1.5 max-h-36 overflow-y-auto p-2 bg-blue-50/30 border border-blue-200 rounded-lg">
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
                         <label class="block text-xs font-bold text-gray-700 mb-1">분류</label>
-                        <select id="editTaskType" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-blue-600 outline-none">
+                        <select id="editTaskType" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-blue-600 outline-none font-bold">
                             <option value="보고서">보고서</option>
                             <option value="Q&A">Q&A</option>
                             <option value="콘텐츠">콘텐츠</option>
@@ -449,7 +450,7 @@
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-700 mb-1">소속 구문</label>
-                        <select id="editTaskAgency" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-blue-600 outline-none">
+                        <select id="editTaskAgency" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-blue-600 outline-none font-bold">
                             <option value="noah">노아유니버스</option>
                             <option value="adplanters">애드플랜터스</option>
                         </select>
@@ -476,6 +477,7 @@
         </div>
     </div>
 
+    <!-- 관리자 상태 변경 모달 -->
     <div id="replyModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-lg p-5 md:p-6 shadow-2xl border border-gray-100">
             <div class="flex justify-between items-center mb-5 border-b pb-3"><h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-reply text-hermes mr-2"></i> 관리자 상태 변경</h3><button id="closeReplyModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button></div>
@@ -500,11 +502,11 @@
         </div>
     </div>
 
-    <!-- 🌟 게시판 형태 상세 보기 팝업 (X 버튼 우측 상단 배치 + 툴팁 left-0 정렬로 짤림 방지) -->
+    <!-- 게시판 형태 상세 보기 팝업 -->
     <div id="detailModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-2xl p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[95vh] overflow-y-auto flex flex-col relative">
             
-            <!-- 🌟 닫기(X) 버튼 우측 최상단 고정 배치 -->
+            <!-- 닫기(X) 버튼 우측 최상단 고정 배치 -->
             <button id="closeDetailModalBtn" type="button" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-1.5 rounded-lg transition z-20 cursor-pointer text-xl" title="닫기">
                 <i class="fa-solid fa-xmark"></i>
             </button>
@@ -519,7 +521,7 @@
                     
                     <!-- 액션 버튼 및 조회수 뱃지 행 -->
                     <div class="flex flex-wrap items-center gap-2">
-                        <!-- 🌟 눈 모양 조회수 표시 및 최근 10명 방문자 IP 툴팁 (left-0 오프셋 적용으로 우측 확장 -> 짤림 방지) -->
+                        <!-- 눈 모양 조회수 표시 및 최근 10명 방문자 IP 툴팁 -->
                         <div id="viewCountBadgeWrapper" class="relative inline-block group">
                             <button type="button" id="viewCountBadgeBtn" class="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-[10px] sm:text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer">
                                 <i class="fa-regular fa-eye text-blue-600"></i>

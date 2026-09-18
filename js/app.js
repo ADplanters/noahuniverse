@@ -403,7 +403,7 @@ safeAddListener('viewCountBadgeBtn', 'click', (e) => {
     }
 });
 
-// 전역 클릭 이벤트 핸들러 (버튼 고유 ID 기반 클리핑 수신)
+// 전역 클릭 이벤트 핸들러
 document.addEventListener('click', (e) => {
     // 로고 클릭 감지 -> 파트너 통합 보드(?tab=dashboard) 이동
     const logoTrigger = e.target.closest('#mobileLogoBtn') || e.target.closest('#sidebarLogoBtn') || e.target.closest('.logo-home-btn');
@@ -905,7 +905,7 @@ async function deleteTask(taskId) {
 }
 
 /**
- * 🌟 수정 모달 오픈 (클라이언트, 분류, 소속, 제목, 본문, 담당자 등 전체 항목 바인딩)
+ * 수정 모달 오픈 (클라이언트, 분류, 소속, 제목, 본문, 담당자 등 전체 항목 바인딩)
  */
 function openEditTaskModal(taskId) {
     const task = tasksMap[taskId];
@@ -929,7 +929,7 @@ function openEditTaskModal(taskId) {
     const editAssignList = document.getElementById('editAssignManagerList');
     if (editAssignArea && editAssignList && checkIsAdmin()) {
         editAssignArea.classList.remove('hidden');
-        editAssignList.innerHTML = '<div class="text-xs text-gray-400 p-2 text-center">멤버 목록 불러오는 중...</div>';
+        editAssignList.innerHTML = '<div class="text-xs text-gray-400 p-2 text-center font-bold"><i class="fa-solid fa-spinner animate-spin mr-1"></i> 멤버 목록 불러오는 중...</div>';
         getDocs(query(collection(db, "users"), where("status", "==", "approved"))).then(usersSnap => {
             let html = '';
             const currentAssigned = task.assignedManagers || [];
@@ -937,7 +937,7 @@ function openEditTaskModal(taskId) {
                 const u = uDoc.data();
                 const isChecked = currentAssigned.includes(u.name) ? 'checked' : '';
                 html += `
-                    <label class="flex items-center gap-2 p-1.5 hover:bg-white rounded cursor-pointer text-xs font-bold text-gray-700">
+                    <label class="flex items-center gap-2 p-1.5 hover:bg-white rounded cursor-pointer text-xs font-bold text-gray-700 transition border border-transparent hover:border-gray-200">
                         <input type="checkbox" value="${u.name}" class="edit-assign-manager-checkbox rounded text-hermes" ${isChecked} />
                         <span>${u.name} <span class="text-[10px] text-gray-400 font-normal">(${u.email})</span></span>
                     </label>
@@ -1078,7 +1078,7 @@ function bindAssignSubmitEvents() {
 }
 
 /**
- * 🌟 게시글 수정 폼 저장 핸들러 (클라이언트, 분류, 소속, 제목, 본문, 담당자, 파일 전체 갱신)
+ * 게시글 수정 폼 저장 핸들러 (클라이언트, 분류, 소속, 제목, 본문, 담당자, 파일 전체 갱신)
  */
 safeAddListener('editTaskForm', 'submit', async (e) => {
     e.preventDefault();
@@ -1272,7 +1272,7 @@ async function fetchTasks() {
 }
 
 /**
- * 🌟 게시글 상세 모달 오픈 (소속 매핑 공란 수정 + 조회수/IP 수집 렌더링)
+ * 게시글 상세 모달 오픈 (지정 담당자 ID 바인딩 교정 + 소속 매핑 공란 수정 + 조회수/IP 수집 렌더링)
  */
 async function openDetailModal(taskId) {
     const task = tasksMap[taskId];
@@ -1398,7 +1398,8 @@ async function openDetailModal(taskId) {
         ? task.assignedManagers.join(', ') 
         : '미지정';
 
-    const detailAssignEl = document.getElementById('detailAssign') || document.getElementById('detailAssignedManagers');
+    // 🌟 지정 담당자 ID 매핑 완벽 수정
+    const detailAssignEl = document.getElementById('detailAssignManager') || document.getElementById('detailAssign') || document.getElementById('detailAssignedManagers');
     if (detailAssignEl) {
         detailAssignEl.innerText = assignedStr;
         detailAssignEl.className = "text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 inline-block break-all max-w-full";
@@ -1406,7 +1407,7 @@ async function openDetailModal(taskId) {
 
     document.getElementById('detailDate').innerText = task.date || '-';
 
-    // 🌟 소속 (Agency) 공란 버그 완벽 수정: noah -> 노아유니버스 / adplanters -> 애드플랜터스 정밀 매핑
+    // 소속 (Agency) noah -> 노아유니버스 / adplanters -> 애드플랜터스 정밀 매핑
     const agencyNameMap = { 'noah': '노아유니버스', 'adplanters': '애드플랜터스' };
     const detailAgencyEl = document.getElementById('detailAgency');
     if (detailAgencyEl) {
@@ -2420,6 +2421,9 @@ async function fetchApprovals() {
     } catch (error) { console.error("유저 로드 에러:", error); }
 }
 
+/**
+ * 접속 및 작업 이력 로그 조회 (IP 주소 항목 포함 렌더링)
+ */
 async function fetchLogs() {
     const isAdmin = checkIsAdmin();
     if(!isAdmin) return;

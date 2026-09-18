@@ -38,8 +38,27 @@ let clientsMap = {};
 let libraryMap = {}; 
 let cachedClientNames = []; 
 
+// 🌟 접속자 IP 전역 보존 변수
+let currentClientIP = '127.0.0.1';
+
 // 신규 댓글 작성용 드래그앤드롭 누적 파일 배열
 let newCommentSelectedFiles = [];
+
+// ============================================================================
+// 🌟 클라이언트 IP 주소 자동 수집 헬퍼
+// ============================================================================
+async function fetchClientIP() {
+    try {
+        const res = await fetch('https://api.ipify.org?format=json');
+        const data = await res.json();
+        if (data && data.ip) {
+            currentClientIP = data.ip;
+        }
+    } catch (e) {
+        console.warn("IP 수집 실패, 기본값 적용:", e);
+    }
+}
+fetchClientIP();
 
 // ============================================================================
 // 2. DOM 요소 바인딩
@@ -369,7 +388,7 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// 전역 클릭 이벤트 핸들러 (버튼 고유 ID로만 클릭 수신하도록 정밀 조치)
+// 전역 클릭 이벤트 핸들러 (버튼 고유 ID 기반 클리핑 수신)
 document.addEventListener('click', (e) => {
     // 로고 클릭 감지 -> 파트너 통합 보드(?tab=dashboard) 이동
     const logoTrigger = e.target.closest('#mobileLogoBtn') || e.target.closest('#sidebarLogoBtn') || e.target.closest('.logo-home-btn');
@@ -575,7 +594,7 @@ function renderFileButtons(item, isTableList = false) {
     return `<span class="text-gray-300 text-[10px] whitespace-nowrap">첨부파일 없음</span>`;
 }
 
-// 활동 로그 기록
+// 🌟 활동 로그 기록 (IP 주소 필드 추가)
 async function logActivity(action, details = "") {
     if (!auth.currentUser) {
         return;
@@ -585,6 +604,7 @@ async function logActivity(action, details = "") {
             uid: auth.currentUser.uid,
             name: currentUserName || auth.currentUser.displayName || "Unknown",
             email: auth.currentUser.email,
+            ip: currentClientIP,
             action: action,
             details: details,
             timestamp: new Date().toISOString()
@@ -831,6 +851,7 @@ safeAddListener('taskForm', 'submit', async (e) => {
         assignedManagers: assignedManagersArr,
         status: "답변대기", 
         views: 0,
+        viewers: [], // 최근 방문자 10인 배열
         date: dateStr,
         createdAt: new Date().toISOString(), 
         comments: [] 
@@ -1056,7 +1077,7 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
 });
 
 /**
- * 업무 이슈 요청 게시판 리스트 불러오기
+ * 🌟 업무 이슈 요청 게시판 리스트 불러오기 (등록일 아래 눈 아이콘 + 조회수 표기 복구)
  */
 async function fetchTasks() {
     const tbody = document.getElementById('boardTable');
@@ -1140,9 +1161,15 @@ async function fetchTasks() {
             else if (item.status === '처리완료') statusBadgeClass = 'bg-green-50 text-green-600 border-green-200';
             else if (item.status === '보류') statusBadgeClass = 'bg-gray-100 text-gray-600 border-gray-200';
 
+            // 🌟 등록일 바로 밑에 눈 아이콘 + 조회수 표기 적용
             rowsHtml += `
                 <tr class="hover:bg-hermes-light/30 transition group border-b border-gray-100 cursor-pointer task-detail-trigger break-keep" data-id="${item.id}">
-                    <td class="p-3 md:p-4 align-middle text-gray-900 text-[11px] font-bold whitespace-nowrap">${item.date || '-'}</td>
+                    <td class="p-3 md:p-4 align-middle text-gray-900 text-[11px] font-bold whitespace-nowrap">
+                        <div>${item.date || '-'}</div>
+                        <div class="text-[10px] text-gray-400 font-normal flex items-center gap-1 mt-0.5">
+                            <i class="fa-regular fa-eye text-gray-400"></i> ${item.views || 0}
+                        </div>
+                    </td>
                     <td class="p-3 md:p-4 align-middle text-center whitespace-nowrap"><span class="${statusBadgeClass} px-2 py-0.5 rounded text-[10px] font-bold border whitespace-nowrap">${item.status || '답변대기'}</span></td>
                     <td class="p-3 md:p-4 font-bold text-gray-900 align-middle text-xs whitespace-nowrap min-w-[80px]">${item.client || '-'}</td>
                     <td class="p-3 md:p-4 align-middle whitespace-nowrap"><span class="bg-gray-100 text-gray-600 text-[10px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap">${item.type || '-'}</span></td>
@@ -1175,6 +1202,9 @@ async function fetchTasks() {
     } catch (e) { console.error("Firestore error:", e); }
 }
 
+/**
+ * 🌟 게시글 상세 모달 오픈 (조회수 누적 및 최근 10명 방문자 IP 수집 렌더링)
+ */
 async function openDetailModal(taskId) {
     const task = tasksMap[taskId];
     if(!task) return;
@@ -1200,14 +1230,49 @@ async function openDetailModal(taskId) {
     newCommentSelectedFiles = [];
     renderNewCommentFilePreviews();
 
+    // 🌟 조회 기록 및 IP 객체 누적 생성 (최대 10개 유치)
+    const newViewerObj = {
+        name: currentUserName || "사용자",
+        ip: currentClientIP,
+        timestamp: new Date().toISOString()
+    };
+    
+    const existingViewers = task.viewers || [];
+    const updatedViewers = [newViewerObj, ...existingViewers].slice(0, 10);
     task.views = (task.views || 0) + 1;
+    task.viewers = updatedViewers;
+
     try {
-        await updateDoc(doc(db, "crm_tasks", taskId), { views: increment(1) });
+        await updateDoc(doc(db, "crm_tasks", taskId), { 
+            views: increment(1),
+            viewers: updatedViewers 
+        });
     } catch (e) { console.error("View increment error:", e); }
 
-    const viewCountEl = document.getElementById('detailViews') || document.querySelector('#detailModal .fa-eye')?.parentElement;
-    if (viewCountEl) {
-        viewCountEl.innerHTML = `<i class="fa-solid fa-eye mr-1"></i> ${task.views}`;
+    // 모달 상단 조회수 숫자 교체
+    const viewCountNumEl = document.getElementById('detailViewCountNum');
+    if (viewCountNumEl) {
+        viewCountNumEl.innerText = task.views;
+    }
+
+    // 🌟 최근 10명 방문자 리스트 및 IP 툴팁 HTML 렌더링
+    const viewersListContentEl = document.getElementById('viewersListContent');
+    if (viewersListContentEl) {
+        if (!task.viewers || task.viewers.length === 0) {
+            viewersListContentEl.innerHTML = '<div class="text-[11px] text-gray-400 py-1 text-center">조회 기록이 없습니다.</div>';
+        } else {
+            viewersListContentEl.innerHTML = task.viewers.map(v => {
+                const dateObj = new Date(v.timestamp);
+                const dateStr = dateObj.toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute:'2-digit', hour12: false });
+                return `
+                    <div class="flex items-center justify-between text-[11px] py-1 border-b border-gray-100 last:border-0">
+                        <span class="font-bold text-gray-800">${v.name}</span>
+                        <span class="font-mono text-gray-500 text-[10px] bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">${v.ip || '127.0.0.1'}</span>
+                        <span class="text-gray-400 text-[10px]">${dateStr}</span>
+                    </div>
+                `;
+            }).join('');
+        }
     }
 
     const titleEl = document.getElementById('detailTitle');
@@ -2148,7 +2213,7 @@ function openLibraryViewModal(id) {
 }
 
 // ============================================================================
-// 10. 멤버 관리 / 승인 관리 / 로그 모니터링 모듈
+// 10. 멤버 관리 / 승인 관리 / 로그 모니터링 모듈 (IP 컬럼 렌더링 포함)
 // ============================================================================
 async function fetchMembers() {
     const isAdmin = checkIsAdmin();
@@ -2291,6 +2356,9 @@ async function fetchApprovals() {
     } catch (error) { console.error("유저 로드 에러:", error); }
 }
 
+/**
+ * 🌟 접속 및 작업 이력 로그 조회 (IP 주소 항목 포함 렌더링)
+ */
 async function fetchLogs() {
     const isAdmin = checkIsAdmin();
     if(!isAdmin) return;
@@ -2305,7 +2373,7 @@ async function fetchLogs() {
         }
     }
 
-    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 로그 데이터 수집 중...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 로그 데이터 수집 중...</td></tr>';
 
     try {
         const logsSnap = await getDocs(collection(db, "activity_logs"));
@@ -2329,6 +2397,7 @@ async function fetchLogs() {
                 <tr class="hover:bg-gray-50 transition border-b border-gray-100 break-keep">
                     <td class="p-3 md:p-4 text-xs font-medium text-gray-500 align-middle whitespace-nowrap">${dateStr}</td>
                     <td class="p-3 md:p-4 text-xs font-bold text-gray-800 align-middle whitespace-nowrap">${log.name} (${log.email})</td>
+                    <td class="p-3 md:p-4 text-xs font-mono text-gray-500 align-middle whitespace-nowrap">${log.ip || '127.0.0.1'}</td>
                     <td class="p-3 md:p-4 align-middle whitespace-nowrap"><span class="bg-gray-100 text-gray-600 px-2 py-1 rounded font-bold text-[11px] whitespace-nowrap">${log.action}</span></td>
                     <td class="p-3 md:p-4 text-xs text-gray-600 font-medium whitespace-normal align-middle break-all">${log.details || '-'}</td>
                 </tr>

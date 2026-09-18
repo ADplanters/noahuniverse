@@ -91,7 +91,7 @@
             </button>
         </div>
 
-        <!-- 고정 메뉴 사이드바 (상단 로고 클릭 시 메인 파트너 통합 보드로 이동) -->
+        <!-- 고정 메뉴 사이드바 -->
         <aside id="sidebar" class="w-64 bg-white/95 backdrop-blur-md border-r border-gray-200 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 h-full z-40 shadow-xl md:shadow-sm transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
             <div class="p-5 md:p-6 flex items-center justify-between border-b border-gray-100">
                 <div id="sidebarLogoBtn" class="text-xl font-black tracking-tighter cursor-pointer logo-home-btn select-none" title="파트너 통합 보드로 이동">
@@ -107,7 +107,6 @@
                 <a href="#" data-menu="clients" data-title="클라이언트 관리" class="nav-item flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition">
                     <i class="fa-solid fa-address-book w-5"></i> 클라이언트 관리
                 </a>
-                <!-- 명칭 간소화 반영: 업무 / Q&A -->
                 <a href="#" data-menu="inquiries" data-title="업무 / Q&A" class="nav-item flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition">
                     <i class="fa-solid fa-list-check w-5"></i> 업무 / Q&A
                 </a>
@@ -258,7 +257,7 @@
                 <div id="emptyApprovals" class="hidden py-12 md:py-16 text-center flex-col items-center justify-center"><i class="fa-solid fa-user-check text-3xl md:text-4xl text-gray-300 mb-3"></i><p class="text-gray-500 font-medium text-xs md:text-sm">가입 대기 중인 유저가 없습니다.</p></div>
             </div>
 
-            <!-- 뷰 7. 접속 및 작업 이력 로그 (어드민 전용) -->
+            <!-- 뷰 7. 접속 및 작업 이력 로그 (어드민 전용 - IP 컬럼 추가 반영) -->
             <div id="logsContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8 w-full min-w-0">
                 <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-white flex-wrap gap-3">
                     <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-clock-rotate-left text-hermes mr-2"></i> 시스템 접속 및 작업 이력</h2>
@@ -271,7 +270,11 @@
                     <table class="w-full text-left border-collapse whitespace-nowrap md:whitespace-normal">
                         <thead>
                             <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
-                                <th class="p-3 md:p-4 font-bold w-1/5">발생 일시</th><th class="p-3 md:p-4 font-bold w-1/5">작업자 (이름/계정)</th><th class="p-3 md:p-4 font-bold w-1/6">활동 구분</th><th class="p-3 md:p-4 font-bold w-[40%]">상세 내용</th>
+                                <th class="p-3 md:p-4 font-bold w-1/6">발생 일시</th>
+                                <th class="p-3 md:p-4 font-bold w-1/5">작업자 (이름/계정)</th>
+                                <th class="p-3 md:p-4 font-bold w-1/6">IP 주소</th>
+                                <th class="p-3 md:p-4 font-bold w-1/6">활동 구분</th>
+                                <th class="p-3 md:p-4 font-bold w-[30%]">상세 내용</th>
                             </tr>
                         </thead>
                         <tbody id="logsTable" class="text-sm divide-y divide-gray-100"></tbody>
@@ -364,7 +367,6 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
                         <label class="block text-xs font-bold text-gray-700 mb-1">분류</label>
-                        <!-- 🌟 분류 옵션 업데이트: 보고서 / Q&A / 콘텐츠 / 기타 -->
                         <select id="inputType" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none">
                             <option value="보고서">보고서</option>
                             <option value="Q&A">Q&A</option>
@@ -415,7 +417,6 @@
         </div>
     </div>
 
-    <!-- 등록된 게시글 본문 수정 모달 -->
     <div id="editTaskModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-lg p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-5 border-b pb-3">
@@ -439,7 +440,6 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
                         <label class="block text-xs font-bold text-gray-700 mb-1">분류</label>
-                        <!-- 🌟 분류 옵션 업데이트: 보고서 / Q&A / 콘텐츠 / 기타 -->
                         <select id="editTaskType" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-blue-600 outline-none">
                             <option value="보고서">보고서</option>
                             <option value="Q&A">Q&A</option>
@@ -476,7 +476,6 @@
         </div>
     </div>
 
-    <!-- 관리자 상태 변경 모달 -->
     <div id="replyModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-lg p-5 md:p-6 shadow-2xl border border-gray-100">
             <div class="flex justify-between items-center mb-5 border-b pb-3"><h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-reply text-hermes mr-2"></i> 관리자 상태 변경</h3><button id="closeReplyModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button></div>
@@ -501,7 +500,7 @@
         </div>
     </div>
 
-    <!-- 게시판 형태 상세 보기 팝업 -->
+    <!-- 게시판 형태 상세 보기 팝업 (조회수 뱃지 및 IP 툴팁 적용) -->
     <div id="detailModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-2xl p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[95vh] overflow-y-auto flex flex-col">
             <div class="flex justify-between items-start mb-4 border-b pb-4">
@@ -513,17 +512,17 @@
                     <h3 id="detailTitle" class="text-lg md:text-xl font-black text-gray-900 leading-tight">게시글 제목 영역</h3>
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
+                    <!-- 🌟 눈 모양 조회수 표시 및 최근 10명 방문자 IP 호버 툴팁 -->
                     <div id="viewCountBadgeWrapper" class="relative inline-block group">
                         <button type="button" id="viewCountBadgeBtn" class="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-[10px] sm:text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer">
                             <i class="fa-regular fa-eye text-blue-600"></i>
                             <span id="detailViewCountNum">0</span>
                         </button>
 
-                        <div id="viewersTooltip" class="invisible opacity-0 group-hover:visible group-hover:opacity-100 absolute right-0 top-full pt-2 w-72 z-50 transition-all duration-200">
+                        <div id="viewersTooltip" class="invisible opacity-0 group-hover:visible group-hover:opacity-100 absolute right-0 top-full pt-2 w-80 z-50 transition-all duration-200">
                             <div class="bg-white rounded-xl shadow-2xl border border-gray-200 p-3 text-xs">
                                 <div class="font-bold text-gray-900 border-b border-gray-100 pb-1.5 mb-2 flex items-center justify-between">
-                                    <span class="flex items-center gap-1 text-blue-900"><i class="fa-solid fa-users-viewfinder text-blue-600"></i> 최근 조회자 (최대 10명)</span>
-                                    <span class="text-[10px] font-normal text-gray-400">Admin Only</span>
+                                    <span class="flex items-center gap-1 text-blue-900"><i class="fa-solid fa-users-viewfinder text-blue-600"></i> 최근 조회 기록 (최대 10명)</span>
                                 </div>
                                 <div id="viewersListContent" class="space-y-1.5 max-h-48 overflow-y-auto">
                                 </div>
@@ -685,7 +684,7 @@
         </div>
     </div>
 
-    <!-- 스크립트 모듈 연결 (js/app.js 경로 정확 지정) -->
+    <!-- 스크립트 모듈 연결 (js/app.js 경로) -->
     <script type="module" src="./js/app.js"></script>
 </body>
 </html>

@@ -38,14 +38,14 @@ let clientsMap = {};
 let libraryMap = {}; 
 let cachedClientNames = []; 
 
-// 🌟 접속자 IP 전역 보존 변수
+// 접속자 IP 전역 보존 변수
 let currentClientIP = '127.0.0.1';
 
 // 신규 댓글 작성용 드래그앤드롭 누적 파일 배열
 let newCommentSelectedFiles = [];
 
 // ============================================================================
-// 🌟 클라이언트 IP 주소 자동 수집 헬퍼
+// 클라이언트 IP 주소 자동 수집 헬퍼
 // ============================================================================
 async function fetchClientIP() {
     try {
@@ -388,6 +388,21 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
+// 🌟 조회수 뱃지 클릭 시 최근 방문자 툴팁 토글 동작 구현
+safeAddListener('viewCountBadgeBtn', 'click', (e) => {
+    e.stopPropagation();
+    const tooltip = document.getElementById('viewersTooltip');
+    if (tooltip) {
+        if (tooltip.classList.contains('invisible')) {
+            tooltip.classList.remove('invisible', 'opacity-0', 'pointer-events-none');
+            tooltip.classList.add('visible', 'opacity-100', 'pointer-events-auto');
+        } else {
+            tooltip.classList.add('invisible', 'opacity-0', 'pointer-events-none');
+            tooltip.classList.remove('visible', 'opacity-100', 'pointer-events-auto');
+        }
+    }
+});
+
 // 전역 클릭 이벤트 핸들러 (버튼 고유 ID 기반 클리핑 수신)
 document.addEventListener('click', (e) => {
     // 로고 클릭 감지 -> 파트너 통합 보드(?tab=dashboard) 이동
@@ -594,7 +609,7 @@ function renderFileButtons(item, isTableList = false) {
     return `<span class="text-gray-300 text-[10px] whitespace-nowrap">첨부파일 없음</span>`;
 }
 
-// 🌟 활동 로그 기록 (IP 주소 필드 추가)
+// 활동 로그 기록 (IP 주소 수집 포함)
 async function logActivity(action, details = "") {
     if (!auth.currentUser) {
         return;
@@ -851,7 +866,7 @@ safeAddListener('taskForm', 'submit', async (e) => {
         assignedManagers: assignedManagersArr,
         status: "답변대기", 
         views: 0,
-        viewers: [], // 최근 방문자 10인 배열
+        viewers: [],
         date: dateStr,
         createdAt: new Date().toISOString(), 
         comments: [] 
@@ -1077,7 +1092,7 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
 });
 
 /**
- * 🌟 업무 이슈 요청 게시판 리스트 불러오기 (등록일 아래 눈 아이콘 + 조회수 표기 복구)
+ * 업무 이슈 요청 게시판 리스트 불러오기 (등록일 바로 아래 눈 아이콘과 누적 조회수 복구)
  */
 async function fetchTasks() {
     const tbody = document.getElementById('boardTable');
@@ -1161,7 +1176,7 @@ async function fetchTasks() {
             else if (item.status === '처리완료') statusBadgeClass = 'bg-green-50 text-green-600 border-green-200';
             else if (item.status === '보류') statusBadgeClass = 'bg-gray-100 text-gray-600 border-gray-200';
 
-            // 🌟 등록일 바로 밑에 눈 아이콘 + 조회수 표기 적용
+            // 🌟 등록일 날짜 아래 눈 아이콘 + 누적 조회수 표기 복구
             rowsHtml += `
                 <tr class="hover:bg-hermes-light/30 transition group border-b border-gray-100 cursor-pointer task-detail-trigger break-keep" data-id="${item.id}">
                     <td class="p-3 md:p-4 align-middle text-gray-900 text-[11px] font-bold whitespace-nowrap">
@@ -1203,7 +1218,7 @@ async function fetchTasks() {
 }
 
 /**
- * 🌟 게시글 상세 모달 오픈 (조회수 누적 및 최근 10명 방문자 IP 수집 렌더링)
+ * 게시글 상세 모달 오픈 (조회수 누적 및 최근 10명 방문자 IP 수집 렌더링)
  */
 async function openDetailModal(taskId) {
     const task = tasksMap[taskId];
@@ -1230,7 +1245,7 @@ async function openDetailModal(taskId) {
     newCommentSelectedFiles = [];
     renderNewCommentFilePreviews();
 
-    // 🌟 조회 기록 및 IP 객체 누적 생성 (최대 10개 유치)
+    // 조회 기록 및 IP 객체 누적 생성 (최대 10개 유지)
     const newViewerObj = {
         name: currentUserName || "사용자",
         ip: currentClientIP,
@@ -1255,7 +1270,7 @@ async function openDetailModal(taskId) {
         viewCountNumEl.innerText = task.views;
     }
 
-    // 🌟 최근 10명 방문자 리스트 및 IP 툴팁 HTML 렌더링
+    // 최근 10명 방문자 리스트 및 IP 툴팁 HTML 렌더링
     const viewersListContentEl = document.getElementById('viewersListContent');
     if (viewersListContentEl) {
         if (!task.viewers || task.viewers.length === 0) {
@@ -2213,7 +2228,7 @@ function openLibraryViewModal(id) {
 }
 
 // ============================================================================
-// 10. 멤버 관리 / 승인 관리 / 로그 모니터링 모듈 (IP 컬럼 렌더링 포함)
+// 10. 멤버 관리 / 승인 관리 / 로그 모니터링 모듈
 // ============================================================================
 async function fetchMembers() {
     const isAdmin = checkIsAdmin();
@@ -2356,9 +2371,6 @@ async function fetchApprovals() {
     } catch (error) { console.error("유저 로드 에러:", error); }
 }
 
-/**
- * 🌟 접속 및 작업 이력 로그 조회 (IP 주소 항목 포함 렌더링)
- */
 async function fetchLogs() {
     const isAdmin = checkIsAdmin();
     if(!isAdmin) return;

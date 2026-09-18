@@ -107,7 +107,6 @@
                 <a href="#" data-menu="clients" data-title="클라이언트 관리" class="nav-item flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition">
                     <i class="fa-solid fa-address-book w-5"></i> 클라이언트 관리
                 </a>
-                <!-- 명칭 변경 반영: 업무 이슈 / 소통게시판 -->
                 <a href="#" data-menu="inquiries" data-title="업무 이슈 / 소통게시판" class="nav-item flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition">
                     <i class="fa-solid fa-list-check w-5"></i> 업무 이슈 / 소통게시판
                 </a>
@@ -284,11 +283,7 @@
         </main>
     </div>
 
-    <!-- ==================================================================== -->
     <!-- 모달 팝업 영역 -->
-    <!-- ==================================================================== -->
-    
-    <!-- 클라이언트 등록 모달 -->
     <div id="clientModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-xl p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-5 border-b pb-3"><h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-address-card text-hermes mr-2"></i> 신규 클라이언트 DB 등록</h3><button id="closeClientModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button></div>
@@ -313,7 +308,6 @@
         </div>
     </div>
 
-    <!-- 클라이언트 정보 수정 모달 -->
     <div id="editClientModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-xl p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-5 border-b pb-3"><h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-pen-to-square text-blue-600 mr-2"></i> 클라이언트 정보 수정</h3><button id="closeEditClientModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button></div>
@@ -337,7 +331,6 @@
         </div>
     </div>
 
-    <!-- 다중 담당자 연결 모달 -->
     <div id="assignModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-sm p-5 md:p-6 shadow-2xl border border-gray-100">
             <div class="flex justify-between items-center mb-4 border-b pb-3"><h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-users text-hermes mr-2"></i> 담당자 다중 연결</h3><button id="closeAssignModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button></div>
@@ -347,7 +340,6 @@
         </div>
     </div>
 
-    <!-- 신규 이슈 등록 모달 -->
     <div id="createModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-lg p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-5 border-b pb-3">
@@ -421,7 +413,6 @@
         </div>
     </div>
 
-    <!-- 등록된 게시글 본문 수정 모달 -->
     <div id="editTaskModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-lg p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-5 border-b pb-3">
@@ -481,7 +472,6 @@
         </div>
     </div>
 
-    <!-- 관리자 상태 변경 모달 -->
     <div id="replyModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-lg p-5 md:p-6 shadow-2xl border border-gray-100">
             <div class="flex justify-between items-center mb-5 border-b pb-3"><h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-reply text-hermes mr-2"></i> 관리자 상태 변경</h3><button id="closeReplyModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button></div>
@@ -506,10 +496,8 @@
         </div>
     </div>
 
-    <!-- 게시판 형태 상세 보기 팝업 -->
     <div id="detailModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-2xl p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[95vh] overflow-y-auto flex flex-col">
-            
             <div class="flex justify-between items-start mb-4 border-b pb-4">
                 <div class="w-full pr-4">
                     <div class="flex items-center gap-2 mb-2">
@@ -519,8 +507,6 @@
                     <h3 id="detailTitle" class="text-lg md:text-xl font-black text-gray-900 leading-tight">게시글 제목 영역</h3>
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
-                    
-                    <!-- 눈 모양 조회수 표시 및 최상위 관리자 전용 호버 툴팁 -->
                     <div id="viewCountBadgeWrapper" class="relative inline-block group">
                         <button type="button" id="viewCountBadgeBtn" class="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-[10px] sm:text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer">
                             <i class="fa-regular fa-eye text-blue-600"></i>
@@ -534,7 +520,6 @@
                                     <span class="text-[10px] font-normal text-gray-400">Admin Only</span>
                                 </div>
                                 <div id="viewersListContent" class="space-y-1.5 max-h-48 overflow-y-auto">
-                                    <!-- JS 로드 영역 -->
                                 </div>
                             </div>
                         </div>
@@ -547,7 +532,6 @@
                 </div>
             </div>
 
-            <!-- 상세 정보 표기 -->
             <div class="grid grid-cols-2 gap-2 bg-gray-50 p-3 rounded-xl border border-gray-100 text-xs mb-4">
                 <div><span class="font-bold text-gray-400">클라이언트:</span> <span id="detailClient" class="font-bold text-gray-800"></span></div>
                 <div><span class="font-bold text-gray-400">작성자:</span> <span id="detailStaff" class="font-bold text-gray-800"></span></div>
@@ -556,21 +540,17 @@
                 <div><span class="font-bold text-gray-400">소속:</span> <span id="detailAgency" class="font-bold text-gray-800"></span></div>
             </div>
 
-            <!-- 게시글 본문 -->
             <div class="mb-4 flex-1">
                 <p class="font-bold text-gray-900 mb-2"><i class="fa-solid fa-align-left text-hermes mr-1"></i> 본문 내용</p>
                 <div id="detailContent" class="p-4 rounded-xl border border-gray-200 whitespace-pre-wrap text-gray-800 text-sm min-h-[100px] bg-white leading-relaxed"></div>
             </div>
 
-            <!-- 본문 첨부파일 미리보기 영역 -->
             <div id="detailFileArea" class="mb-6">
                 <p class="font-bold text-gray-900 mb-1.5"><i class="fa-solid fa-paperclip text-hermes mr-1"></i> 첨부파일</p>
                 <div id="detailFileBtn" class="flex flex-wrap gap-3">
-                    <!-- 스크립트 처리 영역 -->
                 </div>
             </div>
 
-            <!-- 작성자 전용 옵션 -->
             <div id="authorActionArea" class="flex justify-end gap-2 mb-6 hidden">
                 <button id="detailEditBtn" type="button" class="px-3.5 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white border border-blue-200 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-xs">
                     <i class="fa-solid fa-pen-to-square"></i> 게시글/제목 수정
@@ -580,9 +560,7 @@
                 </button>
             </div>
 
-            <!-- 소통 및 댓글(답변) 영역 -->
             <div class="border-t pt-4 bg-gray-50/50 -mx-5 md:-mx-6 -mb-5 md:-mb-6 px-5 md:px-6 pb-5 md:pb-6 rounded-b-2xl">
-                
                 <div class="flex justify-between items-center mb-3">
                     <p class="font-bold text-gray-900 flex items-center gap-1.5 text-xs sm:text-sm">
                         <span class="text-blue-800 text-base">🗣️</span> 소통 및 답변 
@@ -599,19 +577,14 @@
                     </div>
                 </div>
 
-                <!-- 댓글 목록 리스트 -->
                 <div id="commentListArea" class="space-y-2.5 mb-3 max-h-[350px] overflow-y-auto px-0.5">
-                    <!-- JS 연동 영역 -->
                 </div>
 
-                <!-- 댓글 작성 및 파일 첨부 -->
                 <div class="space-y-2">
                     <div id="pendingFilesPreview" class="flex flex-wrap gap-2 hidden"></div>
                     <div class="flex gap-2 items-stretch">
                         <div class="relative flex-1">
                             <textarea id="commentInputBox" rows="2" placeholder="댓글 내용을 입력하거나 파일을 드래그하여 올려주세요." class="w-full border border-gray-300 rounded-xl p-2.5 pb-7 text-xs focus:outline-none focus:ring-2 focus:ring-slate-800 resize-y bg-white shadow-inner transition-all min-h-[58px]"></textarea>
-                            
-                            <!-- 첨부파일 버튼 -->
                             <div class="absolute bottom-2 left-2.5 flex items-center gap-2">
                                 <input type="file" id="commentFileInputBox" multiple accept="*" class="hidden">
                                 <button type="button" id="attachFileLocalBtn" class="flex items-center gap-1 text-[11px] text-gray-600 hover:text-blue-600 font-semibold bg-gray-100 hover:bg-gray-200 px-2 py-0.5 rounded border border-gray-300 transition">
@@ -627,12 +600,10 @@
         </div>
     </div>
 
-    <!-- 원본 이미지 확대 모달 -->
     <div id="imageModal" class="fixed inset-0 z-[60] hidden bg-black bg-opacity-85 flex justify-center items-center p-4" onclick="closeImageModal()">
         <img id="modalImgTag" src="" alt="원본 확대 이미지" class="max-w-full max-h-full rounded-lg shadow-2xl object-contain">
     </div>
 
-    <!-- 인사이트 라이브러리 HTML 상세보기 모달 -->
     <div id="libraryViewModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-4xl p-5 md:p-8 shadow-2xl border border-gray-100 max-h-[95vh] overflow-y-auto flex flex-col">
             <div class="flex justify-between items-start mb-4 border-b pb-4">
@@ -657,7 +628,6 @@
         </div>
     </div>
 
-    <!-- 인사이트 라이브러리 작성/수정 모달 (Admin 전용) -->
     <div id="libraryEditModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-2xl p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-5 border-b pb-3">
@@ -709,7 +679,7 @@
         </div>
     </div>
 
-    <!-- 기능별 모듈 연동부 -->
-    <script type="module" src="app.js"></script>
+    <!-- 스크립트 모듈 연결 (🌟 js/app.js 경로 유지) -->
+    <script type="module" src="./js/app.js"></script>
 </body>
 </html>

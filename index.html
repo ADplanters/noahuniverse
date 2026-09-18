@@ -81,9 +81,9 @@
         
         <div id="mobileOverlay" class="fixed inset-0 bg-black/50 z-30 hidden md:hidden backdrop-blur-sm transition-opacity"></div>
 
-        <!-- 모바일 탑바 -->
+        <!-- 모바일 탑바 (로고 클릭 시 메인 보드 이동 연동) -->
         <div class="md:hidden flex justify-between items-center bg-white/90 backdrop-blur-md px-4 py-3 border-b border-gray-200 sticky top-0 z-20">
-            <div class="text-lg font-black tracking-tighter">
+            <div id="mobileLogoBtn" class="text-lg font-black tracking-tighter cursor-pointer logo-home-btn" title="파트너 통합 보드로 이동">
                 <span class="text-hermes">ADplanters</span><span class="text-gray-300 mx-1">✕</span><span class="text-noah text-xs">NOAH</span>
             </div>
             <button id="mobileMenuBtn" class="text-gray-700 hover:text-hermes text-xl p-1.5 focus:outline-none rounded-lg hover:bg-gray-100 transition">
@@ -91,10 +91,10 @@
             </button>
         </div>
 
-        <!-- 고정 메뉴 사이드바 -->
+        <!-- 고정 메뉴 사이드바 (상단 로고 클릭 시 메인 보드 이동 연동) -->
         <aside id="sidebar" class="w-64 bg-white/95 backdrop-blur-md border-r border-gray-200 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 h-full z-40 shadow-xl md:shadow-sm transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
             <div class="p-5 md:p-6 flex items-center justify-between border-b border-gray-100">
-                <div class="text-xl font-black tracking-tighter">
+                <div id="sidebarLogoBtn" class="text-xl font-black tracking-tighter cursor-pointer logo-home-btn" title="파트너 통합 보드로 이동">
                     <span class="text-hermes">ADplanters</span><span class="text-gray-300 mx-1">✕</span><span class="text-noah text-sm">NOAH</span>
                 </div>
                 <button id="closeSidebarBtn" class="md:hidden text-gray-400 hover:text-gray-600 p-1"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -178,7 +178,7 @@
                 <div id="emptyClients" class="hidden py-12 md:py-16 text-center flex-col items-center justify-center"><i class="fa-solid fa-folder-open text-3xl md:text-4xl text-gray-300 mb-3"></i><p class="text-gray-500 font-medium text-xs md:text-sm">조회 가능한 클라이언트 데이터가 없습니다.</p></div>
             </div>
 
-            <!-- 뷰 3. 이슈 / 소통게시판 -->
+            <!-- 뷰 3. 업무 이슈 / 소통게시판 -->
             <div id="tasksContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8 w-full min-w-0">
                 <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-white flex-wrap gap-2">
                     <!-- 명칭 변경 반영: 업무 이슈 / 소통게시판 -->
@@ -238,7 +238,7 @@
                 </div>
             </div>
 
-            <!-- 뷰 6. 신규 가입 승인 대기 목록 (어드민 전용 - 🌟 테이블 비율 및 UI 깨짐 완벽 보정) -->
+            <!-- 뷰 6. 신규 가입 승인 대기 목록 (어드민 전용 - 테이블 비율 및 UI 깨짐 보정) -->
             <div id="approvalsContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8 w-full min-w-0">
                 <div class="p-4 md:p-5 border-b border-gray-100 bg-white">
                     <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-user-shield text-hermes mr-2"></i> 신규 가입 승인 대기 목록</h2>

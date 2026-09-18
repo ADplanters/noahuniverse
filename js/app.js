@@ -369,8 +369,17 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// 🌟 전역 클릭 이벤트 핸들러 (+신규 이슈 등록 버튼 클릭 감지 강화)
+// 🌟 전역 클릭 이벤트 핸들러 (로고 클릭 시 홈 이동 + 신규 이슈 등록 모달 열기 보완)
 document.addEventListener('click', (e) => {
+    // 로고 클릭 감지 -> 파트너 통합 보드(홈) 이동
+    const logoTrigger = e.target.closest('#mobileLogoBtn') || e.target.closest('#sidebarLogoBtn') || e.target.closest('.logo-home-btn');
+    if (logoTrigger) {
+        e.preventDefault();
+        e.stopPropagation();
+        switchTab('dashboard', true);
+        return;
+    }
+
     const closeSidebarTrigger = e.target.closest('#closeSidebarBtn') || 
                                 e.target.closest('#closeSidebar') || 
                                 (e.target.closest('button') && e.target.closest('button').querySelector('#closeSidebarBtn'));
@@ -399,7 +408,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 🌟 신규 이슈 등록 버튼 클릭 감지 및 모달 오픈 처리 보완
+    // 신규 이슈 등록 버튼 클릭 감지 및 모달 오픈
     const openTaskModalBtn = e.target.closest('#openModalBtn') || (e.target.textContent && e.target.textContent.includes('신규 이슈 등록'));
     if (openTaskModalBtn && createModal) {
         e.preventDefault();

@@ -369,7 +369,7 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// 글로벌 클릭 이벤트 감지 (사이드바 닫기, 햄버거 메뉴, 신규 이슈/클라이언트 모달 트리거 등)
+// 🌟 전역 클릭 이벤트 핸들러 (+신규 이슈 등록 버튼 클릭 감지 강화)
 document.addEventListener('click', (e) => {
     const closeSidebarTrigger = e.target.closest('#closeSidebarBtn') || 
                                 e.target.closest('#closeSidebar') || 

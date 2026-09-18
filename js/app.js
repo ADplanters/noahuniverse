@@ -369,9 +369,9 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// 전역 클릭 이벤트 핸들러 (상단 로고 클릭 시 모든 모달을 닫고 메인 파트너 통합 보드로 이동)
+// 🌟 전역 클릭 이벤트 핸들러 (화면 오작동 완벽 해결: 버튼 고유 ID로만 클릭 수신)
 document.addEventListener('click', (e) => {
-    // 로고 클릭 감지 -> 모달 닫기 후 파트너 통합 보드(?tab=dashboard) 이동
+    // 로고 클릭 감지 -> 파트너 통합 보드(?tab=dashboard) 이동
     const logoTrigger = e.target.closest('#mobileLogoBtn') || e.target.closest('#sidebarLogoBtn') || e.target.closest('.logo-home-btn');
     if (logoTrigger) {
         e.preventDefault();
@@ -409,8 +409,8 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 신규 이슈 등록 버튼 클릭 감지 및 모달 오픈
-    const openTaskModalBtn = e.target.closest('#openModalBtn') || (e.target.textContent && e.target.textContent.includes('신규 이슈 등록'));
+    // 🌟 신규 이슈 등록 버튼 전용 클릭 수신 (배경 및 다른 글자 클릭 시 열리지 않도록 정밀 수정)
+    const openTaskModalBtn = e.target.closest('#openModalBtn');
     if (openTaskModalBtn && createModal) {
         e.preventDefault();
         e.stopPropagation();
@@ -419,7 +419,8 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    const addClientBtn = e.target.closest('#openClientModalBtn') || (e.target.textContent && e.target.textContent.includes('신규 클라이언트 추가'));
+    // 🌟 신규 클라이언트 추가 버튼 전용 클릭 수신
+    const addClientBtn = e.target.closest('#openClientModalBtn');
     if (addClientBtn && clientModal) {
         e.preventDefault();
         e.stopPropagation();
@@ -719,7 +720,6 @@ onAuthStateChanged(auth, async (user) => {
             }
         } catch (dbErr) {
             console.error("Firestore user doc fetch error:", dbErr);
-            // Firestore 네트워크/권한 예외가 발생하더라도 대시보드를 정상 표시
             currentUserRole = 'player';
             showDashboard(user);
         }

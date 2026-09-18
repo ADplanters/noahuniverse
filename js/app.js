@@ -388,7 +388,7 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// 🌟 조회수 뱃지 클릭 시 최근 방문자 툴팁 토글 동작 구현
+// 조회수 뱃지 클릭 시 최근 방문자 툴팁 토글 동작
 safeAddListener('viewCountBadgeBtn', 'click', (e) => {
     e.stopPropagation();
     const tooltip = document.getElementById('viewersTooltip');
@@ -904,28 +904,50 @@ async function deleteTask(taskId) {
     }
 }
 
+/**
+ * 🌟 수정 모달 오픈 (클라이언트, 분류, 소속, 제목, 본문, 담당자 등 전체 항목 바인딩)
+ */
 function openEditTaskModal(taskId) {
     const task = tasksMap[taskId];
     if (!task) return;
     currentDetailTaskId = taskId;
 
+    const clientIn = document.getElementById('editTaskClient');
+    const titleIn = document.getElementById('editTaskTitle');
+    const typeIn = document.getElementById('editTaskType');
+    const agencyIn = document.getElementById('editTaskAgency');
+    const contentIn = document.getElementById('editTaskContent');
+
+    if (clientIn) clientIn.value = task.client || '';
+    if (titleIn) titleIn.value = task.title || '';
+    if (typeIn) typeIn.value = task.type || '보고서';
+    if (agencyIn) agencyIn.value = task.agency || 'noah';
+    if (contentIn) contentIn.value = task.content || '';
+
+    // Admin일 경우 담당자 지정 체크박스 리스트 바인딩
+    const editAssignArea = document.getElementById('editAssignManagerArea');
+    const editAssignList = document.getElementById('editAssignManagerList');
+    if (editAssignArea && editAssignList && checkIsAdmin()) {
+        editAssignArea.classList.remove('hidden');
+        editAssignList.innerHTML = '<div class="text-xs text-gray-400 p-2 text-center">멤버 목록 불러오는 중...</div>';
+        getDocs(query(collection(db, "users"), where("status", "==", "approved"))).then(usersSnap => {
+            let html = '';
+            const currentAssigned = task.assignedManagers || [];
+            usersSnap.forEach(uDoc => {
+                const u = uDoc.data();
+                const isChecked = currentAssigned.includes(u.name) ? 'checked' : '';
+                html += `
+                    <label class="flex items-center gap-2 p-1.5 hover:bg-white rounded cursor-pointer text-xs font-bold text-gray-700">
+                        <input type="checkbox" value="${u.name}" class="edit-assign-manager-checkbox rounded text-hermes" ${isChecked} />
+                        <span>${u.name} <span class="text-[10px] text-gray-400 font-normal">(${u.email})</span></span>
+                    </label>
+                `;
+            });
+            editAssignList.innerHTML = html;
+        });
+    }
+
     if (editTaskModal) {
-        const inputs = editTaskModal.querySelectorAll('input[type="text"]');
-        const selects = editTaskModal.querySelectorAll('select');
-        const textareas = editTaskModal.querySelectorAll('textarea');
-
-        const clientIn = document.getElementById('editInputClient') || editTaskModal.querySelector('[name="client"]') || inputs[0];
-        const titleIn = document.getElementById('editInputTitle') || editTaskModal.querySelector('[name="title"]') || inputs[1];
-        const typeIn = document.getElementById('editInputType') || editTaskModal.querySelector('[name="type"]') || selects[0];
-        const agencyIn = document.getElementById('editInputAgency') || editTaskModal.querySelector('[name="agency"]') || selects[1];
-        const contentIn = document.getElementById('editInputContent') || editTaskModal.querySelector('[name="content"]') || textareas[0];
-
-        if (clientIn) clientIn.value = task.client || '';
-        if (titleIn) titleIn.value = task.title || '';
-        if (typeIn) typeIn.value = task.type || '보고서';
-        if (agencyIn) agencyIn.value = task.agency || '';
-        if (contentIn) contentIn.value = task.content || '';
-
         editTaskModal.classList.remove('hidden');
         editTaskModal.style.zIndex = "99999"; 
     }
@@ -1055,39 +1077,72 @@ function bindAssignSubmitEvents() {
     }
 }
 
+/**
+ * 🌟 게시글 수정 폼 저장 핸들러 (클라이언트, 분류, 소속, 제목, 본문, 담당자, 파일 전체 갱신)
+ */
 safeAddListener('editTaskForm', 'submit', async (e) => {
     e.preventDefault();
     if (!currentDetailTaskId) return;
 
-    const inputs = editTaskModal.querySelectorAll('input[type="text"]');
-    const selects = editTaskModal.querySelectorAll('select');
-    const textareas = editTaskModal.querySelectorAll('textarea');
-
-    const clientIn = document.getElementById('editInputClient') || editTaskModal.querySelector('[name="client"]') || inputs[0];
-    const titleIn = document.getElementById('editInputTitle') || editTaskModal.querySelector('[name="title"]') || inputs[1];
-    const typeIn = document.getElementById('editInputType') || editTaskModal.querySelector('[name="type"]') || selects[0];
-    const contentIn = document.getElementById('editInputContent') || editTaskModal.querySelector('[name="content"]') || textareas[0];
+    const submitBtn = editTaskModal.querySelector('button[type="submit"]');
+    const origText = submitBtn ? submitBtn.innerText : '수정 완료 저장';
+    if (submitBtn) {
+        submitBtn.innerText = "저장 중...";
+        submitBtn.disabled = true;
+    }
 
     try {
-        await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), {
-            title: titleIn ? titleIn.value : tasksMap[currentDetailTaskId].title,
-            content: contentIn ? contentIn.value : tasksMap[currentDetailTaskId].content,
-            type: typeIn ? typeIn.value : tasksMap[currentDetailTaskId].type,
-            client: clientIn ? clientIn.value : tasksMap[currentDetailTaskId].client,
+        const clientVal = document.getElementById('editTaskClient').value;
+        const titleVal = document.getElementById('editTaskTitle').value;
+        const typeVal = document.getElementById('editTaskType').value;
+        const agencyVal = document.getElementById('editTaskAgency').value;
+        const contentVal = document.getElementById('editTaskContent').value;
+        const fileInput = document.getElementById('editTaskFile');
+
+        let updatedData = {
+            client: clientVal,
+            title: titleVal,
+            type: typeVal,
+            agency: agencyVal,
+            content: contentVal,
             updatedAt: new Date().toISOString()
-        });
+        };
+
+        // 첨부파일 신규 선택 시 업로드 반영
+        if (fileInput && fileInput.files.length > 0) {
+            const newFiles = await uploadFilesToStorage(fileInput.files, "crm_tasks");
+            updatedData.files = newFiles;
+        }
+
+        // Admin 담당자 변경 체크박스 갱신 반영
+        if (checkIsAdmin()) {
+            const checkboxes = editTaskModal.querySelectorAll('.edit-assign-manager-checkbox:checked');
+            if (checkboxes.length > 0 || editTaskModal.querySelector('.edit-assign-manager-checkbox')) {
+                updatedData.assignedManagers = Array.from(checkboxes).map(cb => cb.value);
+            }
+        }
+
+        await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), updatedData);
         
+        // 메모리 객체 동기화
+        Object.assign(tasksMap[currentDetailTaskId], updatedData);
+
         if (editTaskModal) {
             editTaskModal.classList.add('hidden');
         }
-        alert("이슈 수정이 완료되었습니다.");
+        alert("이슈 정보가 수정되었습니다.");
         
         await fetchTasks();
-        if (!detailModal.classList.contains('hidden')) {
+        if (detailModal && !detailModal.classList.contains('hidden')) {
             openDetailModal(currentDetailTaskId);
         }
     } catch (err) { 
         alert("이슈 수정 실패: " + err.message); 
+    } finally {
+        if (submitBtn) {
+            submitBtn.innerText = origText;
+            submitBtn.disabled = false;
+        }
     }
 });
 
@@ -1176,7 +1231,6 @@ async function fetchTasks() {
             else if (item.status === '처리완료') statusBadgeClass = 'bg-green-50 text-green-600 border-green-200';
             else if (item.status === '보류') statusBadgeClass = 'bg-gray-100 text-gray-600 border-gray-200';
 
-            // 🌟 등록일 날짜 아래 눈 아이콘 + 누적 조회수 표기 복구
             rowsHtml += `
                 <tr class="hover:bg-hermes-light/30 transition group border-b border-gray-100 cursor-pointer task-detail-trigger break-keep" data-id="${item.id}">
                     <td class="p-3 md:p-4 align-middle text-gray-900 text-[11px] font-bold whitespace-nowrap">
@@ -1218,7 +1272,7 @@ async function fetchTasks() {
 }
 
 /**
- * 게시글 상세 모달 오픈 (조회수 누적 및 최근 10명 방문자 IP 수집 렌더링)
+ * 🌟 게시글 상세 모달 오픈 (소속 매핑 공란 수정 + 조회수/IP 수집 렌더링)
  */
 async function openDetailModal(taskId) {
     const task = tasksMap[taskId];
@@ -1348,21 +1402,16 @@ async function openDetailModal(taskId) {
     if (detailAssignEl) {
         detailAssignEl.innerText = assignedStr;
         detailAssignEl.className = "text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 inline-block break-all max-w-full";
-    } else {
-        const labels = detailModal.querySelectorAll('div, span, td, p');
-        labels.forEach(node => {
-            if (node.children.length === 0 && node.textContent.includes('지정 담당자')) {
-                if (node.nextElementSibling) {
-                    node.nextElementSibling.innerText = assignedStr;
-                    node.nextElementSibling.className = "text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 inline-block break-all max-w-full";
-                } else {
-                    node.innerHTML = `지정 담당자: <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 inline-block break-all max-w-full">${assignedStr}</span>`;
-                }
-            }
-        });
     }
 
     document.getElementById('detailDate').innerText = task.date || '-';
+
+    // 🌟 소속 (Agency) 공란 버그 완벽 수정: noah -> 노아유니버스 / adplanters -> 애드플랜터스 정밀 매핑
+    const agencyNameMap = { 'noah': '노아유니버스', 'adplanters': '애드플랜터스' };
+    const detailAgencyEl = document.getElementById('detailAgency');
+    if (detailAgencyEl) {
+        detailAgencyEl.innerText = agencyNameMap[task.agency] || task.agency || '노아유니버스';
+    }
     
     const contentEl = document.getElementById('detailContent');
     if (contentEl) {
@@ -1404,14 +1453,14 @@ async function openDetailModal(taskId) {
                 <button type="button" id="btnDetailDelete" class="px-2 py-1 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white text-xs font-bold rounded-lg border border-red-200 transition shadow-2xs whitespace-nowrap">삭제</button>
             `;
             document.getElementById('btnDetailDelete').onclick = () => deleteTask(taskId);
-            document.getElementById('btnDetailEdit').onclick = () => bindInlineEditMode(taskId);
+            document.getElementById('btnDetailEdit').onclick = () => openEditTaskModal(taskId);
             document.getElementById('btnDetailAssign').onclick = () => openAssignModal(taskId);
             
         } else if (isAuthor) {
             actionArea.innerHTML = `
                 <button type="button" id="btnDetailEdit" class="px-2 py-1 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white text-xs font-bold rounded-lg border border-blue-200 transition shadow-2xs whitespace-nowrap">수정</button>
             `;
-            document.getElementById('btnDetailEdit').onclick = () => bindInlineEditMode(taskId);
+            document.getElementById('btnDetailEdit').onclick = () => openEditTaskModal(taskId);
         } else {
             actionArea.innerHTML = '';
         }

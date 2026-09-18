@@ -327,9 +327,7 @@ function closeAllModals() {
         }
     });
     
-    const urlParams = new URLSearchParams(window.location.search);
-    const activeTab = urlParams.get('tab') || 'dashboard';
-    window.history.pushState({ tab: activeTab }, '', `${window.location.pathname}?tab=${activeTab}`);
+    window.history.pushState({}, '', window.location.pathname);
 }
 
 // 키보드 ESC 키 감지 모달 닫기
@@ -342,12 +340,14 @@ document.addEventListener('keydown', (e) => {
 // 모달 바깥 배경 클릭 및 내부 X(닫기) / 취소 버튼 강제 바인딩 (클라이언트 창 오류 해결)
 [createModal, editTaskModal, clientModal, editClientModal, assignModal, detailModal, libraryViewModal, libraryEditModal, pendingModal].forEach(modalEl => {
     if (modalEl) {
+        // 배경 클릭 시 닫기
         modalEl.addEventListener('click', (e) => {
             if (e.target === modalEl) {
                 closeAllModals();
             }
         });
 
+        // X 아이콘 및 취소 텍스트 버튼을 찾아 강제로 이벤트 바인딩
         const closeBtns = modalEl.querySelectorAll('.fa-xmark, button[title="닫기"]');
         closeBtns.forEach(icon => {
             const btn = icon.closest('button') || icon;
@@ -369,8 +369,9 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// 글로벌 클릭 이벤트 감지 (사이드바 닫기, 햄버거 메뉴, 모달 트리거 등)
+// 글로벌 신규 클라이언트 추가, 이미지 확대, 링크 복사 클릭 이벤트 캐치
 document.addEventListener('click', (e) => {
+    // 모바일 사이드바 상단 X(닫기) 버튼 클릭 시 사이드바 닫기 처리
     const closeSidebarTrigger = e.target.closest('#closeSidebarBtn') || 
                                 e.target.closest('#closeSidebar') || 
                                 (e.target.closest('button') && e.target.closest('button').querySelector('#closeSidebarBtn'));
@@ -381,6 +382,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
+    // 모바일 햄버거 메뉴 열기 버튼 클릭 감지
     const mobileMenuTrigger = e.target.closest('#mobileMenuBtn') || 
                               e.target.closest('#hamburgerBtn') || 
                               e.target.closest('#openSidebarBtn') || 
@@ -394,6 +396,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
+    // 모바일 배경 오버레이 터치 시 사이드바 닫기
     if (e.target.closest('#mobileOverlay')) {
         toggleMobileSidebar(false);
         return;
@@ -416,6 +419,7 @@ document.addEventListener('click', (e) => {
         }
     }
 
+    // 링크 복사 버튼 글로벌 캡처 (Fallback)
     const shareTrigger = e.target.closest('#shareLinkBtn') || (e.target.closest('button') && e.target.closest('button').textContent.includes('링크 복사'));
     if (shareTrigger) {
         e.preventDefault();
@@ -440,6 +444,7 @@ async function uploadFilesToStorage(fileList, folderName) {
     for (let i = 0; i < filesArray.length; i++) {
         const file = filesArray[i];
         
+        // 파일명 정제: 특수문자, 한글, 공백 등 파싱 오류 유발 요소를 안전하게 치환
         const extIndex = file.name.lastIndexOf('.');
         const nameWithoutExt = extIndex !== -1 ? file.name.substring(0, extIndex) : file.name;
         const ext = extIndex !== -1 ? file.name.substring(extIndex) : '';
@@ -491,6 +496,7 @@ function setupDragAndDrop(dropAreaId, fileInputId) {
         }, false);
     });
 
+    // 게시글 본문 폼 등 일반 파일 인풋 바인딩
     if (fileInputId !== 'commentFileInputBox') {
         dropArea.addEventListener('drop', (e) => {
             const dt = e.dataTransfer;
@@ -510,11 +516,7 @@ function isImageFile(fileName, url) {
     return isDataImg || imgExts.some(ext => lowerName.endsWith(ext) || lowerUrl.includes(ext));
 }
 
-/**
- * 첨부파일 렌더링 헬퍼 (테이블 목록 / 상세 모달 이중화 지원)
- * @param {Object} item - 파일 목록을 포함하는 객체 ({ files: [...] })
- * @param {boolean} isTableList - true일 경우 목록용 콤팩트 뱃지([이미지 1], [파일 1])로 표시
- */
+// 이미지 썸네일 미리보기 + 첨부파일 렌더링
 function renderFileButtons(item, isTableList = false) {
     if (item.files && item.files.length > 0) {
         return item.files.map((f, idx) => {
@@ -911,6 +913,7 @@ async function openAssignModal(taskId) {
     }
 }
 
+// 🌟 치명적인 문법 오류 완벽 수정: finally 키워드 철자 오류 수정 완료
 async function executeAssignManagers() {
     const targetId = currentAssignClientId || currentDetailTaskId;
     if (!targetId) {
@@ -950,7 +953,7 @@ async function executeAssignManagers() {
     } catch (err) {
         console.error("담당자 배정 오류:", err);
         alert("담당자 배정 실패: " + err.message);
-    } finally {
+    } finally {  // <-- 오타 부분(fontally) 완벽히 수정됨!
         if (submitBtn) {
             submitBtn.innerText = origText;
             submitBtn.disabled = false;

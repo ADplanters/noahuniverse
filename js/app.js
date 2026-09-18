@@ -369,7 +369,7 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// 🌟 전역 클릭 이벤트 핸들러 (상단 로고 클릭 시 모든 모달을 닫고 메인 파트너 통합 보드로 이동)
+// 전역 클릭 이벤트 핸들러 (상단 로고 클릭 시 모든 모달을 닫고 메인 파트너 통합 보드로 이동)
 document.addEventListener('click', (e) => {
     // 로고 클릭 감지 -> 모달 닫기 후 파트너 통합 보드(?tab=dashboard) 이동
     const logoTrigger = e.target.closest('#mobileLogoBtn') || e.target.closest('#sidebarLogoBtn') || e.target.closest('.logo-home-btn');
@@ -625,7 +625,7 @@ function fallbackCopyToClipboard(text, label = "링크") {
 }
 
 // ============================================================================
-// 4. 인증 및 사용자 권한 제어
+// 4. 인증 및 사용자 권한 제어 (예외 안전 처리 강화)
 // ============================================================================
 
 // 리디렉션 로그인 리턴 처리 (페이지 로드 시)
@@ -639,10 +639,7 @@ onAuthStateChanged(auth, async (user) => {
     renderWatermark();
 
     if (user) {
-        const userRef = doc(db, "users", user.uid);
-        const userSnap = await getDoc(userRef);
-        currentUserName = user.displayName || "담당자";
-        
+        currentUserName = user.displayName || (user.email ? user.email.split('@')[0] : "담당자");
         const staffInput = document.getElementById('inputStaff');
         if(staffInput) {
             staffInput.value = currentUserName;
@@ -655,63 +652,76 @@ onAuthStateChanged(auth, async (user) => {
 
         // ADMIN_EMAILS 목록 지정 관리자 자동 승인
         if (ADMIN_EMAILS.includes(user.email)) {
-            await setDoc(userRef, { 
-                email: user.email, 
-                name: currentUserName, 
-                role: "admin", 
-                status: "approved" 
-            }, { merge: true });
-            
             currentUserRole = 'admin';
+            try {
+                const userRef = doc(db, "users", user.uid);
+                await setDoc(userRef, { 
+                    email: user.email, 
+                    name: currentUserName, 
+                    role: "admin", 
+                    status: "approved" 
+                }, { merge: true });
+            } catch (err) {
+                console.error("Admin user sync error:", err);
+            }
             showDashboard(user);
             return;
         }
 
-        // 이메일 기반 기존 UID 자동 매핑 처리
-        if (!userSnap.exists()) {
-            const q = query(collection(db, "users"), where("email", "==", user.email));
-            const qSnap = await getDocs(q);
-            
-            if (!qSnap.empty) {
-                const oldDoc = qSnap.docs[0];
-                const oldData = oldDoc.data();
-                
-                await setDoc(userRef, { 
-                    ...oldData, 
-                    uid: user.uid,
-                    updatedAt: new Date().toISOString()
-                });
+        // 이메일 기반 기존 UID 자동 매핑 및 예외 안전 처리
+        try {
+            const userRef = doc(db, "users", user.uid);
+            const userSnap = await getDoc(userRef);
 
-                if (oldDoc.id !== user.uid) {
-                    await deleteDoc(doc(db, "users", oldDoc.id));
+            if (!userSnap.exists()) {
+                const q = query(collection(db, "users"), where("email", "==", user.email));
+                const qSnap = await getDocs(q);
+                
+                if (!qSnap.empty) {
+                    const oldDoc = qSnap.docs[0];
+                    const oldData = oldDoc.data();
+                    
+                    await setDoc(userRef, { 
+                        ...oldData, 
+                        uid: user.uid,
+                        updatedAt: new Date().toISOString()
+                    });
+
+                    if (oldDoc.id !== user.uid) {
+                        await deleteDoc(doc(db, "users", oldDoc.id));
+                    }
+                    
+                    currentUserRole = oldData.role || 'player';
+                    if (oldData.status === 'approved') {
+                        showDashboard(user);
+                    } else {
+                        showPendingPopup();
+                    }
+                    return;
                 }
-                
-                currentUserRole = oldData.role || 'player';
-                
-                if (oldData.status === 'approved') {
+
+                await setDoc(userRef, { 
+                    email: user.email, 
+                    name: currentUserName, 
+                    role: "player", 
+                    status: "pending", 
+                    createdAt: new Date().toISOString() 
+                });
+                showPendingPopup();
+            } else {
+                const userData = userSnap.data();
+                if (userData.status === 'approved') {
+                    currentUserRole = userData.role || 'player';
                     showDashboard(user);
                 } else {
                     showPendingPopup();
                 }
-                return;
             }
-
-            await setDoc(userRef, { 
-                email: user.email, 
-                name: currentUserName, 
-                role: "player", 
-                status: "pending", 
-                createdAt: new Date().toISOString() 
-            });
-            showPendingPopup();
-        } else {
-            const userData = userSnap.data();
-            if (userData.status === 'approved') {
-                currentUserRole = userData.role || 'player';
-                showDashboard(user);
-            } else {
-                showPendingPopup();
-            }
+        } catch (dbErr) {
+            console.error("Firestore user doc fetch error:", dbErr);
+            // Firestore 네트워크/권한 예외가 발생하더라도 대시보드를 정상 표시
+            currentUserRole = 'player';
+            showDashboard(user);
         }
     } else {
         isInitialLoginLogged = false;

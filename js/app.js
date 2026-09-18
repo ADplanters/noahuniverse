@@ -369,13 +369,14 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// 🌟 전역 클릭 이벤트 핸들러 (로고 클릭 시 홈 이동 + 신규 이슈 등록 모달 열기 보완)
+// 🌟 전역 클릭 이벤트 핸들러 (상단 로고 클릭 시 모든 모달을 닫고 메인 파트너 통합 보드로 이동)
 document.addEventListener('click', (e) => {
-    // 로고 클릭 감지 -> 파트너 통합 보드(홈) 이동
+    // 로고 클릭 감지 -> 모달 닫기 후 파트너 통합 보드(?tab=dashboard) 이동
     const logoTrigger = e.target.closest('#mobileLogoBtn') || e.target.closest('#sidebarLogoBtn') || e.target.closest('.logo-home-btn');
     if (logoTrigger) {
         e.preventDefault();
         e.stopPropagation();
+        closeAllModals();
         switchTab('dashboard', true);
         return;
     }

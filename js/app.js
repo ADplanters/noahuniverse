@@ -403,6 +403,21 @@ safeAddListener('viewCountBadgeBtn', 'click', (e) => {
     }
 });
 
+// 🌟 인사이트 라이브러리 전용 조회수 뱃지 클릭 시 툴팁 토글
+safeAddListener('libViewCountBadgeBtn', 'click', (e) => {
+    e.stopPropagation();
+    const tooltip = document.getElementById('libViewersTooltip');
+    if (tooltip) {
+        if (tooltip.classList.contains('invisible')) {
+            tooltip.classList.remove('invisible', 'opacity-0', 'pointer-events-none');
+            tooltip.classList.add('visible', 'opacity-100', 'pointer-events-auto');
+        } else {
+            tooltip.classList.add('invisible', 'opacity-0', 'pointer-events-none');
+            tooltip.classList.remove('visible', 'opacity-100', 'pointer-events-auto');
+        }
+    }
+});
+
 // 전역 클릭 이벤트 핸들러
 document.addEventListener('click', (e) => {
     // 로고 클릭 감지 -> 파트너 통합 보드(?tab=dashboard) 이동
@@ -1398,7 +1413,7 @@ async function openDetailModal(taskId) {
         ? task.assignedManagers.join(', ') 
         : '미지정';
 
-    // 🌟 지정 담당자 ID 매핑 완벽 수정
+    // 지정 담당자 ID 매핑 완벽 수정
     const detailAssignEl = document.getElementById('detailAssignManager') || document.getElementById('detailAssign') || document.getElementById('detailAssignedManagers');
     if (detailAssignEl) {
         detailAssignEl.innerText = assignedStr;
@@ -2218,12 +2233,6 @@ async function fetchLibraryItems() {
                 </div>
             ` : '';
 
-            const pdfBtn = item.pdfUrl ? `
-                <a href="${item.pdfUrl}" target="_blank" download class="px-3 py-1.5 bg-gray-50 hover:bg-hermes hover:text-white text-hermes text-xs font-bold rounded-lg border border-gray-200 transition shadow-sm flex items-center gap-1.5 whitespace-nowrap">
-                    <i class="fa-solid fa-download"></i> PDF
-                </a>
-            ` : '';
-
             grid.innerHTML += `
                 <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 group flex flex-col cursor-pointer lib-card-trigger" data-id="${item.id}">
                     <div class="h-36 bg-gray-50 relative overflow-hidden flex items-center justify-center border-b border-gray-100">
@@ -2238,8 +2247,7 @@ async function fetchLibraryItems() {
                         <h3 class="font-black text-gray-900 mb-2 leading-snug group-hover:text-hermes transition break-keep">${item.title}</h3>
                         <p class="text-xs text-gray-500 mb-5 line-clamp-2 leading-relaxed flex-1 break-keep">${item.desc || ''}</p>
                         <div class="flex justify-between items-center border-t border-gray-100 pt-4 mt-auto">
-                            <button class="text-xs font-bold text-gray-600 hover:text-hermes transition flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-book-open"></i> HTML 열람</button>
-                            ${pdfBtn}
+                            <button class="text-xs font-bold text-gray-600 hover:text-hermes transition flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-book-open"></i> 상세보기</button>
                         </div>
                     </div>
                 </div>
@@ -2259,7 +2267,10 @@ async function fetchLibraryItems() {
     } catch (e) { console.error("Library fetch error:", e); }
 }
 
-function openLibraryViewModal(id) {
+/**
+ * 🌟 인사이트 라이브러리 상세보기 모달 오픈 (조회수 누적, 최근 10인 IP 툴팁, 최상위 관리자 수정버튼, 첨부 자료 다운로드 렌더링)
+ */
+async function openLibraryViewModal(id) {
     const item = libraryMap[id];
     if (!item) return;
 
@@ -2269,16 +2280,159 @@ function openLibraryViewModal(id) {
     const newUrl = `${window.location.pathname}?tab=${activeTab}&libId=${id}`;
     window.history.pushState({ tab: activeTab, libId: id }, '', newUrl);
 
+    // 조회 기록 및 IP 객체 누적 생성 (최대 10개)
+    const newViewerObj = {
+        name: currentUserName || "사용자",
+        ip: currentClientIP,
+        timestamp: new Date().toISOString()
+    };
+    
+    const existingViewers = item.viewers || [];
+    const updatedViewers = [newViewerObj, ...existingViewers].slice(0, 10);
+    item.views = (item.views || 0) + 1;
+    item.viewers = updatedViewers;
+
+    try {
+        await updateDoc(doc(db, "crm_library", id), { 
+            views: increment(1),
+            viewers: updatedViewers 
+        });
+    } catch (e) { console.error("Library view update error:", e); }
+
     if (document.getElementById('libViewCategory')) document.getElementById('libViewCategory').innerText = item.category || '가이드';
     if (document.getElementById('libViewTitle')) document.getElementById('libViewTitle').innerText = item.title;
     if (document.getElementById('libViewHtmlContent')) document.getElementById('libViewHtmlContent').innerHTML = item.htmlContent || '<p>상세 내용이 없습니다.</p>';
+
+    // 모달 상단 조회수 숫자 교체
+    const libViewCountNumEl = document.getElementById('libViewCountNum');
+    if (libViewCountNumEl) {
+        libViewCountNumEl.innerText = item.views;
+    }
+
+    // 최근 10명 방문자 리스트 및 IP 툴팁 HTML 렌더링
+    const libViewersListContentEl = document.getElementById('libViewersListContent');
+    if (libViewersListContentEl) {
+        if (!item.viewers || item.viewers.length === 0) {
+            libViewersListContentEl.innerHTML = '<div class="text-[11px] text-gray-400 py-1 text-center">조회 기록이 없습니다.</div>';
+        } else {
+            libViewersListContentEl.innerHTML = item.viewers.map(v => {
+                const dateObj = new Date(v.timestamp);
+                const dateStr = dateObj.toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute:'2-digit', hour12: false });
+                return `
+                    <div class="flex items-center justify-between text-[11px] py-1 border-b border-gray-100 last:border-0">
+                        <span class="font-bold text-gray-800">${v.name}</span>
+                        <span class="font-mono text-gray-500 text-[10px] bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">${v.ip || '127.0.0.1'}</span>
+                        <span class="text-gray-400 text-[10px]">${dateStr}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+    }
+
+    // 최상위 관리자 전용 수정 버튼 제어 및 클릭 바인딩
+    const libViewEditBtn = document.getElementById('libViewEditBtn');
+    if (libViewEditBtn) {
+        if (checkIsAdmin()) {
+            libViewEditBtn.classList.remove('hidden');
+            libViewEditBtn.onclick = () => {
+                libraryViewModal.classList.add('hidden');
+                openLibraryEditModal(id);
+            };
+        } else {
+            libViewEditBtn.classList.add('hidden');
+        }
+    }
+
+    // 첨부 자료 다운로드 렌더링
+    const libViewFileBtn = document.getElementById('libViewFileBtn');
+    if (libViewFileBtn) {
+        libViewFileBtn.innerHTML = renderFileButtons(item, false);
+    }
 
     if (libraryViewModal) libraryViewModal.classList.remove('hidden');
     logActivity("라이브러리 열람", `[${item.title}] 가이드북 HTML 열람`);
 }
 
+/**
+ * 🌟 라이브러리 수정 모달 오픈
+ */
+function openLibraryEditModal(id) {
+    const item = libraryMap[id];
+    if (!item) return;
+    currentEditLibId = id;
+
+    if (libraryEditModal) {
+        document.getElementById('libFormCategory').value = item.category || '';
+        document.getElementById('libFormIcon').value = item.iconClass || '';
+        document.getElementById('libFormTitle').value = item.title || '';
+        document.getElementById('libFormDesc').value = item.desc || '';
+        document.getElementById('libFormHtmlContent').value = item.htmlContent || '';
+
+        libraryEditModal.classList.remove('hidden');
+        libraryEditModal.style.zIndex = "99999";
+    }
+}
+
+// 🌟 인사이트 라이브러리 폼 제출 (신규 작성 및 수정 저장)
+safeAddListener('libraryForm', 'submit', async (e) => {
+    e.preventDefault();
+    const submitBtn = libraryEditModal.querySelector('button[type="submit"]');
+    const origText = submitBtn ? submitBtn.innerText : '저장 완료';
+    if (submitBtn) {
+        submitBtn.innerText = "저장 중...";
+        submitBtn.disabled = true;
+    }
+
+    try {
+        const categoryVal = document.getElementById('libFormCategory').value;
+        const iconVal = document.getElementById('libFormIcon').value;
+        const titleVal = document.getElementById('libFormTitle').value;
+        const descVal = document.getElementById('libFormDesc').value;
+        const htmlVal = document.getElementById('libFormHtmlContent').value;
+        const fileInput = document.getElementById('libFormFile');
+
+        let libData = {
+            category: categoryVal,
+            iconClass: iconVal,
+            title: titleVal,
+            desc: descVal,
+            htmlContent: htmlVal,
+            updatedAt: new Date().toISOString()
+        };
+
+        if (fileInput && fileInput.files.length > 0) {
+            const attachedFiles = await uploadFilesToStorage(fileInput.files, "crm_library");
+            libData.files = attachedFiles;
+        }
+
+        if (currentEditLibId) {
+            await updateDoc(doc(db, "crm_library", currentEditLibId), libData);
+            alert("라이브러리 콘텐츠가 수정되었습니다.");
+        } else {
+            libData.createdAt = new Date().toISOString();
+            libData.views = 0;
+            libData.viewers = [];
+            await addDoc(collection(db, "crm_library"), libData);
+            alert("새로운 콘텐츠가 등록되었습니다.");
+        }
+
+        libraryEditModal.classList.add('hidden');
+        document.getElementById('libraryForm').reset();
+        currentEditLibId = null;
+        fetchLibraryItems();
+
+    } catch (err) {
+        alert("라이브러리 저장 실패: " + err.message);
+    } finally {
+        if (submitBtn) {
+            submitBtn.innerText = origText;
+            submitBtn.disabled = false;
+        }
+    }
+});
+
 // ============================================================================
-// 10. 멤버 관리 / 승인 관리 / 로그 모니터링 모듈
+// 10. 멤버 관리 / 승인 관리 / 로그 모니터링 모듈 (IP 컬럼 렌더링 포함)
 // ============================================================================
 async function fetchMembers() {
     const isAdmin = checkIsAdmin();

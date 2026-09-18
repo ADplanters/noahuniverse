@@ -369,7 +369,7 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// 🌟 전역 클릭 이벤트 핸들러 (화면 오작동 완벽 해결: 버튼 고유 ID로만 클릭 수신)
+// 전역 클릭 이벤트 핸들러 (버튼 고유 ID로만 클릭 수신하도록 정밀 조치)
 document.addEventListener('click', (e) => {
     // 로고 클릭 감지 -> 파트너 통합 보드(?tab=dashboard) 이동
     const logoTrigger = e.target.closest('#mobileLogoBtn') || e.target.closest('#sidebarLogoBtn') || e.target.closest('.logo-home-btn');
@@ -409,7 +409,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 🌟 신규 이슈 등록 버튼 전용 클릭 수신 (배경 및 다른 글자 클릭 시 열리지 않도록 정밀 수정)
+    // 신규 이슈 등록 버튼 전용 클릭 수신
     const openTaskModalBtn = e.target.closest('#openModalBtn');
     if (openTaskModalBtn && createModal) {
         e.preventDefault();
@@ -419,7 +419,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 🌟 신규 클라이언트 추가 버튼 전용 클릭 수신
+    // 신규 클라이언트 추가 버튼 전용 클릭 수신
     const addClientBtn = e.target.closest('#openClientModalBtn');
     if (addClientBtn && clientModal) {
         e.preventDefault();
@@ -886,7 +886,7 @@ function openEditTaskModal(taskId) {
 
         if (clientIn) clientIn.value = task.client || '';
         if (titleIn) titleIn.value = task.title || '';
-        if (typeIn) typeIn.value = task.type || 'Q&A';
+        if (typeIn) typeIn.value = task.type || '보고서';
         if (agencyIn) agencyIn.value = task.agency || '';
         if (contentIn) contentIn.value = task.content || '';
 
@@ -1216,7 +1216,7 @@ async function openDetailModal(taskId) {
         titleEl.className = "text-base sm:text-xl font-black text-gray-900 break-all leading-snug max-w-full";
     }
 
-    document.getElementById('detailType').innerText = task.type || 'Q&A';
+    document.getElementById('detailType').innerText = task.type || '보고서';
     
     const typeEl = document.getElementById('detailType');
     if (typeEl && typeEl.parentElement) {

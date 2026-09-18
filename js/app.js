@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, getDocs, query, where, deleteDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
@@ -71,12 +71,32 @@ const libraryViewModal = document.getElementById('libraryViewModal');
 const libraryEditModal = document.getElementById('libraryEditModal');
 
 // ============================================================================
-// 3. 공통 유틸리티 & 워터마크 & 권한 검증 헬퍼
+// 3. 공통 유틸리티 & 워터마크 & 권한 검증 헬퍼 & 탭 라우팅
 // ============================================================================
 function safeAddListener(id, eventType, callback) {
     const el = document.getElementById(id);
     if (el) {
         el.addEventListener(eventType, callback);
+    }
+}
+
+// 모바일 사이드바 햄버거 메뉴 토글 전용 유틸리티
+function toggleMobileSidebar(forceState) {
+    const sidebarEl = document.getElementById('sidebar');
+    const overlayEl = document.getElementById('mobileOverlay');
+    if (!sidebarEl) return;
+
+    const isCurrentlyClosed = sidebarEl.classList.contains('-translate-x-full') || sidebarEl.classList.contains('hidden');
+    const shouldOpen = forceState !== undefined ? forceState : isCurrentlyClosed;
+
+    if (shouldOpen) {
+        sidebarEl.classList.remove('-translate-x-full', 'hidden');
+        sidebarEl.classList.add('translate-x-0');
+        if (overlayEl) overlayEl.classList.remove('hidden');
+    } else {
+        sidebarEl.classList.add('-translate-x-full');
+        sidebarEl.classList.remove('translate-x-0');
+        if (overlayEl) overlayEl.classList.add('hidden');
     }
 }
 
@@ -99,6 +119,139 @@ function checkIsAuthor(task) {
     return (task.staff === currentUserName) || 
            (task.email === auth.currentUser.email) || 
            (task.uid === auth.currentUser.uid);
+}
+
+/**
+ * 고유 URL 기반 탭 전환 및 최상위 관리자 권한 검증 라우터
+ * @param {string} tabName - 이동할 탭 구분값 (dashboard, clients, inquiries, library, members, approvals, logs)
+ * @param {boolean} pushHistory - URL 히스토리 누적 여부
+ */
+function switchTab(tabName, pushHistory = true) {
+    const adminOnlyTabs = ['members', 'approvals', 'logs'];
+    const isAdmin = checkIsAdmin();
+
+    // 최상위 관리자 전용 탭 비권한 계정 접근 제어
+    if (adminOnlyTabs.includes(tabName) && !isAdmin) {
+        alert("최상위 관리자(Admin) 권한이 필요한 메뉴입니다.");
+        tabName = 'dashboard';
+    }
+
+    // URL 쿼리 파라미터 갱신 (?tab=메뉴명)
+    if (pushHistory) {
+        const newUrl = `${window.location.pathname}?tab=${tabName}`;
+        window.history.pushState({ tab: tabName }, '', newUrl);
+    }
+
+    toggleMobileSidebar(false);
+
+    // 네비게이션 버튼 UI 활성화 스타일 교체
+    navItems.forEach(n => {
+        const m = n.getAttribute('data-menu');
+        if (m === tabName) {
+            n.className = "nav-item flex items-center gap-3 bg-hermes text-white px-4 py-3 rounded-lg font-bold shadow-md shadow-orange-200/50 transition";
+        } else {
+            n.className = "nav-item flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition";
+        }
+    });
+
+    // 모든 컨테이너 숨김
+    if (statsContainer) statsContainer.classList.add('hidden');
+    if (tasksContainer) tasksContainer.classList.add('hidden');
+    if (clientsContainer) clientsContainer.classList.add('hidden');
+    if (membersContainer) membersContainer.classList.add('hidden');
+    if (approvalsContainer) approvalsContainer.classList.add('hidden');
+    if (logsContainer) logsContainer.classList.add('hidden');
+    if (libraryContainer) libraryContainer.classList.add('hidden');
+
+    // 선택 탭 컨테이너 노출 및 데이터 페치
+    if (tabName === 'dashboard') {
+        if (statsContainer) statsContainer.classList.remove('hidden');
+        if (tasksContainer) tasksContainer.classList.remove('hidden');
+        fetchTasks();
+    } else if (tabName === 'inquiries') {
+        if (tasksContainer) tasksContainer.classList.remove('hidden');
+        fetchTasks();
+    } else if (tabName === 'clients') {
+        if (clientsContainer) clientsContainer.classList.remove('hidden');
+        fetchClients();
+    } else if (tabName === 'members') {
+        if (membersContainer) membersContainer.classList.remove('hidden');
+        fetchMembers();
+    } else if (tabName === 'approvals') {
+        if (approvalsContainer) approvalsContainer.classList.remove('hidden');
+        fetchApprovals();
+    } else if (tabName === 'logs') {
+        if (logsContainer) logsContainer.classList.remove('hidden');
+        fetchLogs();
+    } else if (tabName === 'library') {
+        if (libraryContainer) libraryContainer.classList.remove('hidden');
+        fetchLibraryItems();
+    }
+}
+
+/**
+ * 24시간 이내 등록된 신규 데이터 존재 여부를 검사하여 메뉴 옆에 빨간색 고급 알림 표식을 표시하는 로직
+ */
+function checkAllNavBadges() {
+    const NOW = Date.now();
+    const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+
+    const isWithin24Hours = (dateInput) => {
+        if (!dateInput) return false;
+        let timeMS = 0;
+        if (typeof dateInput === 'string') {
+            timeMS = new Date(dateInput.replace(/\./g, '-')).getTime();
+        } else if (dateInput.toDate) {
+            timeMS = dateInput.toDate().getTime();
+        } else if (dateInput instanceof Date) {
+            timeMS = dateInput.getTime();
+        }
+        return !isNaN(timeMS) && (NOW - timeMS) < TWENTY_FOUR_HOURS;
+    };
+
+    let hasNewInquiries = false;
+    let hasNewClients = false;
+    let hasNewLibrary = false;
+
+    Object.values(tasksMap).forEach(t => {
+        if (isWithin24Hours(t.createdAt || t.date)) {
+            hasNewInquiries = true;
+        }
+    });
+
+    Object.values(clientsMap).forEach(c => {
+        if (isWithin24Hours(c.createdAt)) {
+            hasNewClients = true;
+        }
+    });
+
+    Object.values(libraryMap).forEach(l => {
+        if (isWithin24Hours(l.createdAt)) {
+            hasNewLibrary = true;
+        }
+    });
+
+    const setMenuBadge = (menuName, showBadge) => {
+        const targetLinks = document.querySelectorAll(`.nav-item[data-menu="${menuName}"]`);
+        targetLinks.forEach(link => {
+            const existingBadge = link.querySelector('.nav-new-badge');
+            if (existingBadge) existingBadge.remove();
+
+            if (showBadge) {
+                const badgeEl = document.createElement('span');
+                badgeEl.className = 'nav-new-badge ml-auto relative flex h-2.5 w-2.5 shrink-0 self-center';
+                badgeEl.innerHTML = `
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)]"></span>
+                `;
+                link.appendChild(badgeEl);
+            }
+        });
+    };
+
+    setMenuBadge('inquiries', hasNewInquiries);
+    setMenuBadge('clients', hasNewClients);
+    setMenuBadge('library', hasNewLibrary);
 }
 
 // 사선 지그재그 바둑판 패턴 워터마크 동적 생성
@@ -174,27 +327,27 @@ function closeAllModals() {
         }
     });
     
-    window.history.pushState({}, '', window.location.pathname);
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeTab = urlParams.get('tab') || 'dashboard';
+    window.history.pushState({ tab: activeTab }, '', `${window.location.pathname}?tab=${activeTab}`);
 }
 
-// 🌟 키보드 ESC 키 감지 모달 닫기
+// 키보드 ESC 키 감지 모달 닫기
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         closeAllModals();
     }
 });
 
-// 🌟 모달 바깥 배경 클릭 및 내부 X(닫기) / 취소 버튼 강제 바인딩 (클라이언트 창 오류 해결)
+// 모달 바깥 배경 클릭 및 내부 X(닫기) / 취소 버튼 강제 바인딩 (클라이언트 창 오류 해결)
 [createModal, editTaskModal, clientModal, editClientModal, assignModal, detailModal, libraryViewModal, libraryEditModal, pendingModal].forEach(modalEl => {
     if (modalEl) {
-        // 배경 클릭 시 닫기
         modalEl.addEventListener('click', (e) => {
             if (e.target === modalEl) {
                 closeAllModals();
             }
         });
 
-        // X 아이콘 및 취소 텍스트 버튼을 찾아 강제로 이벤트 바인딩
         const closeBtns = modalEl.querySelectorAll('.fa-xmark, button[title="닫기"]');
         closeBtns.forEach(icon => {
             const btn = icon.closest('button') || icon;
@@ -216,8 +369,36 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// 🌟 글로벌 신규 클라이언트 추가, 이미지 확대, 링크 복사 클릭 이벤트 캐치
+// 글로벌 클릭 이벤트 감지 (사이드바 닫기, 햄버거 메뉴, 모달 트리거 등)
 document.addEventListener('click', (e) => {
+    const closeSidebarTrigger = e.target.closest('#closeSidebarBtn') || 
+                                e.target.closest('#closeSidebar') || 
+                                (e.target.closest('button') && e.target.closest('button').querySelector('#closeSidebarBtn'));
+    if (closeSidebarTrigger) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleMobileSidebar(false);
+        return;
+    }
+
+    const mobileMenuTrigger = e.target.closest('#mobileMenuBtn') || 
+                              e.target.closest('#hamburgerBtn') || 
+                              e.target.closest('#openSidebarBtn') || 
+                              e.target.closest('.mobile-menu-btn') || 
+                              (e.target.closest('button') && (e.target.closest('button').querySelector('.fa-bars') || e.target.closest('button').querySelector('.fa-bars-staggered')));
+
+    if (mobileMenuTrigger) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleMobileSidebar();
+        return;
+    }
+
+    if (e.target.closest('#mobileOverlay')) {
+        toggleMobileSidebar(false);
+        return;
+    }
+
     const addClientBtn = e.target.closest('#openClientModalBtn') || (e.target.textContent && e.target.textContent.includes('신규 클라이언트 추가'));
     if (addClientBtn && clientModal) {
         e.preventDefault();
@@ -235,7 +416,6 @@ document.addEventListener('click', (e) => {
         }
     }
 
-    // 🌟 링크 복사 버튼 글로벌 캡처 (Fallback)
     const shareTrigger = e.target.closest('#shareLinkBtn') || (e.target.closest('button') && e.target.closest('button').textContent.includes('링크 복사'));
     if (shareTrigger) {
         e.preventDefault();
@@ -260,7 +440,6 @@ async function uploadFilesToStorage(fileList, folderName) {
     for (let i = 0; i < filesArray.length; i++) {
         const file = filesArray[i];
         
-        // 파일명 정제: 특수문자, 한글, 공백 등 파싱 오류 유발 요소를 안전하게 치환
         const extIndex = file.name.lastIndexOf('.');
         const nameWithoutExt = extIndex !== -1 ? file.name.substring(0, extIndex) : file.name;
         const ext = extIndex !== -1 ? file.name.substring(extIndex) : '';
@@ -312,7 +491,6 @@ function setupDragAndDrop(dropAreaId, fileInputId) {
         }, false);
     });
 
-    // 게시글 본문 폼 등 일반 파일 인풋 바인딩
     if (fileInputId !== 'commentFileInputBox') {
         dropArea.addEventListener('drop', (e) => {
             const dt = e.dataTransfer;
@@ -332,14 +510,28 @@ function isImageFile(fileName, url) {
     return isDataImg || imgExts.some(ext => lowerName.endsWith(ext) || lowerUrl.includes(ext));
 }
 
-// 이미지 썸네일 미리보기 + 첨부파일 렌더링
-function renderFileButtons(item) {
+/**
+ * 첨부파일 렌더링 헬퍼 (테이블 목록 / 상세 모달 이중화 지원)
+ * @param {Object} item - 파일 목록을 포함하는 객체 ({ files: [...] })
+ * @param {boolean} isTableList - true일 경우 목록용 콤팩트 뱃지([이미지 1], [파일 1])로 표시
+ */
+function renderFileButtons(item, isTableList = false) {
     if (item.files && item.files.length > 0) {
-        return item.files.map(f => {
+        return item.files.map((f, idx) => {
             const url = f.fileUrl || f.fileData; 
             const fileName = f.fileName || '첨부파일';
+            const isImg = isImageFile(fileName, url);
 
-            if (isImageFile(fileName, url)) {
+            if (isTableList) {
+                const badgeLabel = isImg ? `[이미지 ${idx + 1}]` : `[파일 ${idx + 1}]`;
+                return `
+                    <a href="${url}" target="_blank" download="${fileName}" onclick="event.stopPropagation();" class="download-link inline-flex items-center gap-1 bg-orange-50 hover:bg-orange-100 text-hermes hover:text-orange-700 text-[10px] font-bold px-1.5 py-0.5 rounded border border-orange-200 transition my-0.5 shadow-2xs whitespace-nowrap" title="${fileName}">
+                        <i class="${isImg ? 'fa-solid fa-image' : 'fa-solid fa-paperclip'} text-[9px]"></i> ${badgeLabel}
+                    </a>
+                `;
+            }
+
+            if (isImg) {
                 return `
                     <div class="inline-block relative group my-1 mr-2 align-top">
                         <img src="${url}" alt="${fileName}" data-url="${url}" class="img-preview-btn w-20 h-20 object-cover rounded-xl border border-gray-200 shadow-xs hover:shadow-md hover:scale-105 transition duration-200 cursor-pointer" title="클릭하여 확대 보기" />
@@ -357,7 +549,7 @@ function renderFileButtons(item) {
             `;
         }).join(' ');
     }
-    return `<span class="text-gray-300 text-[10px]">첨부파일 없음</span>`;
+    return `<span class="text-gray-300 text-[10px] whitespace-nowrap">첨부파일 없음</span>`;
 }
 
 // 활동 로그 기록
@@ -413,6 +605,14 @@ function fallbackCopyToClipboard(text, label = "링크") {
 // ============================================================================
 // 4. 인증 및 사용자 권한 제어
 // ============================================================================
+
+// 리디렉션 로그인 리턴 처리 (페이지 로드 시)
+getRedirectResult(auth).catch((error) => {
+    if (error && error.code !== 'auth/popup-closed-by-user') {
+        console.error("Redirect 로그인 에러 객체:", error);
+    }
+});
+
 onAuthStateChanged(auth, async (user) => {
     renderWatermark();
 
@@ -529,7 +729,10 @@ function showDashboard(user) {
     setupDragAndDrop('inputContent', 'inputFile');
     initNewCommentDragAndDrop();
 
-    fetchTasks();
+    // URL 쿼리 파라미터 기반 초기 탭 딥링크 파싱 및 이동 (?tab=메뉴명)
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialTab = urlParams.get('tab') || urlParams.get('menu') || 'dashboard';
+    switchTab(initialTab, false);
 }
 
 function showPendingPopup() {
@@ -590,6 +793,7 @@ safeAddListener('taskForm', 'submit', async (e) => {
         status: "답변대기", 
         views: 0,
         date: dateStr,
+        createdAt: new Date().toISOString(), 
         comments: [] 
     };
 
@@ -812,10 +1016,21 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
     }
 });
 
+/**
+ * 업무 이슈 요청 게시판 리스트 불러오기
+ */
 async function fetchTasks() {
     const tbody = document.getElementById('boardTable');
     const emptyState = document.getElementById('emptyState');
     if(!tbody) return;
+
+    if (tbody.parentElement) {
+        tbody.parentElement.classList.add('overflow-x-auto', 'block', 'w-full', '-mx-2', 'sm:mx-0');
+        if (tbody.parentElement.tagName === 'TABLE') {
+            tbody.parentElement.classList.add('min-w-[650px]', 'w-full');
+        }
+    }
+
     tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 로딩 중...</td></tr>';
 
     try {
@@ -834,6 +1049,7 @@ async function fetchTasks() {
         tbody.innerHTML = '';
         if (fetchedData.length === 0) {
             if(emptyState) emptyState.style.display = 'flex';
+            checkAllNavBadges();
             return;
         }
 
@@ -844,15 +1060,15 @@ async function fetchTasks() {
             const isAdmin = checkIsAdmin();
             const isAuthor = checkIsAuthor(item);
 
-            let adminActions = `<td class="admin-only-col p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 align-middle"><span class="text-gray-300 text-xs">-</span></td>`;
+            let adminActions = `<td class="admin-only-col p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 align-middle whitespace-nowrap"><span class="text-gray-300 text-xs">-</span></td>`;
 
             if (isAdmin) {
                 adminActions = `
                     <td class="p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col align-middle whitespace-nowrap">
                         <div class="flex items-center justify-center gap-1">
-                            <button type="button" class="edit-task-btn bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-2 py-1 rounded transition text-[11px] font-bold" data-id="${item.id}">수정</button>
-                            <button type="button" class="assign-task-btn bg-orange-50 text-hermes hover:bg-hermes hover:text-white px-2 py-1 rounded transition text-[11px] font-bold" data-id="${item.id}">담당자</button>
-                            <button type="button" class="delete-task-btn bg-red-50 text-red-500 hover:bg-red-500 hover:text-white px-2 py-1 rounded transition text-[11px] font-bold" data-id="${item.id}" data-t="${item.title}">삭제</button>
+                            <button type="button" class="edit-task-btn bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-2 py-1 rounded transition text-[11px] font-bold whitespace-nowrap" data-id="${item.id}">수정</button>
+                            <button type="button" class="assign-task-btn bg-orange-50 text-hermes hover:bg-hermes hover:text-white px-2 py-1 rounded transition text-[11px] font-bold whitespace-nowrap" data-id="${item.id}">담당자</button>
+                            <button type="button" class="delete-task-btn bg-red-50 text-red-500 hover:bg-red-500 hover:text-white px-2 py-1 rounded transition text-[11px] font-bold whitespace-nowrap" data-id="${item.id}" data-t="${item.title}">삭제</button>
                         </div>
                     </td>
                 `;
@@ -860,15 +1076,25 @@ async function fetchTasks() {
                 adminActions = `
                     <td class="p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col align-middle whitespace-nowrap">
                         <div class="flex items-center justify-center gap-1">
-                            <button type="button" class="edit-task-btn bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-2 py-1 rounded transition text-[11px] font-bold" data-id="${item.id}">수정</button>
+                            <button type="button" class="edit-task-btn bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-2 py-1 rounded transition text-[11px] font-bold whitespace-nowrap" data-id="${item.id}">수정</button>
                         </div>
                     </td>
                 `;
             }
 
-            const fileButton = renderFileButtons(item);
+            const fileButton = renderFileButtons(item, true);
             const commentCount = item.comments ? item.comments.length : 0;
-            const displayStaff = (item.assignedManagers && item.assignedManagers.length > 0) ? item.assignedManagers.join(', ') : '미지정';
+            
+            const authorName = item.staff || item.name || '미상';
+            const managerList = (item.assignedManagers && item.assignedManagers.length > 0) ? item.assignedManagers.join(', ') : '미배정';
+            
+            const displayStaffHtml = `
+                <div class="inline-flex items-center gap-1.5 break-keep whitespace-nowrap text-xs">
+                    <span class="text-red-500 font-extrabold" title="작성자">${authorName}</span>
+                    <span class="text-gray-300 font-normal">/</span>
+                    <span class="text-blue-600 font-bold" title="담당자">${managerList}</span>
+                </div>
+            `;
 
             let statusBadgeClass = 'bg-blue-50 text-blue-600 border-blue-100';
             if (item.status === '진행중') statusBadgeClass = 'bg-amber-50 text-amber-600 border-amber-200';
@@ -876,19 +1102,19 @@ async function fetchTasks() {
             else if (item.status === '보류') statusBadgeClass = 'bg-gray-100 text-gray-600 border-gray-200';
 
             rowsHtml += `
-                <tr class="hover:bg-hermes-light/30 transition group border-b border-gray-100 cursor-pointer task-detail-trigger" data-id="${item.id}">
-                    <td class="p-3 md:p-4 font-bold text-gray-900 align-middle text-xs">${item.client || '-'}</td>
-                    <td class="p-3 md:p-4 align-middle"><span class="bg-gray-100 text-gray-600 text-[10px] px-1.5 py-0.5 rounded font-bold">${item.type || '-'}</span></td>
-                    <td class="p-3 md:p-4 align-middle">
-                        <div class="font-bold text-gray-900 group-hover:text-hermes transition flex items-center gap-1">
-                            <span class="truncate max-w-[150px] sm:max-w-xs">${item.title || '-'}</span> 
-                            ${commentCount > 0 ? `<span class="text-hermes text-[10px] font-black">[${commentCount}]</span>` : ''}
+                <tr class="hover:bg-hermes-light/30 transition group border-b border-gray-100 cursor-pointer task-detail-trigger break-keep" data-id="${item.id}">
+                    <td class="p-3 md:p-4 align-middle text-gray-900 text-[11px] font-bold whitespace-nowrap">${item.date || '-'}</td>
+                    <td class="p-3 md:p-4 align-middle text-center whitespace-nowrap"><span class="${statusBadgeClass} px-2 py-0.5 rounded text-[10px] font-bold border whitespace-nowrap">${item.status || '답변대기'}</span></td>
+                    <td class="p-3 md:p-4 font-bold text-gray-900 align-middle text-xs whitespace-nowrap min-w-[80px]">${item.client || '-'}</td>
+                    <td class="p-3 md:p-4 align-middle whitespace-nowrap"><span class="bg-gray-100 text-gray-600 text-[10px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap">${item.type || '-'}</span></td>
+                    <td class="p-3 md:p-4 align-middle min-w-[150px]">
+                        <div class="font-bold text-gray-900 group-hover:text-hermes transition flex items-center gap-1 break-keep">
+                            <span class="line-clamp-2 max-w-[180px] sm:max-w-xs break-all">${item.title || '-'}</span> 
+                            ${commentCount > 0 ? `<span class="text-hermes text-[10px] font-black shrink-0">[${commentCount}]</span>` : ''}
                         </div>
                     </td>
-                    <td class="p-3 md:p-4 align-middle">${fileButton}</td>
-                    <td class="p-3 md:p-4 align-middle text-xs font-bold text-gray-700">${displayStaff}</td>
-                    <td class="p-3 md:p-4 align-middle text-center"><span class="${statusBadgeClass} px-2 py-0.5 rounded text-[10px] font-bold border">${item.status || '답변대기'}</span></td>
-                    <td class="p-3 md:p-4 align-middle text-gray-400 text-[11px] font-medium">${item.date || '-'}</td>
+                    <td class="p-3 md:p-4 align-middle whitespace-nowrap">${fileButton}</td>
+                    <td class="p-3 md:p-4 align-middle text-xs font-bold break-keep min-w-[140px]">${displayStaffHtml}</td>
                     ${adminActions}
                 </tr>
             `;
@@ -905,6 +1131,8 @@ async function fetchTasks() {
             isInitialDeepLinkChecked = true;
         }
 
+        checkAllNavBadges();
+
     } catch (e) { console.error("Firestore error:", e); }
 }
 
@@ -913,10 +1141,23 @@ async function openDetailModal(taskId) {
     if(!task) return;
     
     currentDetailTaskId = taskId;
-    const newUrl = `${window.location.pathname}?id=${taskId}`;
-    window.history.pushState({ path: newUrl }, '', newUrl);
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeTab = urlParams.get('tab') || 'dashboard';
+    const newUrl = `${window.location.pathname}?tab=${activeTab}&id=${taskId}`;
+    window.history.pushState({ tab: activeTab, id: taskId }, '', newUrl);
 
-    // 상세 모달 전환 시 댓글 첨부파일 임시 저장소 초기화
+    if (detailModal) {
+        const modalCard = detailModal.querySelector('.bg-white') || detailModal.firstElementChild;
+        if (modalCard) {
+            modalCard.classList.add('max-w-[95vw]', 'sm:max-w-3xl', 'w-full', 'overflow-x-hidden', 'box-border', 'p-4', 'sm:p-6');
+        }
+
+        const topHeader = detailModal.querySelector('.flex.justify-between') || detailModal.querySelector('header');
+        if (topHeader) {
+            topHeader.classList.add('flex-wrap', 'gap-2', 'max-w-full', 'items-center');
+        }
+    }
+
     newCommentSelectedFiles = [];
     renderNewCommentFilePreviews();
 
@@ -930,16 +1171,22 @@ async function openDetailModal(taskId) {
         viewCountEl.innerHTML = `<i class="fa-solid fa-eye mr-1"></i> ${task.views}`;
     }
 
-    document.getElementById('detailTitle').innerText = task.title || '제목 없음';
+    const titleEl = document.getElementById('detailTitle');
+    if (titleEl) {
+        titleEl.innerText = task.title || '제목 없음';
+        titleEl.className = "text-base sm:text-xl font-black text-gray-900 break-all leading-snug max-w-full";
+    }
+
     document.getElementById('detailType').innerText = task.type || 'Q&A';
     
     const typeEl = document.getElementById('detailType');
     if (typeEl && typeEl.parentElement) {
+        typeEl.parentElement.classList.add('flex-wrap', 'items-center', 'gap-1');
         let statusSelectEl = document.getElementById('detailStatusSelect');
         if (!statusSelectEl) {
             statusSelectEl = document.createElement('select');
             statusSelectEl.id = 'detailStatusSelect';
-            statusSelectEl.className = 'text-xs font-bold border border-gray-300 rounded-lg px-2 py-1 bg-white focus:border-hermes outline-none ml-2 shadow-2xs cursor-pointer';
+            statusSelectEl.className = 'text-xs font-bold border border-gray-300 rounded-lg px-2 py-1 bg-white focus:border-hermes outline-none ml-2 shadow-2xs cursor-pointer my-1';
             typeEl.parentElement.appendChild(statusSelectEl);
         }
         
@@ -971,6 +1218,7 @@ async function openDetailModal(taskId) {
     const detailStaffEl = document.getElementById('detailStaff');
     if (detailStaffEl) {
         detailStaffEl.innerText = authorName;
+        detailStaffEl.className = "font-bold text-red-500";
     }
 
     const assignedStr = (task.assignedManagers && task.assignedManagers.length > 0) 
@@ -980,31 +1228,36 @@ async function openDetailModal(taskId) {
     const detailAssignEl = document.getElementById('detailAssign') || document.getElementById('detailAssignedManagers');
     if (detailAssignEl) {
         detailAssignEl.innerText = assignedStr;
-        detailAssignEl.className = "text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-100 inline-block";
+        detailAssignEl.className = "text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 inline-block break-all max-w-full";
     } else {
         const labels = detailModal.querySelectorAll('div, span, td, p');
         labels.forEach(node => {
             if (node.children.length === 0 && node.textContent.includes('지정 담당자')) {
                 if (node.nextElementSibling) {
                     node.nextElementSibling.innerText = assignedStr;
-                    node.nextElementSibling.className = "text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-100 inline-block";
+                    node.nextElementSibling.className = "text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 inline-block break-all max-w-full";
                 } else {
-                    node.innerHTML = `지정 담당자: <span class="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-100 inline-block">${assignedStr}</span>`;
+                    node.innerHTML = `지정 담당자: <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 inline-block break-all max-w-full">${assignedStr}</span>`;
                 }
             }
         });
     }
 
     document.getElementById('detailDate').innerText = task.date || '-';
-    document.getElementById('detailContent').innerText = task.content || '등록된 내용이 없습니다.';
+    
+    const contentEl = document.getElementById('detailContent');
+    if (contentEl) {
+        contentEl.innerText = task.content || '등록된 내용이 없습니다.';
+        contentEl.className = "text-xs sm:text-sm text-gray-700 whitespace-pre-line break-all max-w-full overflow-x-auto leading-relaxed";
+    }
 
-    // 🌟 상단 '링크 복사' 버튼에 클립보드 이벤트 직접 연결
     const shareBtn = document.getElementById('shareLinkBtn') || Array.from(detailModal.querySelectorAll('button')).find(b => b.textContent.includes('링크 복사'));
     if (shareBtn) {
+        shareBtn.classList.add('whitespace-nowrap', 'shrink-0');
         shareBtn.onclick = (e) => {
             e.preventDefault();
             e.stopPropagation();
-            const shareUrl = `${window.location.origin}${window.location.pathname}?id=${taskId}`;
+            const shareUrl = `${window.location.origin}${window.location.pathname}?tab=${activeTab}&id=${taskId}`;
             copyToClipboard(shareUrl, "게시글 링크");
         };
     }
@@ -1017,17 +1270,19 @@ async function openDetailModal(taskId) {
         if (shareBtn && shareBtn.parentElement) {
             actionArea = document.createElement('div');
             actionArea.id = 'detailTaskActions';
-            actionArea.className = 'inline-flex items-center gap-1.5 ml-2 mr-2';
+            actionArea.className = 'inline-flex flex-wrap items-center gap-1.5 ml-1 mr-1 max-w-full';
             shareBtn.parentElement.insertBefore(actionArea, shareBtn);
         }
+    } else {
+        actionArea.className = 'inline-flex flex-wrap items-center gap-1.5 ml-1 mr-1 max-w-full';
     }
 
     if (actionArea) {
         if (isAdmin) {
             actionArea.innerHTML = `
-                <button type="button" id="btnDetailEdit" class="px-2.5 py-1 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white text-xs font-bold rounded-lg border border-blue-200 transition shadow-2xs">수정</button>
-                <button type="button" id="btnDetailAssign" class="px-2.5 py-1 bg-orange-50 hover:bg-hermes text-hermes hover:text-white text-xs font-bold rounded-lg border border-orange-200 transition shadow-2xs">담당자 연결</button>
-                <button type="button" id="btnDetailDelete" class="px-2.5 py-1 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white text-xs font-bold rounded-lg border border-red-200 transition shadow-2xs">삭제</button>
+                <button type="button" id="btnDetailEdit" class="px-2 py-1 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white text-xs font-bold rounded-lg border border-blue-200 transition shadow-2xs whitespace-nowrap">수정</button>
+                <button type="button" id="btnDetailAssign" class="px-2 py-1 bg-orange-50 hover:bg-hermes text-hermes hover:text-white text-xs font-bold rounded-lg border border-orange-200 transition shadow-2xs whitespace-nowrap">담당자 연결</button>
+                <button type="button" id="btnDetailDelete" class="px-2 py-1 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white text-xs font-bold rounded-lg border border-red-200 transition shadow-2xs whitespace-nowrap">삭제</button>
             `;
             document.getElementById('btnDetailDelete').onclick = () => deleteTask(taskId);
             document.getElementById('btnDetailEdit').onclick = () => bindInlineEditMode(taskId);
@@ -1035,7 +1290,7 @@ async function openDetailModal(taskId) {
             
         } else if (isAuthor) {
             actionArea.innerHTML = `
-                <button type="button" id="btnDetailEdit" class="px-2.5 py-1 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white text-xs font-bold rounded-lg border border-blue-200 transition shadow-2xs">수정</button>
+                <button type="button" id="btnDetailEdit" class="px-2 py-1 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white text-xs font-bold rounded-lg border border-blue-200 transition shadow-2xs whitespace-nowrap">수정</button>
             `;
             document.getElementById('btnDetailEdit').onclick = () => bindInlineEditMode(taskId);
         } else {
@@ -1045,7 +1300,8 @@ async function openDetailModal(taskId) {
 
     const fileBtnArea = document.getElementById('detailFileBtn');
     if (fileBtnArea) {
-        fileBtnArea.innerHTML = renderFileButtons(task);
+        fileBtnArea.className = "flex flex-wrap gap-2 max-w-full overflow-x-auto";
+        fileBtnArea.innerHTML = renderFileButtons(task, false);
     }
 
     renderComments(task.comments || []);
@@ -1061,13 +1317,13 @@ function bindInlineEditMode(taskId) {
 
     if (!titleEl || !contentEl) return;
 
-    titleEl.innerHTML = `<input type="text" id="inlineEditTitle" value="${task.title.replace(/"/g, '&quot;')}" class="w-full text-lg font-black border border-orange-400 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-hermes" />`;
-    contentEl.innerHTML = `<textarea id="inlineEditContent" rows="6" class="w-full text-sm font-medium border border-orange-400 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-hermes">${task.content}</textarea>`;
+    titleEl.innerHTML = `<input type="text" id="inlineEditTitle" value="${task.title.replace(/"/g, '&quot;')}" class="w-full text-base sm:text-lg font-black border border-orange-400 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-hermes box-border" />`;
+    contentEl.innerHTML = `<textarea id="inlineEditContent" rows="6" class="w-full text-xs sm:text-sm font-medium border border-orange-400 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-hermes box-border">${task.content}</textarea>`;
 
     if (actionArea) {
         actionArea.innerHTML = `
-            <button type="button" id="btnInlineSave" class="px-3 py-1.5 bg-hermes hover:bg-orange-600 text-white text-xs font-bold rounded-lg shadow-sm transition">저장</button>
-            <button type="button" id="btnInlineCancel" class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-bold rounded-lg transition">취소</button>
+            <button type="button" id="btnInlineSave" class="px-3 py-1.5 bg-hermes hover:bg-orange-600 text-white text-xs font-bold rounded-lg shadow-sm transition whitespace-nowrap">저장</button>
+            <button type="button" id="btnInlineCancel" class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-bold rounded-lg transition whitespace-nowrap">취소</button>
         `;
 
         document.getElementById('btnInlineCancel').onclick = () => openDetailModal(taskId);
@@ -1099,7 +1355,6 @@ function bindInlineEditMode(taskId) {
 // 7. 소통 댓글 모듈 (미리보기 렌더링 + 인라인 수정 + 다중 파일 끌어놓기)
 // ============================================================================
 
-// 신규 댓글 드래그앤드롭 / 선택 파일 실시간 미리보기 전용 렌더링 함수
 function renderNewCommentFilePreviews() {
     let prevArea = document.getElementById('commentNewFilesPreviewArea');
     const inputBox = document.getElementById('commentInputBox');
@@ -1107,7 +1362,7 @@ function renderNewCommentFilePreviews() {
     if (!prevArea && inputBox && inputBox.parentElement) {
         prevArea = document.createElement('div');
         prevArea.id = 'commentNewFilesPreviewArea';
-        prevArea.className = 'flex flex-wrap gap-2 my-2.5 p-2 bg-gray-50 border border-dashed border-gray-200 rounded-xl empty:hidden';
+        prevArea.className = 'flex flex-wrap gap-2 my-2.5 p-2 bg-gray-50 border border-dashed border-gray-200 rounded-xl empty:hidden max-w-full';
         inputBox.parentElement.insertBefore(prevArea, inputBox.nextSibling);
     }
 
@@ -1127,16 +1382,15 @@ function renderNewCommentFilePreviews() {
             prevArea.appendChild(itemDiv);
         } else {
             const itemSpan = document.createElement('span');
-            itemSpan.className = 'inline-flex items-center gap-1 bg-orange-50 text-orange-700 text-[10px] font-bold px-2 py-1 rounded-lg border border-orange-200 my-1';
+            itemSpan.className = 'inline-flex items-center gap-1 bg-orange-50 text-orange-700 text-[10px] font-bold px-2 py-1 rounded-lg border border-orange-200 my-1 break-all max-w-full';
             itemSpan.innerHTML = `
-                <i class="fa-solid fa-file text-hermes"></i> ${file.name}
-                <button type="button" class="remove-new-comment-file-btn text-red-500 hover:text-red-700 ml-1 font-black" data-idx="${idx}">✕</button>
+                <i class="fa-solid fa-file text-hermes shrink-0"></i> <span class="truncate max-w-[120px]">${file.name}</span>
+                <button type="button" class="remove-new-comment-file-btn text-red-500 hover:text-red-700 ml-1 font-black shrink-0" data-idx="${idx}">✕</button>
             `;
             prevArea.appendChild(itemSpan);
         }
     });
 
-    // 개별 미리보기 삭제 버튼 이벤트 연결
     prevArea.querySelectorAll('.remove-new-comment-file-btn').forEach(btn => {
         btn.onclick = (e) => {
             e.stopPropagation();
@@ -1147,7 +1401,6 @@ function renderNewCommentFilePreviews() {
     });
 }
 
-// 신규 댓글창 영역 다중 드래그앤드롭 및 파일 선택 이벤트 바인딩
 function initNewCommentDragAndDrop() {
     const commentInput = document.getElementById('commentInputBox');
     const commentFileInput = document.getElementById('commentFileInputBox');
@@ -1210,7 +1463,7 @@ function renderComments(commentsArr) {
     commentsArr.forEach((c, index) => {
         const canManage = (c.author === currentUserName) || isAdmin;
         const actionBtns = canManage ? `
-            <div class="flex items-center gap-1.5 ml-2">
+            <div class="flex items-center gap-1.5 ml-2 shrink-0">
                 <button type="button" class="edit-comment-btn text-[10px] font-bold text-blue-600 hover:underline transition" data-index="${index}">수정</button>
                 <button type="button" class="delete-comment-btn text-[10px] font-bold text-red-500 hover:underline transition" data-index="${index}">삭제</button>
             </div>
@@ -1218,11 +1471,11 @@ function renderComments(commentsArr) {
 
         let filesHtml = '';
         if (c.files && c.files.length > 0) {
-            filesHtml = `<div class="flex flex-wrap gap-2 pt-2 mt-2 border-t border-gray-100">${renderFileButtons({ files: c.files })}</div>`;
+            filesHtml = `<div class="flex flex-wrap gap-2 pt-2 mt-2 border-t border-gray-100 max-w-full">${renderFileButtons({ files: c.files }, false)}</div>`;
         }
 
         listEl.innerHTML += `
-            <div class="bg-white border border-gray-200 p-3 rounded-xl shadow-xs space-y-1 comment-item" id="comment-item-${index}">
+            <div class="bg-white border border-gray-200 p-3 rounded-xl shadow-xs space-y-1 comment-item max-w-full overflow-hidden" id="comment-item-${index}">
                 <div class="flex justify-between items-center text-xs">
                     <span class="font-bold text-gray-800">${c.author} <span class="text-[10px] text-gray-400">(${c.role || '멤버'})</span></span>
                     <div class="flex items-center gap-1">
@@ -1231,14 +1484,13 @@ function renderComments(commentsArr) {
                     </div>
                 </div>
                 <div class="comment-body-area" id="comment-body-${index}">
-                    <p class="text-xs text-gray-700 whitespace-pre-line">${c.text}</p>
+                    <p class="text-xs text-gray-700 whitespace-pre-line break-all max-w-full">${c.text}</p>
                     ${filesHtml}
                 </div>
             </div>
         `;
     });
 
-    // 댓글 인라인 수정 모드 바인딩
     listEl.querySelectorAll('.edit-comment-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -1249,16 +1501,16 @@ function renderComments(commentsArr) {
             if (!bodyArea || bodyArea.querySelector('textarea')) return;
 
             let currentEditFiles = comment.files ? [...comment.files] : [];
-            let newSelectedFiles = []; // 인라인 수정 드래그/선택 첨부파일 배열
+            let newSelectedFiles = []; 
 
             function renderEditFilesList() {
                 if (currentEditFiles.length === 0) return '<span class="text-[10px] text-gray-400 italic">첨부파일 없음</span>';
                 return currentEditFiles.map((f, fIdx) => {
                     const fileName = f.fileName || '첨부파일';
                     return `
-                        <span class="inline-flex items-center gap-1 bg-white text-gray-700 text-[10px] font-bold px-2 py-1 rounded-lg border border-gray-200 shadow-2xs">
-                            <i class="fa-solid fa-paperclip text-hermes"></i> ${fileName}
-                            <button type="button" class="remove-edit-file-btn text-red-500 hover:text-red-700 ml-1 font-black" data-fidx="${fIdx}">✕</button>
+                        <span class="inline-flex items-center gap-1 bg-white text-gray-700 text-[10px] font-bold px-2 py-1 rounded-lg border border-gray-200 shadow-2xs break-all max-w-full">
+                            <i class="fa-solid fa-paperclip text-hermes shrink-0"></i> <span class="truncate max-w-[120px]">${fileName}</span>
+                            <button type="button" class="remove-edit-file-btn text-red-500 hover:text-red-700 ml-1 font-black shrink-0" data-fidx="${fIdx}">✕</button>
                         </span>
                     `;
                 }).join(' ');
@@ -1281,9 +1533,9 @@ function renderComments(commentsArr) {
                         `;
                     } else {
                         prevContainer.innerHTML += `
-                            <span class="inline-flex items-center gap-1 bg-orange-50 text-orange-700 text-[10px] font-bold px-2 py-1 rounded-lg border border-orange-200 my-1">
-                                <i class="fa-solid fa-file text-hermes"></i> ${file.name}
-                                <button type="button" class="remove-new-file-btn text-red-500 hover:text-red-700 ml-1 font-black" data-nidx="${nIdx}">✕</button>
+                            <span class="inline-flex items-center gap-1 bg-orange-50 text-orange-700 text-[10px] font-bold px-2 py-1 rounded-lg border border-orange-200 my-1 break-all max-w-full">
+                                <i class="fa-solid fa-file text-hermes shrink-0"></i> <span class="truncate max-w-[120px]">${file.name}</span>
+                                <button type="button" class="remove-new-file-btn text-red-500 hover:text-red-700 ml-1 font-black shrink-0" data-nidx="${nIdx}">✕</button>
                             </span>
                         `;
                     }
@@ -1300,33 +1552,33 @@ function renderComments(commentsArr) {
             }
 
             bodyArea.innerHTML = `
-                <div class="mt-1 space-y-2 border-2 border-orange-300 p-3 rounded-2xl bg-orange-50/20 transition-all cursor-pointer" id="inline-edit-box-${idx}">
-                    <textarea id="inline-edit-textarea-${idx}" class="w-full text-xs p-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-hermes/30 transition resize-y bg-white" rows="3" placeholder="댓글 내용을 수정하거나 전체 영역에 파일을 끌어다 놓으세요.">${comment.text}</textarea>
+                <div class="mt-1 space-y-2 border-2 border-orange-300 p-2.5 sm:p-3 rounded-2xl bg-orange-50/20 transition-all cursor-pointer max-w-full" id="inline-edit-box-${idx}">
+                    <textarea id="inline-edit-textarea-${idx}" class="w-full text-xs p-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-hermes/30 transition resize-y bg-white box-border" rows="3" placeholder="댓글 내용을 수정하거나 전체 영역에 파일을 끌어다 놓으세요.">${comment.text}</textarea>
                     
-                    <div class="space-y-1 bg-white p-2.5 rounded-xl border border-gray-200">
-                        <div class="text-[10px] font-bold text-gray-500 flex justify-between">
+                    <div class="space-y-1 bg-white p-2.5 rounded-xl border border-gray-200 max-w-full">
+                        <div class="text-[10px] font-bold text-gray-500 flex justify-between flex-wrap gap-1">
                             <span>기존 첨부파일:</span>
                             <span class="text-orange-500 font-bold text-[9px]">* 이 박스 영역 전체에 파일 드래그 & 드롭 가능</span>
                         </div>
                         
-                        <div id="inline-edit-files-container-${idx}" class="flex flex-wrap gap-1">
+                        <div id="inline-edit-files-container-${idx}" class="flex flex-wrap gap-1 max-w-full">
                             ${renderEditFilesList()}
                         </div>
 
-                        <div id="inline-edit-new-previews-${idx}" class="flex flex-wrap gap-2 pt-2 border-t border-dashed border-gray-200 empty:hidden">
+                        <div id="inline-edit-new-previews-${idx}" class="flex flex-wrap gap-2 pt-2 border-t border-dashed border-gray-200 empty:hidden max-w-full">
                         </div>
 
                         <div class="pt-1 flex items-center gap-2">
                             <input type="file" id="inline-edit-file-input-${idx}" multiple class="hidden" />
-                            <button type="button" id="inline-edit-file-trigger-${idx}" class="text-xs bg-gray-100 hover:bg-orange-100 text-gray-700 px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1 border border-gray-200">
+                            <button type="button" id="inline-edit-file-trigger-${idx}" class="text-xs bg-gray-100 hover:bg-orange-100 text-gray-700 px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1 border border-gray-200 whitespace-nowrap">
                                 <i class="fa-solid fa-paperclip text-hermes"></i> PC 파일 선택
                             </button>
                         </div>
                     </div>
 
                     <div class="flex justify-end gap-1.5 pt-1">
-                        <button type="button" class="cancel-inline-edit-btn bg-gray-100 hover:bg-gray-200 text-gray-700 text-[10px] font-bold px-3 py-1.5 rounded-lg transition">취소</button>
-                        <button type="button" class="save-inline-edit-btn bg-hermes hover:bg-orange-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg transition shadow-xs">저장</button>
+                        <button type="button" class="cancel-inline-edit-btn bg-gray-100 hover:bg-gray-200 text-gray-700 text-[10px] font-bold px-3 py-1.5 rounded-lg transition whitespace-nowrap">취소</button>
+                        <button type="button" class="save-inline-edit-btn bg-hermes hover:bg-orange-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg transition shadow-xs whitespace-nowrap">저장</button>
                     </div>
                 </div>
             `;
@@ -1491,7 +1743,6 @@ safeAddListener('submitNewCommentBtn', 'click', async () => {
     try {
         await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), { comments: updatedComments });
         
-        // 입력창 및 첨부파일 임시 저장소/미리보기 리셋
         if(textInput) textInput.value = '';
         newCommentSelectedFiles = [];
         renderNewCommentFilePreviews();
@@ -1650,6 +1901,14 @@ async function fetchClients() {
     const tbody = document.getElementById('clientsTable');
     const emptyState = document.getElementById('emptyClients');
     if(!tbody) return;
+
+    if (tbody.parentElement) {
+        tbody.parentElement.classList.add('overflow-x-auto', 'block', 'w-full');
+        if (tbody.parentElement.tagName === 'TABLE') {
+            tbody.parentElement.classList.add('min-w-[650px]', 'w-full');
+        }
+    }
+
     tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 로딩 중...</td></tr>';
 
     try {
@@ -1664,6 +1923,7 @@ async function fetchClients() {
 
         if (querySnapshot.empty) {
             if(emptyState) emptyState.style.display = 'flex';
+            checkAllNavBadges();
             return;
         }
         if(emptyState) emptyState.style.display = 'none';
@@ -1672,7 +1932,7 @@ async function fetchClients() {
             const data = docSnap.data();
             clientsMap[docSnap.id] = { id: docSnap.id, ...data };
             
-            let managersHtml = '<span class="text-gray-400 text-xs">미배정</span>';
+            let managersHtml = '<span class="text-gray-400 text-xs whitespace-nowrap">미배정</span>';
             if (data.managers && data.managers.length > 0) {
                 const maxVisible = 1; 
                 const visibleManagers = data.managers.slice(0, maxVisible);
@@ -1688,7 +1948,7 @@ async function fetchClients() {
                     const allList = data.managers.map(m => `<div class="py-0.5 flex items-center gap-1"><i class="fa-solid fa-user text-orange-400 text-[9px]"></i> ${m}</div>`).join('');
                     badges += `
                         <div class="inline-block relative group align-middle">
-                            <span class="inline-flex items-center bg-gray-100 hover:bg-orange-100 text-gray-600 hover:text-hermes text-[10px] px-1.5 py-0.5 rounded border border-gray-200 cursor-pointer font-bold transition shadow-2xs">
+                            <span class="inline-flex items-center bg-gray-100 hover:bg-orange-100 text-gray-600 hover:text-hermes text-[10px] px-1.5 py-0.5 rounded border border-gray-200 cursor-pointer font-bold transition shadow-2xs whitespace-nowrap">
                                 +${hiddenCount}명
                             </span>
                             <div class="hidden group-hover:block absolute bottom-full right-0 mb-2 p-3 bg-gray-900/95 text-white text-[11px] rounded-xl shadow-2xl z-50 whitespace-nowrap min-w-[120px] border border-gray-700/80 backdrop-blur-xs">
@@ -1707,31 +1967,33 @@ async function fetchClients() {
             const adminActions = isAdmin ? 
                 `<td class="p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col align-middle whitespace-nowrap">
                     <div class="flex items-center justify-center gap-1.5">
-                        <button class="edit-client-btn bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-2.5 py-1.5 rounded transition shadow-sm" data-id="${docSnap.id}">수정</button>
-                        <button class="delete-client-btn bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold px-2.5 py-1.5 rounded transition shadow-sm" data-id="${docSnap.id}" data-name="${data.name}">삭제</button>
+                        <button class="edit-client-btn bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-2.5 py-1.5 rounded transition shadow-sm whitespace-nowrap" data-id="${docSnap.id}">수정</button>
+                        <button class="delete-client-btn bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold px-2.5 py-1.5 rounded transition shadow-sm whitespace-nowrap" data-id="${docSnap.id}" data-name="${data.name}">삭제</button>
                     </div>
                 </td>` : `<td class="admin-only-col hidden"></td>`;
 
             const tr = `
-                <tr class="hover:bg-orange-50/30 transition border-b border-gray-100">
-                    <td class="p-3 md:p-4 font-black text-gray-900 align-middle">${data.name}</td>
-                    <td class="p-3 md:p-4 text-xs text-gray-500 align-middle">
+                <tr class="hover:bg-orange-50/30 transition border-b border-gray-100 break-keep">
+                    <td class="p-3 md:p-4 font-black text-gray-900 align-middle whitespace-nowrap">${data.name}</td>
+                    <td class="p-3 md:p-4 text-xs text-gray-500 align-middle whitespace-nowrap">
                         ${data.homeUrl ? `<a href="${data.homeUrl}" target="_blank" class="text-blue-500 hover:underline"><i class="fa-solid fa-link"></i> 웹</a> ` : ''}
                         ${data.instaUrl ? `<a href="${data.instaUrl}" target="_blank" class="text-pink-500 hover:underline"><i class="fa-brands fa-instagram"></i> 인스타</a>` : ''}
                     </td>
-                    <td class="p-3 md:p-4 text-xs align-middle">
+                    <td class="p-3 md:p-4 text-xs align-middle whitespace-nowrap">
                         <div class="text-gray-700 font-medium">ID: ${data.metaId || '-'}</div>
                         <div class="text-gray-900 font-bold flex items-center gap-1 mt-0.5">PW: ${data.metaPw || '-'}</div>
                     </td>
-                    <td class="p-3 md:p-4 font-bold text-hermes text-xs align-middle">${data.budget || '-'}</td>
-                    <td class="p-3 md:p-4 text-xs text-gray-600 align-middle"><div>인스타: ${data.instaDate || '-'}</div><div>메타: ${data.metaDate || '-'}</div></td>
-                    <td class="p-3 md:p-4 text-xs font-bold text-gray-500 align-middle">${data.registeredBy || '-'}</td>
+                    <td class="p-3 md:p-4 font-bold text-hermes text-xs align-middle whitespace-nowrap">${data.budget || '-'}</td>
+                    <td class="p-3 md:p-4 text-xs text-gray-600 align-middle whitespace-nowrap"><div>인스타: ${data.instaDate || '-'}</div><div>메타: ${data.metaDate || '-'}</div></td>
+                    <td class="p-3 md:p-4 text-xs font-bold text-gray-500 align-middle whitespace-nowrap">${data.registeredBy || '-'}</td>
                     <td class="p-3 md:p-4 max-w-[130px] overflow-hidden align-middle">${managersHtml}</td>
                     ${adminActions}
                 </tr>
             `;
             tbody.innerHTML += tr;
         });
+
+        checkAllNavBadges();
 
     } catch (e) { console.error("Client fetch error:", e); }
 }
@@ -1782,13 +2044,13 @@ async function fetchLibraryItems() {
         libList.forEach(item => {
             const adminBtns = isAdmin ? `
                 <div class="flex items-center gap-1.5 ml-auto">
-                    <button class="edit-lib-btn text-[11px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-600 hover:text-white px-2 py-1 rounded transition" data-id="${item.id}">수정</button>
-                    <button class="delete-lib-btn text-[11px] font-bold text-red-500 bg-red-50 hover:bg-red-500 hover:text-white px-2 py-1 rounded transition" data-id="${item.id}">삭제</button>
+                    <button class="edit-lib-btn text-[11px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-600 hover:text-white px-2 py-1 rounded transition whitespace-nowrap" data-id="${item.id}">수정</button>
+                    <button class="delete-lib-btn text-[11px] font-bold text-red-500 bg-red-50 hover:bg-red-500 hover:text-white px-2 py-1 rounded transition whitespace-nowrap" data-id="${item.id}">삭제</button>
                 </div>
             ` : '';
 
             const pdfBtn = item.pdfUrl ? `
-                <a href="${item.pdfUrl}" target="_blank" download class="px-3 py-1.5 bg-gray-50 hover:bg-hermes hover:text-white text-hermes text-xs font-bold rounded-lg border border-gray-200 transition shadow-sm flex items-center gap-1.5">
+                <a href="${item.pdfUrl}" target="_blank" download class="px-3 py-1.5 bg-gray-50 hover:bg-hermes hover:text-white text-hermes text-xs font-bold rounded-lg border border-gray-200 transition shadow-sm flex items-center gap-1.5 whitespace-nowrap">
                     <i class="fa-solid fa-download"></i> PDF
                 </a>
             ` : '';
@@ -1801,13 +2063,13 @@ async function fetchLibraryItems() {
                     </div>
                     <div class="p-5 flex-1 flex flex-col">
                         <div class="mb-3 flex items-center justify-between">
-                            <span class="inline-block px-2.5 py-1 bg-orange-50 text-hermes text-[10px] font-bold rounded-md border border-orange-100">${item.category || '가이드'}</span>
+                            <span class="inline-block px-2.5 py-1 bg-orange-50 text-hermes text-[10px] font-bold rounded-md border border-orange-100 whitespace-nowrap">${item.category || '가이드'}</span>
                             ${adminBtns}
                         </div>
-                        <h3 class="font-black text-gray-900 mb-2 leading-snug group-hover:text-hermes transition">${item.title}</h3>
-                        <p class="text-xs text-gray-500 mb-5 line-clamp-2 leading-relaxed flex-1">${item.desc || ''}</p>
+                        <h3 class="font-black text-gray-900 mb-2 leading-snug group-hover:text-hermes transition break-keep">${item.title}</h3>
+                        <p class="text-xs text-gray-500 mb-5 line-clamp-2 leading-relaxed flex-1 break-keep">${item.desc || ''}</p>
                         <div class="flex justify-between items-center border-t border-gray-100 pt-4 mt-auto">
-                            <button class="text-xs font-bold text-gray-600 hover:text-hermes transition flex items-center gap-1.5"><i class="fa-solid fa-book-open"></i> HTML 열람</button>
+                            <button class="text-xs font-bold text-gray-600 hover:text-hermes transition flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-book-open"></i> HTML 열람</button>
                             ${pdfBtn}
                         </div>
                     </div>
@@ -1823,6 +2085,8 @@ async function fetchLibraryItems() {
             });
         });
 
+        checkAllNavBadges();
+
     } catch (e) { console.error("Library fetch error:", e); }
 }
 
@@ -1831,8 +2095,10 @@ function openLibraryViewModal(id) {
     if (!item) return;
 
     currentViewLibId = id;
-    const newUrl = `${window.location.pathname}?libId=${id}`;
-    window.history.pushState({ path: newUrl }, '', newUrl);
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeTab = urlParams.get('tab') || 'library';
+    const newUrl = `${window.location.pathname}?tab=${activeTab}&libId=${id}`;
+    window.history.pushState({ tab: activeTab, libId: id }, '', newUrl);
 
     if (document.getElementById('libViewCategory')) document.getElementById('libViewCategory').innerText = item.category || '가이드';
     if (document.getElementById('libViewTitle')) document.getElementById('libViewTitle').innerText = item.title;
@@ -1850,6 +2116,14 @@ async function fetchMembers() {
     if(!isAdmin) return;
     const tbody = document.getElementById('membersTable');
     if(!tbody) return;
+
+    if (tbody.parentElement) {
+        tbody.parentElement.classList.add('overflow-x-auto', 'block', 'w-full');
+        if (tbody.parentElement.tagName === 'TABLE') {
+            tbody.parentElement.classList.add('min-w-[650px]', 'w-full');
+        }
+    }
+
     tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin text-hermes mr-2"></i> 로딩 중...</td></tr>';
 
     try {
@@ -1859,26 +2133,26 @@ async function fetchMembers() {
         querySnapshot.forEach((docSnap) => {
             const user = docSnap.data();
             const statusBadge = user.status === 'approved' 
-                ? '<span class="bg-blue-50 text-blue-600 px-2 py-1 rounded text-[10px] font-bold border border-blue-100">승인완료</span>'
-                : '<span class="bg-red-50 text-red-500 px-2 py-1 rounded text-[10px] font-bold border border-red-100">대기중</span>';
+                ? '<span class="bg-blue-50 text-blue-600 px-2 py-1 rounded text-[10px] font-bold border border-blue-100 whitespace-nowrap">승인완료</span>'
+                : '<span class="bg-red-50 text-red-500 px-2 py-1 rounded text-[10px] font-bold border border-red-100 whitespace-nowrap">대기중</span>';
 
             const tr = `
-                <tr class="hover:bg-gray-50 transition border-b border-gray-100">
-                    <td class="p-3 md:p-4 font-bold text-gray-900 align-middle">${user.name}</td>
-                    <td class="p-3 md:p-4 text-gray-500 text-xs align-middle">${user.email}</td>
-                    <td class="p-3 md:p-4 align-middle">${statusBadge}</td>
-                    <td class="p-3 md:p-4 align-middle">
+                <tr class="hover:bg-gray-50 transition border-b border-gray-100 break-keep">
+                    <td class="p-3 md:p-4 font-bold text-gray-900 align-middle whitespace-nowrap">${user.name}</td>
+                    <td class="p-3 md:p-4 text-gray-500 text-xs align-middle whitespace-nowrap">${user.email}</td>
+                    <td class="p-3 md:p-4 align-middle whitespace-nowrap">${statusBadge}</td>
+                    <td class="p-3 md:p-4 align-middle whitespace-nowrap">
                         <select class="role-update-select text-xs font-bold border border-gray-300 rounded p-1.5 focus:border-hermes outline-none" data-uid="${docSnap.id}">
                             <option value="player" ${user.role==='player'?'selected':''}>Player (담당 직원)</option>
                             <option value="leader" ${user.role==='leader'?'selected':''}>리더 (노아 대표)</option>
                             <option value="admin" ${user.role==='admin'?'selected':''}>최상위 관리자 (Admin)</option>
                         </select>
                     </td>
-                    <td class="p-3 md:p-4 text-center align-middle">
-                        <button class="update-member-btn bg-gray-800 hover:bg-black text-white text-[11px] font-bold px-3 py-1.5 rounded transition shadow-sm" data-uid="${docSnap.id}" data-name="${user.name}">권한수정</button>
+                    <td class="p-3 md:p-4 text-center align-middle whitespace-nowrap">
+                        <button class="update-member-btn bg-gray-800 hover:bg-black text-white text-[11px] font-bold px-3 py-1.5 rounded transition shadow-sm whitespace-nowrap" data-uid="${docSnap.id}" data-name="${user.name}">권한수정</button>
                     </td>
-                    <td class="p-3 md:p-4 text-center align-middle">
-                        <button class="delete-member-btn bg-red-50 hover:bg-red-500 text-red-500 hover:text-white border border-red-100 hover:border-red-500 text-[11px] font-bold px-3 py-1.5 rounded transition shadow-sm" data-uid="${docSnap.id}" data-name="${user.name}">강제탈퇴</button>
+                    <td class="p-3 md:p-4 text-center align-middle whitespace-nowrap">
+                        <button class="delete-member-btn bg-red-50 hover:bg-red-500 text-red-500 hover:text-white border border-red-100 hover:border-red-500 text-[11px] font-bold px-3 py-1.5 rounded transition shadow-sm whitespace-nowrap" data-uid="${docSnap.id}" data-name="${user.name}">강제탈퇴</button>
                     </td>
                 </tr>
             `;
@@ -1920,6 +2194,14 @@ async function fetchApprovals() {
     const tbody = document.getElementById('approvalsTable');
     const emptyState = document.getElementById('emptyApprovals');
     if(!tbody) return;
+
+    if (tbody.parentElement) {
+        tbody.parentElement.classList.add('overflow-x-auto', 'block', 'w-full');
+        if (tbody.parentElement.tagName === 'TABLE') {
+            tbody.parentElement.classList.add('min-w-[650px]', 'w-full');
+        }
+    }
+
     tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 로딩 중...</td></tr>';
 
     try {
@@ -1936,18 +2218,18 @@ async function fetchApprovals() {
         querySnapshot.forEach((docSnap) => {
             const user = docSnap.data();
             const tr = `
-                <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
-                    <td class="p-3 md:p-4 font-bold text-gray-900 align-middle">${user.name}</td>
-                    <td class="p-3 md:p-4 text-gray-500 font-medium align-middle">${user.email}</td>
-                    <td class="p-3 md:p-4 align-middle">
+                <tr class="border-b border-gray-100 hover:bg-gray-50 transition break-keep">
+                    <td class="p-3 md:p-4 font-bold text-gray-900 align-middle whitespace-nowrap">${user.name}</td>
+                    <td class="p-3 md:p-4 text-gray-500 font-medium align-middle whitespace-nowrap">${user.email}</td>
+                    <td class="p-3 md:p-4 align-middle whitespace-nowrap">
                         <select class="role-select text-xs font-bold border border-gray-300 rounded p-1.5 focus:border-hermes outline-none" data-uid="${docSnap.id}">
                             <option value="player">Player (담당 직원)</option>
                             <option value="leader">리더 (노아 대표)</option>
                             <option value="admin">최상위 관리자 (Admin)</option>
                         </select>
                     </td>
-                    <td class="p-3 md:p-4 text-center align-middle">
-                        <button class="approve-btn bg-hermes hover:bg-hermes-hover text-white text-xs font-bold px-3 py-1.5 rounded-lg transition shadow-sm" data-uid="${docSnap.id}" data-name="${user.name}">승인</button>
+                    <td class="p-3 md:p-4 text-center align-middle whitespace-nowrap">
+                        <button class="approve-btn bg-hermes hover:bg-hermes-hover text-white text-xs font-bold px-3 py-1.5 rounded-lg transition shadow-sm whitespace-nowrap" data-uid="${docSnap.id}" data-name="${user.name}">승인</button>
                     </td>
                 </tr>
             `;
@@ -1976,6 +2258,14 @@ async function fetchLogs() {
     const tbody = document.getElementById('logsTable');
     const emptyState = document.getElementById('emptyLogs');
     if(!tbody) return;
+
+    if (tbody.parentElement) {
+        tbody.parentElement.classList.add('overflow-x-auto', 'block', 'w-full');
+        if (tbody.parentElement.tagName === 'TABLE') {
+            tbody.parentElement.classList.add('min-w-[650px]', 'w-full');
+        }
+    }
+
     tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 로그 데이터 수집 중...</td></tr>';
 
     try {
@@ -1997,11 +2287,11 @@ async function fetchLogs() {
             const dateStr = dateObj.toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false });
             
             const tr = `
-                <tr class="hover:bg-gray-50 transition border-b border-gray-100">
-                    <td class="p-3 md:p-4 text-xs font-medium text-gray-500 align-middle">${dateStr}</td>
-                    <td class="p-3 md:p-4 text-xs font-bold text-gray-800 align-middle">${log.name} (${log.email})</td>
-                    <td class="p-3 md:p-4 align-middle"><span class="bg-gray-100 text-gray-600 px-2 py-1 rounded font-bold text-[11px]">${log.action}</span></td>
-                    <td class="p-3 md:p-4 text-xs text-gray-600 font-medium whitespace-normal align-middle">${log.details || '-'}</td>
+                <tr class="hover:bg-gray-50 transition border-b border-gray-100 break-keep">
+                    <td class="p-3 md:p-4 text-xs font-medium text-gray-500 align-middle whitespace-nowrap">${dateStr}</td>
+                    <td class="p-3 md:p-4 text-xs font-bold text-gray-800 align-middle whitespace-nowrap">${log.name} (${log.email})</td>
+                    <td class="p-3 md:p-4 align-middle whitespace-nowrap"><span class="bg-gray-100 text-gray-600 px-2 py-1 rounded font-bold text-[11px] whitespace-nowrap">${log.action}</span></td>
+                    <td class="p-3 md:p-4 text-xs text-gray-600 font-medium whitespace-normal align-middle break-all">${log.details || '-'}</td>
                 </tr>
             `;
             tbody.innerHTML += tr;
@@ -2010,54 +2300,55 @@ async function fetchLogs() {
 }
 
 // ============================================================================
-// 11. 네비게이션 및 핸들러 연결
+// 11. 네비게이션 및 로그인 핸들러 연동
 // ============================================================================
-safeAddListener('googleLoginBtn', 'click', () => signInWithPopup(auth, provider));
+
+// Google 인증 로그인 예비/디버깅 처리 강화
+safeAddListener('googleLoginBtn', 'click', async () => {
+    try {
+        await signInWithPopup(auth, provider);
+    } catch (error) {
+        console.error("Google 로그인 에러 예외 객체:", error);
+        
+        if (error.code === 'auth/popup-blocked') {
+            alert("브라우저 팝업이 차단되었습니다. 팝업 차단을 해제하거나 리디렉션 로그인을 진행해 주세요.");
+            try {
+                await signInWithRedirect(auth, provider);
+            } catch (redirErr) {
+                alert(`리디렉션 로그인 오류: ${redirErr.message}`);
+            }
+        } else if (error.code === 'auth/unauthorized-domain') {
+            alert("Google Cloud Console(GCP) '승인된 자바스크립트 원본'에 https://adplanters.github.io 도메인이 추가되었는지 점검해 주세요.");
+        } else if (error.code !== 'auth/popup-closed-by-user') {
+            alert(`Google 로그인 인증 실패\n(사유: [${error.code}] ${error.message})`);
+        }
+    }
+});
+
 safeAddListener('logoutBtn', 'click', () => signOut(auth));
 safeAddListener('closePendingBtn', 'click', () => signOut(auth));
 
+// 메뉴 탭 클릭 시 고유 URL 딥링크 저장 및 라우팅 수행
 navItems.forEach(item => {
     item.addEventListener('click', (e) => {
         e.preventDefault();
         const menu = e.currentTarget.getAttribute('data-menu');
-        
-        navItems.forEach(n => {
-            n.className = "nav-item flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition";
-        });
-        e.currentTarget.className = "nav-item flex items-center gap-3 bg-hermes text-white px-4 py-3 rounded-lg font-bold shadow-md shadow-orange-200/50 transition";
-
-        if (statsContainer) statsContainer.classList.add('hidden');
-        if (tasksContainer) tasksContainer.classList.add('hidden');
-        if (clientsContainer) clientsContainer.classList.add('hidden');
-        if (membersContainer) membersContainer.classList.add('hidden');
-        if (approvalsContainer) approvalsContainer.classList.add('hidden');
-        if (logsContainer) logsContainer.classList.add('hidden');
-        if (libraryContainer) libraryContainer.classList.add('hidden');
-
-        if (menu === 'dashboard') {
-            if (statsContainer) statsContainer.classList.remove('hidden');
-            if (tasksContainer) tasksContainer.classList.remove('hidden');
-            fetchTasks();
-        } else if (menu === 'inquiries') {
-            if (tasksContainer) tasksContainer.classList.remove('hidden');
-            fetchTasks();
-        } else if (menu === 'clients') {
-            if (clientsContainer) clientsContainer.classList.remove('hidden');
-            fetchClients();
-        } else if (menu === 'members') {
-            if (membersContainer) membersContainer.classList.remove('hidden');
-            fetchMembers();
-        } else if (menu === 'approvals') {
-            if (approvalsContainer) approvalsContainer.classList.remove('hidden');
-            fetchApprovals();
-        } else if (menu === 'logs') {
-            if (logsContainer) logsContainer.classList.remove('hidden');
-            fetchLogs();
-        } else if (menu === 'library') {
-            if (libraryContainer) libraryContainer.classList.remove('hidden');
-            fetchLibraryItems();
-        }
+        switchTab(menu, true);
     });
+});
+
+// 브라우저 뒤로가기 / 앞으로가기 클릭 시 탭 상태 자동 동기화
+window.addEventListener('popstate', (e) => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentTab = urlParams.get('tab') || urlParams.get('menu') || 'dashboard';
+    const taskId = urlParams.get('id');
+    
+    if (taskId && tasksMap[taskId]) {
+        openDetailModal(taskId);
+    } else {
+        closeAllModals();
+        switchTab(currentTab, false);
+    }
 });
 
 const boardTableEl = document.getElementById('boardTable');

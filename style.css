@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ADplanters x NOAH UNIVERSE - Global & Modal Stylesheet (v1.1.4)
+   ADplanters x NOAH UNIVERSE - Global & Modal Stylesheet (v1.1.5 - 2D Scroll)
    ========================================================================== */
 
 /* 1. Global Reset & Layout Isolation */
@@ -18,7 +18,7 @@ html, body {
   overflow-x: hidden;
 }
 
-/* 2. Background Watermark Isolation (배경 워터마크 레이어 고립) */
+/* 2. Background Watermark Isolation (배경 워터마크 z-index: 0 노출) */
 #watermarkGrid,
 .bg-watermark-container,
 .watermark-container {
@@ -92,7 +92,7 @@ html, body {
   overflow-y: auto;
 }
 
-/* 4. Modal System (최상단 z-index 레이어 유지) */
+/* 4. Modal System (2차원 상하좌우 스크롤 지원) */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -115,7 +115,7 @@ html, body {
 .modal-container {
   background: #ffffff !important;
   width: 100%;
-  max-width: 820px;
+  max-width: 860px;
   max-height: 90vh;
   border-radius: 16px;
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
@@ -215,15 +215,27 @@ html, body {
   background-color: #dbeafe;
 }
 
-/* 5. Modal Body (Vertical Flow) */
+/* 🌟 5. Modal Body (상하/좌우 2D 스크롤 활성화) */
 .modal-body {
   padding: 24px 28px;
-  overflow-y: auto;
+  overflow-x: auto !important;
+  overflow-y: auto !important;
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 24px;
   background-color: #ffffff;
+}
+
+/* 본문 영역 2차원 스크롤 보장 */
+#libViewHtmlContent {
+  color: #334155;
+  line-height: 1.7;
+  width: 100%;
+  clear: both;
+  display: block;
+  overflow-x: auto !important;
+  overflow-y: auto !important;
 }
 
 /* 본문 섹션 블록 */
@@ -255,7 +267,7 @@ html, body {
   margin: 0 0 8px 0 !important;
 }
 
-/* 라운드 컬러 박스 디자인 */
+/* 🌟 라운드 컬러 박스 (2차원 스크롤 지원 및 수축 차단) */
 #libViewHtmlContent .callout-box,
 .callout-box {
   border-radius: 16px !important;
@@ -267,11 +279,13 @@ html, body {
   position: relative !important;
   clear: both !important;
   width: 100% !important;
+  min-width: 100% !important;
   height: auto !important;
   min-height: fit-content !important;
   max-height: none !important;
   box-sizing: border-box !important;
-  overflow: visible !important;
+  overflow-x: auto !important;
+  overflow-y: auto !important;
 }
 
 /* 파란색 스타일 (메타 가이드) */
@@ -325,7 +339,7 @@ html, body {
   opacity: 1 !important;
 }
 
-/* 6. Attachments Grid Section */
+/* 🌟 6. Attachments Grid Section (가로/세로 스크롤 지원) */
 .attachment-wrapper {
   margin-top: 8px;
   display: flex;
@@ -333,6 +347,8 @@ html, body {
   gap: 14px;
   position: relative;
   clear: both;
+  overflow-x: auto !important;
+  padding-bottom: 8px;
 }
 
 .attachment-header {
@@ -349,6 +365,7 @@ html, body {
   grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
   gap: 12px;
   width: 100%;
+  min-width: 100%;
 }
 
 .attachment-card {
@@ -439,21 +456,24 @@ html, body {
   color: #1e293b;
 }
 
-/* 8. Scrollbar Customization */
-.modal-body::-webkit-scrollbar,
-.overflow-y-auto::-webkit-scrollbar {
-  width: 6px;
+/* 8. Scrollbar Customization (가로/세로 커스텀 스크롤바 디자인) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-.modal-body::-webkit-scrollbar-track,
-.overflow-y-auto::-webkit-scrollbar-track {
+::-webkit-scrollbar-track {
   background: #f1f5f9;
+  border-radius: 4px;
 }
 
-.modal-body::-webkit-scrollbar-thumb,
-.overflow-y-auto::-webkit-scrollbar-thumb {
+::-webkit-scrollbar-thumb {
   background: #cbd5e1;
-  border-radius: 3px;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 /* 9. Mobile Responsive Layout */

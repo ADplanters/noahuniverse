@@ -35,8 +35,8 @@
     <!-- 폰트어썸 아이콘 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- 외부 CSS 연결 (캐시 무력화 파라미터 v=1.1.5 적용) -->
-    <link rel="stylesheet" href="style.css?v=1.1.5">
+    <!-- 외부 CSS 연결 (캐시 무력화 파라미터 v=1.1.6 적용) -->
+    <link rel="stylesheet" href="style.css?v=1.1.6">
 </head>
 <body class="bg-grid-pattern text-gray-800 font-sans min-h-screen relative flex flex-col justify-between overflow-x-hidden">
 
@@ -178,13 +178,13 @@
                 <div id="emptyClients" class="hidden py-12 md:py-16 text-center flex-col items-center justify-center"><i class="fa-solid fa-folder-open text-3xl md:text-4xl text-gray-300 mb-3"></i><p class="text-gray-500 font-medium text-xs md:text-sm">조회 가능한 클라이언트 데이터가 없습니다.</p></div>
             </div>
 
-            <!-- 뷰 3. 업무 / Q&A (2차원 스크롤 보장) -->
-            <div id="tasksContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8 w-full min-w-0">
-                <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-white flex-wrap gap-2">
+            <!-- 🌟 뷰 3. 업무 / Q&A (하단 잘림 완전히 제거 및 유연한 스크롤 영역 보장) -->
+            <div id="tasksContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm flex-1 mb-6 md:mb-8 w-full min-w-0">
+                <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-white flex-wrap gap-2 rounded-t-2xl">
                     <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-table-list text-hermes mr-2"></i> 업무 / Q&A</h2>
                     <button id="openModalBtn" type="button" class="bg-hermes hover:bg-hermes-hover text-white text-xs font-bold px-3 py-2 md:px-4 md:py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5 shrink-0 cursor-pointer"><i class="fa-solid fa-plus"></i> <span class="inline">신규 이슈 등록</span></button>
                 </div>
-                <div class="w-full overflow-x-auto overflow-y-auto max-h-[650px] pb-6">
+                <div class="w-full overflow-x-auto p-1 sm:p-2 pb-4">
                     <table class="w-full text-left border-collapse min-w-[700px]">
                         <thead>
                             <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200 break-keep sticky top-0 bg-gray-50 z-10">
@@ -621,9 +621,9 @@
         <img id="modalImgTag" src="" alt="원본 확대 이미지" class="max-w-full max-h-full rounded-lg shadow-2xl object-contain">
     </div>
 
-    <!-- 🌟 인사이트 라이브러리 HTML 상세보기 모달 (2차원 스크롤 보장 모달) -->
+    <!-- 인사이트 라이브러리 HTML 상세보기 모달 -->
     <div id="libraryViewModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl w-full max-w-4xl p-5 md:p-8 shadow-2xl border border-gray-100 max-h-[95vh] overflow-y-auto overflow-x-auto flex flex-col relative">
+        <div class="bg-white rounded-2xl w-full max-w-4xl p-5 md:p-8 shadow-2xl border border-gray-100 max-h-[95vh] overflow-y-auto flex flex-col relative">
             
             <button id="closeLibViewModalBtn" type="button" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-1.5 rounded-lg transition z-30 cursor-pointer text-xl" title="닫기">
                 <i class="fa-solid fa-xmark"></i>
@@ -662,7 +662,7 @@
                 </div>
             </div>
 
-            <!-- 🌟 본문 상세 HTML 내용 (2차원 스크롤 보장) -->
+            <!-- 본문 상세 HTML 내용 -->
             <div id="libViewHtmlContent" class="prose max-w-none text-sm text-gray-800 leading-relaxed min-h-[150px] mb-6 border-b pb-6 block overflow-x-auto overflow-y-auto w-full box-border">
                 <div class="content-section">
                     <h2 class="section-title">1. 왜 머신러닝 기반 메타광고인가?</h2>

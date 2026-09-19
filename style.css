@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ADplanters x NOAH UNIVERSE - Global & Modal Stylesheet (v1.1.1)
+   ADplanters x NOAH UNIVERSE - Global & Modal Stylesheet (v1.1.2)
    ========================================================================== */
 
 /* 1. Global Reset & Layout Isolation */
@@ -18,7 +18,7 @@ html, body {
   overflow-x: hidden;
 }
 
-/* 2. Background Watermark Isolation (배경 워터마크 노출) */
+/* 2. Background Watermark Isolation (배경 워터마크 레이어 고립) */
 #watermarkGrid,
 .bg-watermark-container,
 .watermark-container {
@@ -255,12 +255,9 @@ html, body {
   margin: 0 0 8px 0 !important;
 }
 
-/* 🌟 파란색 커스텀 라운드 컬러 박스 완벽 교정 (Tailwind prose 높이 상쇄 차단) */
+/* 🌟 라운드 컬러 박스 완벽 정돈 (Tailwind prose 스타일 무력화 및 가변 높이 수용) */
 #libViewHtmlContent .callout-box,
 .callout-box {
-  background-color: #eff6ff !important;
-  border: 1px solid #bfdbfe !important;
-  border-left: 4px solid #2563eb !important;
   border-radius: 16px !important;
   padding: 20px 24px !important;
   margin: 16px 0 24px 0 !important;
@@ -275,14 +272,37 @@ html, body {
   max-height: none !important;
   box-sizing: border-box !important;
   overflow: visible !important;
+}
+
+/* 기본/파란색 스타일 (메타 가이드) */
+#libViewHtmlContent .callout-box.callout-blue,
+.callout-box.callout-blue,
+#libViewHtmlContent .callout-box {
+  background-color: #f0f7ff !important;
+  border: 1px solid #bfdbfe !important;
   box-shadow: 0 2px 6px rgba(37, 99, 235, 0.04) !important;
+}
+
+/* 초록색 스타일 (네이버 스마트플레이스) */
+#libViewHtmlContent .callout-box.callout-green,
+.callout-box.callout-green {
+  background-color: #f0fdf4 !important;
+  border: 1px solid #bbf7d0 !important;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.04) !important;
+}
+
+/* 주황색 스타일 (웹 기획/개발) */
+#libViewHtmlContent .callout-box.callout-orange,
+.callout-box.callout-orange {
+  background-color: #fff7ed !important;
+  border: 1px solid #fed7aa !important;
+  box-shadow: 0 2px 6px rgba(243, 112, 33, 0.04) !important;
 }
 
 #libViewHtmlContent .callout-title,
 .callout-title {
   font-size: 15px !important;
   font-weight: 800 !important;
-  color: #1e40af !important;
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
@@ -295,7 +315,6 @@ html, body {
 #libViewHtmlContent .callout-desc,
 .callout-desc {
   font-size: 13.5px !important;
-  color: #2563eb !important;
   font-weight: 600 !important;
   word-break: keep-all !important;
   margin: 0 !important;

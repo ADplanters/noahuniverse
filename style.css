@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ADplanters x NOAH UNIVERSE - Global & Modal Stylesheet (v1.0.6)
+   ADplanters x NOAH UNIVERSE - Global & Modal Stylesheet (v1.0.7)
    ========================================================================== */
 
 /* 1. Global Reset & Layout Isolation */
@@ -18,7 +18,8 @@ html, body {
   overflow-x: hidden;
 }
 
-/* 2. Background Watermark Isolation (배경 글자 침범 완벽 방지) */
+/* 2. Background Watermark Isolation (배경 글자 화면 밀림 원천 방지) */
+#watermarkGrid,
 .bg-watermark-container,
 .watermark-container {
   position: fixed !important;
@@ -27,9 +28,9 @@ html, body {
   width: 100vw !important;
   height: 100vh !important;
   pointer-events: none !important; /* 클릭 및 드래그 방지 */
-  z-index: -50 !important; /* 최하단 레이어 격리 */
+  z-index: -50 !important; /* 최하단 레이어 고립 */
   overflow: hidden !important;
-  opacity: 0.03 !important; /* 은은한 워터마크 처리 */
+  opacity: 0.03 !important; /* 은은한 배경 처리 */
   user-select: none !important;
 }
 
@@ -253,11 +254,11 @@ html, body {
   margin: 0 !important;
 }
 
-/* 🌟 파란색 콜아웃 요약 박스 (형태 분리 및 텍스트 깨짐 강제 방지) */
+/* 콜아웃 요약 박스 (파란색 박스 형태 정돈) */
 .callout-box {
   background-color: #eff6ff !important;
   border: 1px solid #bfdbfe !important;
-  border-left: 4px solid #2563eb !important; /* 좌측 라인 유지 */
+  border-left: 4px solid #2563eb !important;
   border-radius: 12px !important;
   padding: 16px 20px !important;
   margin: 16px 0 !important;

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ADplanters x NOAH UNIVERSE - Global & Modal Stylesheet (v1.0.8)
+   ADplanters x NOAH UNIVERSE - Global & Modal Stylesheet (v1.0.9)
    ========================================================================== */
 
 /* 1. Global Reset & Layout Isolation */
@@ -18,7 +18,7 @@ html, body {
   overflow-x: hidden;
 }
 
-/* 2. Background Watermark Isolation (z-index: 0 적용으로 배경 위 은은한 워터마크 노출 보장) */
+/* 2. Background Watermark Isolation (z-index: 0 적용으로 배경 위 은은한 워터마크 노출) */
 #watermarkGrid,
 .bg-watermark-container,
 .watermark-container {
@@ -27,14 +27,14 @@ html, body {
   left: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
-  pointer-events: none !important; /* 클릭 및 드래그 방지 */
-  z-index: 0 !important; /* body 배경 위, 콘텐츠(z-10) 하단 배치 */
+  pointer-events: none !important;
+  z-index: 0 !important;
   overflow: hidden !important;
-  opacity: 0.05 !important; /* 선명하면서 은은하게 워터마크 조절 */
+  opacity: 0.05 !important;
   user-select: none !important;
 }
 
-/* 3. Main Dashboard App Layout (z-index: 10 적용으로 워터마크 상단 배치) */
+/* 3. Main Dashboard App Layout */
 .app-wrapper,
 #dashboardSection,
 #loginSection {
@@ -254,7 +254,7 @@ html, body {
   margin: 0 !important;
 }
 
-/* 콜아웃 요약 박스 */
+/* 🌟 파란색 콜아웃 요약 박스 (형태 정돈 및 내부 텍스트 완벽 배치) */
 .callout-box {
   background-color: #eff6ff !important;
   border: 1px solid #bfdbfe !important;

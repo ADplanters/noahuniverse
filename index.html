@@ -35,12 +35,12 @@
     <!-- 폰트어썸 아이콘 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- 외부 CSS 연결 (캐시 무력화 파라미터 v=1.1.0 적용) -->
-    <link rel="stylesheet" href="style.css?v=1.1.0">
+    <!-- 외부 CSS 연결 (캐시 무력화 파라미터 v=1.1.1 적용) -->
+    <link rel="stylesheet" href="style.css?v=1.1.1">
 </head>
 <body class="bg-grid-pattern text-gray-800 font-sans min-h-screen relative flex flex-col justify-between overflow-x-hidden">
 
-    <!-- 🌟 화면 전체 중앙 고정 워터마크 (z-0으로 배경 위 은은한 노출 보장) -->
+    <!-- 화면 전체 중앙 고정 워터마크 -->
     <div class="fixed inset-0 z-0 pointer-events-none overflow-hidden flex items-center justify-center select-none" aria-hidden="true">
         <div id="watermarkGrid" class="flex flex-col opacity-[0.05]" 
              style="width: 400vw; height: 400vh; transform: rotate(-20deg); gap: 2.5rem; justify-content: center; align-items: center;"></div>
@@ -178,7 +178,7 @@
                 <div id="emptyClients" class="hidden py-12 md:py-16 text-center flex-col items-center justify-center"><i class="fa-solid fa-folder-open text-3xl md:text-4xl text-gray-300 mb-3"></i><p class="text-gray-500 font-medium text-xs md:text-sm">조회 가능한 클라이언트 데이터가 없습니다.</p></div>
             </div>
 
-            <!-- 🌟 뷰 3. 업무 / Q&A (전체 높이 영역 오버플로우 스크롤로 잘림 없이 전체 조절) -->
+            <!-- 뷰 3. 업무 / Q&A -->
             <div id="tasksContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8 w-full min-w-0">
                 <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-white flex-wrap gap-2">
                     <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-table-list text-hermes mr-2"></i> 업무 / Q&A</h2>
@@ -621,7 +621,7 @@
         <img id="modalImgTag" src="" alt="원본 확대 이미지" class="max-w-full max-h-full rounded-lg shadow-2xl object-contain">
     </div>
 
-    <!-- 🌟 인사이트 라이브러리 HTML 상세보기 모달 (컬러 박스 내 텍스트 완전 보장) -->
+    <!-- 🌟 인사이트 라이브러리 HTML 상세보기 모달 -->
     <div id="libraryViewModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-4xl p-5 md:p-8 shadow-2xl border border-gray-100 max-h-[95vh] overflow-y-auto flex flex-col relative">
             
@@ -737,7 +737,6 @@
         </div>
     </div>
 
-    
     <!-- 승인 대기 팝업 -->
     <div id="pendingModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl w-full max-w-sm p-6 text-center shadow-2xl border border-gray-100 animate-bounce-short">

@@ -241,7 +241,7 @@ function checkAllNavBadges() {
     setMenuBadge('library', hasNewLibrary);
 }
 
-// 🌟 워터마크 동적 생성 함수
+// 🌟 사선 지그재그 워터마크 동적 렌더링
 function renderWatermark() {
     const container = document.getElementById('watermarkGrid');
     if (!container || container.children.length > 0) return;
@@ -375,7 +375,7 @@ safeAddListener('libViewCountBadgeBtn', 'click', (e) => {
     }
 });
 
-// 🌟 전역 클릭 이벤트 핸들러 (수정, 담당자, 삭제 및 게시글 상세보기 자동 트리거)
+// 🌟 전역 클릭 이벤트 핸들러 (게시글 제목 / 클라이언트 셀 클릭 시 자동 상세 보기)
 document.addEventListener('click', (e) => {
     // 1. 관리 버튼: 수정 (Edit Task)
     const editBtn = e.target.closest('.edit-task-btn');
@@ -407,7 +407,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 4. 게시글 제목 / 클라이언트 / 행 전체 클릭 시 자동 상세 보기 팝업 오픈
+    // 4. 게시글 행 / 제목 / 클라이언트 셀 클릭 시 자동 상세 창 오픈
     const taskRow = e.target.closest('.task-detail-trigger');
     if (taskRow && !e.target.closest('a') && !e.target.closest('button')) {
         const taskId = taskRow.getAttribute('data-id');
@@ -770,7 +770,7 @@ function showPendingPopup() {
 }
 
 // ============================================================================
-// 5. 업무 이슈/요청 게시판 (전체 게시글 수집 및 노출 보장)
+// 5. 업무 이슈/요청 게시판
 // ============================================================================
 safeAddListener('openModalBtn', 'click', () => {
     if (createModal) {
@@ -1095,7 +1095,6 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
     }
 });
 
-// 🌟 업무 Q&A 전체 글 로딩 및 렌더링
 async function fetchTasks() {
     const tbody = document.getElementById('boardTable');
     const emptyState = document.getElementById('emptyState');

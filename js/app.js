@@ -241,18 +241,18 @@ function checkAllNavBadges() {
     setMenuBadge('library', hasNewLibrary);
 }
 
-// 🌟 사선 지그재그 바둑판 패턴 워터마크 렌더링 (레이아웃 밀림 방지를 위해 기존 HTML 요소 활용)
+// 🌟 사선 지그재그 워터마크 동적 렌더링 (HTML 요소 재활용으로 상단 레이아웃 밀림 방지)
 function renderWatermark() {
     const container = document.getElementById('watermarkGrid');
-    if (!container || container.innerHTML.trim() !== '') return;
+    if (!container || container.children.length > 0) return;
 
     let rowsHtml = '';
     const textRow = "ADplanters X NOAH UNIVERSE COMPANY ";
     for (let i = 0; i < 24; i++) {
         const shiftStyle = (i % 2 === 0) ? 'margin-left: 0px;' : 'margin-left: 140px;';
         rowsHtml += `<div class="whitespace-nowrap font-black text-sm tracking-widest text-slate-900 select-none" style="${shiftStyle}">`;
-        for (let j = 0; j < 10; j++) {
-            rowsHtml += `<span style="margin-right:1rem;">${textRow}</span>`;
+        for (let j = 0; j < 8; j++) {
+            rowsHtml += `<span style="margin-right:1.5rem;">${textRow}</span>`;
         }
         rowsHtml += `</div>`;
     }
@@ -306,7 +306,7 @@ function closeAllModals() {
         }
     });
     
-    document.body.style.overflow = ''; // 스크롤 잠금 일괄 해제
+    document.body.style.overflow = '';
     
     const urlParams = new URLSearchParams(window.location.search);
     const activeTab = urlParams.get('tab') || 'dashboard';
@@ -605,7 +605,7 @@ function fallbackCopyToClipboard(text, label = "링크") {
 }
 
 // ============================================================================
-// 4. 인증 및 사용자 권한 제어
+// 4. 인증 및 사용자 권한 제어 (유저 DB 파괴 방지 파이프라인)
 // ============================================================================
 getRedirectResult(auth).catch((error) => {
     if (error && error.code !== 'auth/popup-closed-by-user') {
@@ -643,44 +643,19 @@ onAuthStateChanged(auth, async (user) => {
             return;
         }
 
+        // 🌟 유저 유실을 유발하던 deleteDoc 제거 및 안전한 setDoc merge 보장
         try {
             const userRef = doc(db, "users", user.uid);
             const userSnap = await getDoc(userRef);
 
             if (!userSnap.exists()) {
-                const q = query(collection(db, "users"), where("email", "==", user.email));
-                const qSnap = await getDocs(q);
-                
-                if (!qSnap.empty) {
-                    const oldDoc = qSnap.docs[0];
-                    const oldData = oldDoc.data();
-                    
-                    await setDoc(userRef, { 
-                        ...oldData, 
-                        uid: user.uid,
-                        updatedAt: new Date().toISOString()
-                    });
-
-                    if (oldDoc.id !== user.uid) {
-                        await deleteDoc(doc(db, "users", oldDoc.id));
-                    }
-                    
-                    currentUserRole = oldData.role || 'player';
-                    if (oldData.status === 'approved') {
-                        showDashboard(user);
-                    } else {
-                        showPendingPopup();
-                    }
-                    return;
-                }
-
                 await setDoc(userRef, { 
                     email: user.email, 
                     name: currentUserName, 
                     role: "player", 
                     status: "pending", 
                     createdAt: new Date().toISOString() 
-                });
+                }, { merge: true });
                 showPendingPopup();
             } else {
                 const userData = userSnap.data();
@@ -746,7 +721,7 @@ function showPendingPopup() {
 }
 
 // ============================================================================
-// 5. 업무 이슈/요청 게시판
+// 5. 업무 이슈/요청 게시판 (전체 게시글 수집 및 노출 보장)
 // ============================================================================
 safeAddListener('openModalBtn', 'click', () => {
     if (createModal) {
@@ -914,7 +889,6 @@ async function openAssignModal(taskId) {
             try {
                 const usersSnap = await getDocs(query(collection(db, "users"), where("status", "==", "approved")));
                 let html = '<div class="flex flex-col gap-1.5">';
-                
                 const currentAssigned = task.assignedManagers || [];
 
                 usersSnap.forEach(uDoc => {
@@ -1072,19 +1046,13 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
     }
 });
 
+// 🌟 업무 Q&A 전체 글 로딩 및 렌더링
 async function fetchTasks() {
     const tbody = document.getElementById('boardTable');
     const emptyState = document.getElementById('emptyState');
     if(!tbody) return;
 
-    if (tbody.parentElement) {
-        tbody.parentElement.classList.add('overflow-x-auto', 'block', 'w-full', '-mx-2', 'sm:mx-0');
-        if (tbody.parentElement.tagName === 'TABLE') {
-            tbody.parentElement.classList.add('min-w-[650px]', 'w-full');
-        }
-    }
-
-    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 로딩 중...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 이슈 전체 데이터 불러오는 중...</td></tr>';
 
     try {
         let fetchedData = [];
@@ -1097,7 +1065,7 @@ async function fetchTasks() {
             tasksMap[docSnap.id] = tItem;
         });
 
-        fetchedData.sort((a, b) => new Date(b.date.replace(/\./g, '-')) - new Date(a.date.replace(/\./g, '-')));
+        fetchedData.sort((a, b) => new Date((b.date || '').replace(/\./g, '-')) - new Date((a.date || '').replace(/\./g, '-')));
 
         tbody.innerHTML = '';
         if (fetchedData.length === 0) {
@@ -1165,9 +1133,9 @@ async function fetchTasks() {
                     <td class="p-3 md:p-4 align-middle text-center whitespace-nowrap"><span class="${statusBadgeClass} px-2 py-0.5 rounded text-[10px] font-bold border whitespace-nowrap">${item.status || '답변대기'}</span></td>
                     <td class="p-3 md:p-4 font-bold text-gray-900 align-middle text-xs whitespace-nowrap min-w-[80px]">${item.client || '-'}</td>
                     <td class="p-3 md:p-4 align-middle whitespace-nowrap"><span class="bg-gray-100 text-gray-600 text-[10px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap">${item.type || '-'}</span></td>
-                    <td class="p-3 md:p-4 align-middle min-w-[150px]">
+                    <td class="p-3 md:p-4 align-middle min-w-[200px]">
                         <div class="font-bold text-gray-900 group-hover:text-hermes transition flex items-center gap-1 break-keep">
-                            <span class="line-clamp-2 max-w-[180px] sm:max-w-xs break-all">${item.title || '-'}</span> 
+                            <span class="break-all">${item.title || '-'}</span> 
                             ${commentCount > 0 ? `<span class="text-hermes text-[10px] font-black shrink-0">[${commentCount}]</span>` : ''}
                         </div>
                     </td>
@@ -1191,7 +1159,7 @@ async function fetchTasks() {
 
         checkAllNavBadges();
 
-    } catch (e) { console.error("Firestore error:", e); }
+    } catch (e) { console.error("Firestore fetch tasks error:", e); }
 }
 
 async function openDetailModal(taskId) {
@@ -2320,7 +2288,7 @@ safeAddListener('libraryForm', 'submit', async (e) => {
 });
 
 // ============================================================================
-// 10. 멤버 관리 / 승인 관리 / 로그 모니터링 모듈
+// 10. 멤버 관리 / 승인 관리 / 로그 모니터링 모듈 (전체 유저 표시 보장)
 // ============================================================================
 async function fetchMembers() {
     const isAdmin = checkIsAdmin();
@@ -2328,18 +2296,16 @@ async function fetchMembers() {
     const tbody = document.getElementById('membersTable');
     if(!tbody) return;
 
-    if (tbody.parentElement) {
-        tbody.parentElement.classList.add('overflow-x-auto', 'block', 'w-full');
-        if (tbody.parentElement.tagName === 'TABLE') {
-            tbody.parentElement.classList.add('min-w-[650px]', 'w-full');
-        }
-    }
-
-    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin text-hermes mr-2"></i> 로딩 중...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin text-hermes mr-2"></i> 전체 멤버 로딩 중...</td></tr>';
 
     try {
         const querySnapshot = await getDocs(collection(db, "users"));
         tbody.innerHTML = '';
+
+        if (querySnapshot.empty) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-400">등록된 멤버가 없습니다.</td></tr>';
+            return;
+        }
 
         querySnapshot.forEach((docSnap) => {
             const user = docSnap.data();
@@ -2349,8 +2315,8 @@ async function fetchMembers() {
 
             const tr = `
                 <tr class="hover:bg-gray-50 transition border-b border-gray-100 break-keep">
-                    <td class="p-3 md:p-4 font-bold text-gray-900 align-middle whitespace-nowrap">${user.name}</td>
-                    <td class="p-3 md:p-4 text-gray-500 text-xs align-middle whitespace-nowrap">${user.email}</td>
+                    <td class="p-3 md:p-4 font-bold text-gray-900 align-middle whitespace-nowrap">${user.name || '미설정'}</td>
+                    <td class="p-3 md:p-4 text-gray-500 text-xs align-middle whitespace-nowrap">${user.email || '-'}</td>
                     <td class="p-3 md:p-4 align-middle whitespace-nowrap">${statusBadge}</td>
                     <td class="p-3 md:p-4 align-middle whitespace-nowrap">
                         <select class="role-update-select text-xs font-bold border border-gray-300 rounded p-1.5 focus:border-hermes outline-none" data-uid="${docSnap.id}">
@@ -2396,7 +2362,7 @@ async function fetchMembers() {
                 }
             });
         });
-    } catch (error) { console.error("멤버 로드 에러:", error); }
+    } catch (error) { console.error("멤버 전체 로드 에러:", error); }
 }
 
 async function fetchApprovals() {
@@ -2405,13 +2371,6 @@ async function fetchApprovals() {
     const tbody = document.getElementById('approvalsTable');
     const emptyState = document.getElementById('emptyApprovals');
     if(!tbody) return;
-
-    if (tbody.parentElement) {
-        tbody.parentElement.classList.add('overflow-x-auto', 'block', 'w-full');
-        if (tbody.parentElement.tagName === 'TABLE') {
-            tbody.parentElement.classList.add('min-w-[650px]', 'w-full');
-        }
-    }
 
     tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 로딩 중...</td></tr>';
 
@@ -2469,13 +2428,6 @@ async function fetchLogs() {
     const tbody = document.getElementById('logsTable');
     const emptyState = document.getElementById('emptyLogs');
     if(!tbody) return;
-
-    if (tbody.parentElement) {
-        tbody.parentElement.classList.add('overflow-x-auto', 'block', 'w-full');
-        if (tbody.parentElement.tagName === 'TABLE') {
-            tbody.parentElement.classList.add('min-w-[650px]', 'w-full');
-        }
-    }
 
     tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 로그 데이터 수집 중...</td></tr>';
 

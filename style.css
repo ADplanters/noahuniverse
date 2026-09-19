@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ADplanters x NOAH UNIVERSE - Global & Modal Stylesheet
+   ADplanters x NOAH UNIVERSE - Global & Modal Stylesheet (v1.0.6)
    ========================================================================== */
 
 /* 1. Global Reset & Layout Isolation */
@@ -19,22 +19,18 @@ html, body {
 }
 
 /* 2. Background Watermark Isolation (배경 글자 침범 완벽 방지) */
-.bg-watermark-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  pointer-events: none; /* 클릭 및 드래그 방지 */
-  z-index: 0; /* 최하단 레이어 격리 */
-  overflow: hidden;
-  opacity: 0.03; /* 은은한 워터마크 처리 */
-  user-select: none;
-  word-break: break-all;
-  line-height: 1.8;
-  font-size: 13px;
-  font-weight: 700;
-  color: #000000;
+.bg-watermark-container,
+.watermark-container {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  pointer-events: none !important; /* 클릭 및 드래그 방지 */
+  z-index: -50 !important; /* 최하단 레이어 격리 */
+  overflow: hidden !important;
+  opacity: 0.03 !important; /* 은은한 워터마크 처리 */
+  user-select: none !important;
 }
 
 /* 3. Main Dashboard App Layout */
@@ -102,12 +98,12 @@ html, body {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(0, 0, 0, 0.5); /* 어두운 오버레이 */
+  background-color: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 99999; /* 화면 최상단 고정 */
+  z-index: 99999;
   padding: 20px;
 }
 
@@ -116,7 +112,7 @@ html, body {
 }
 
 .modal-container {
-  background: #ffffff !important; /* 배경 투과 방지 */
+  background: #ffffff !important;
   width: 100%;
   max-width: 820px;
   max-height: 90vh;
@@ -130,14 +126,8 @@ html, body {
 }
 
 @keyframes modalFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Modal Header */
@@ -231,64 +221,72 @@ html, body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 24px; /* 본문 요소 수직 간격 자동 보장 */
+  gap: 24px;
   background-color: #ffffff;
 }
 
 /* 본문 섹션 블록 */
 .content-section {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  position: relative;
-  clear: both;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  position: relative !important;
+  clear: both !important;
 }
 
 .section-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: #1a202c;
-  line-height: 1.4;
-  position: relative;
-  display: block;
-  margin: 0;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: #1a202c !important;
+  line-height: 1.4 !important;
+  position: relative !important;
+  display: block !important;
+  margin: 0 !important;
 }
 
 .section-text {
-  font-size: 15px;
-  color: #4a5568;
-  line-height: 1.6;
-  word-break: keep-all;
-  display: block;
-  margin: 0;
+  font-size: 15px !important;
+  color: #4a5568 !important;
+  line-height: 1.6 !important;
+  word-break: keep-all !important;
+  display: block !important;
+  margin: 0 !important;
 }
 
-/* 콜아웃 요약 박스 */
+/* 🌟 파란색 콜아웃 요약 박스 (형태 분리 및 텍스트 깨짐 강제 방지) */
 .callout-box {
-  background-color: #f0f7ff;
-  border-radius: 12px;
-  padding: 16px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  border: 1px solid #e0f0ff;
-  position: relative;
+  background-color: #eff6ff !important;
+  border: 1px solid #bfdbfe !important;
+  border-left: 4px solid #2563eb !important; /* 좌측 라인 유지 */
+  border-radius: 12px !important;
+  padding: 16px 20px !important;
+  margin: 16px 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  position: relative !important;
+  clear: both !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 .callout-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: #1e40af;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: #1e40af !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  margin: 0 !important;
 }
 
 .callout-desc {
-  font-size: 14px;
-  color: #2563eb;
-  font-weight: 600;
-  word-break: keep-all;
+  font-size: 14px !important;
+  color: #2563eb !important;
+  font-weight: 600 !important;
+  word-break: keep-all !important;
+  margin: 0 !important;
+  line-height: 1.5 !important;
 }
 
 /* 6. Attachments Grid Section */
@@ -406,15 +404,18 @@ html, body {
 }
 
 /* 8. Scrollbar Customization */
-.modal-body::-webkit-scrollbar {
+.modal-body::-webkit-scrollbar,
+.overflow-y-auto::-webkit-scrollbar {
   width: 6px;
 }
 
-.modal-body::-webkit-scrollbar-track {
+.modal-body::-webkit-scrollbar-track,
+.overflow-y-auto::-webkit-scrollbar-track {
   background: #f1f5f9;
 }
 
-.modal-body::-webkit-scrollbar-thumb {
+.modal-body::-webkit-scrollbar-thumb,
+.overflow-y-auto::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 3px;
 }
@@ -422,7 +423,7 @@ html, body {
 /* 9. Mobile Responsive Layout */
 @media (max-width: 640px) {
   .sidebar {
-    display: none; /* 모바일 사이드바 숨김 */
+    display: none;
   }
 
   .main-content {

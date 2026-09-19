@@ -2,7 +2,7 @@
    ADplanters x NOAH UNIVERSE - Global & Modal Stylesheet
    ========================================================================== */
 
-/* 기본 리셋 및 글로벌 설정 */
+/* 1. Global Reset & Layout Isolation */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -10,36 +10,118 @@
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-body {
+html, body {
+  width: 100%;
+  height: 100%;
   background-color: #f4f6f8;
   color: #333333;
+  overflow-x: hidden;
 }
 
-/* --------------------------------------------------------------------------
-   Modal Overlay & Container (겹침 방지 및 z-index 격리)
-   -------------------------------------------------------------------------- */
+/* 2. Background Watermark Isolation (배경 글자 침범 완벽 방지) */
+.bg-watermark-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none; /* 클릭 및 드래그 방지 */
+  z-index: 0; /* 최하단 레이어 격리 */
+  overflow: hidden;
+  opacity: 0.03; /* 은은한 워터마크 처리 */
+  user-select: none;
+  word-break: break-all;
+  line-height: 1.8;
+  font-size: 13px;
+  font-weight: 700;
+  color: #000000;
+}
+
+/* 3. Main Dashboard App Layout */
+.app-wrapper {
+  position: relative;
+  z-index: 1; /* 워터마크보다 위에 배치 */
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 240px;
+  background-color: #ffffff;
+  border-right: 1px solid #e2e8f0;
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.sidebar-logo {
+  font-size: 16px;
+  font-weight: 800;
+  color: #1a202c;
+  padding: 0 12px 16px 12px;
+  border-bottom: 1px solid #edf2f7;
+  margin-bottom: 12px;
+}
+
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #4a5568;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.sidebar-nav-item:hover {
+  background-color: #f7fafc;
+  color: #1a202c;
+}
+
+.sidebar-nav-item.active {
+  background-color: #ff6b00;
+  color: #ffffff;
+}
+
+/* Main Content Area */
+.main-content {
+  flex: 1;
+  padding: 32px;
+  overflow-y: auto;
+}
+
+/* 4. Modal System (레이어 고립 및 불투명 배경) */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(3px);
+  background-color: rgba(0, 0, 0, 0.5); /* 어두운 오버레이 */
+  backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 9999;
+  z-index: 99999; /* 화면 최상단 고정 */
   padding: 20px;
 }
 
+.modal-overlay.hidden {
+  display: none !important;
+}
+
 .modal-container {
-  background: #ffffff;
+  background: #ffffff !important; /* 배경 투과 방지 */
   width: 100%;
-  max-width: 800px;
+  max-width: 820px;
   max-height: 90vh;
   border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
   position: relative;
@@ -58,9 +140,7 @@ body {
   }
 }
 
-/* --------------------------------------------------------------------------
-   Modal Header & Toolbar
-   -------------------------------------------------------------------------- */
+/* Modal Header */
 .modal-header {
   padding: 28px 28px 0 28px;
   position: relative;
@@ -74,7 +154,7 @@ body {
   right: 24px;
   background: transparent;
   border: none;
-  font-size: 24px;
+  font-size: 26px;
   color: #a0aec0;
   cursor: pointer;
   line-height: 1;
@@ -144,42 +224,24 @@ body {
   background-color: #dbeafe;
 }
 
-/* --------------------------------------------------------------------------
-   Modal Body (Vertical Flow layout - 텍스트 겹침 방지 핵심)
-   -------------------------------------------------------------------------- */
+/* 5. Modal Body (Vertical Flow - 겹침 원천 차단) */
 .modal-body {
   padding: 24px 28px;
   overflow-y: auto;
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 24px; /* 각 본문 요소 간 간격 자동 유지 */
+  gap: 24px; /* 본문 요소 수직 간격 자동 보장 */
+  background-color: #ffffff;
 }
 
-/* 스크롤바 커스텀 스타일 (UI 정돈) */
-.modal-body::-webkit-scrollbar {
-  width: 6px;
-}
-
-.modal-body::-webkit-scrollbar-track {
-  background: #f1f5f9;
-}
-
-.modal-body::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
-}
-
-.modal-body::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
-/* 본문 섹션 레벨 설정 */
+/* 본문 섹션 블록 */
 .content-section {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  clear: both; /* float 요소 영향 원천 차단 */
+  position: relative;
+  clear: both;
 }
 
 .section-title {
@@ -188,6 +250,8 @@ body {
   color: #1a202c;
   line-height: 1.4;
   position: relative;
+  display: block;
+  margin: 0;
 }
 
 .section-text {
@@ -195,9 +259,11 @@ body {
   color: #4a5568;
   line-height: 1.6;
   word-break: keep-all;
+  display: block;
+  margin: 0;
 }
 
-/* 핵심 성과 공식 박스 */
+/* 콜아웃 요약 박스 */
 .callout-box {
   background-color: #f0f7ff;
   border-radius: 12px;
@@ -206,6 +272,7 @@ body {
   flex-direction: column;
   gap: 6px;
   border: 1px solid #e0f0ff;
+  position: relative;
 }
 
 .callout-title {
@@ -224,14 +291,13 @@ body {
   word-break: keep-all;
 }
 
-/* --------------------------------------------------------------------------
-   Attachments Grid & Card Layout (이미지 및 파일 제목 깨짐 방지)
-   -------------------------------------------------------------------------- */
+/* 6. Attachments Grid Section */
 .attachment-wrapper {
   margin-top: 8px;
   display: flex;
   flex-direction: column;
   gap: 14px;
+  position: relative;
   clear: both;
 }
 
@@ -291,7 +357,6 @@ body {
   align-items: center;
 }
 
-/* 긴 파일 제목 말줄임표(...) 처리 */
 .attachment-name {
   font-size: 11px;
   font-weight: 600;
@@ -313,9 +378,7 @@ body {
   gap: 2px;
 }
 
-/* --------------------------------------------------------------------------
-   Modal Footer
-   -------------------------------------------------------------------------- */
+/* 7. Modal Footer */
 .modal-footer {
   padding: 16px 28px;
   background-color: #f8fafc;
@@ -342,12 +405,32 @@ body {
   color: #1e293b;
 }
 
-/* --------------------------------------------------------------------------
-   Mobile Responsive Adjustments (추가 기능)
-   -------------------------------------------------------------------------- */
+/* 8. Scrollbar Customization */
+.modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+/* 9. Mobile Responsive Layout */
 @media (max-width: 640px) {
+  .sidebar {
+    display: none; /* 모바일 사이드바 숨김 */
+  }
+
+  .main-content {
+    padding: 16px;
+  }
+
   .modal-overlay {
-    padding: 12px;
+    padding: 10px;
   }
 
   .modal-header,

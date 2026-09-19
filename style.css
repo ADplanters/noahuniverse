@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ADplanters x NOAH UNIVERSE - Global & Modal Stylesheet (v1.1.2)
+   ADplanters x NOAH UNIVERSE - Global & Modal Stylesheet (v1.1.4)
    ========================================================================== */
 
 /* 1. Global Reset & Layout Isolation */
@@ -255,7 +255,7 @@ html, body {
   margin: 0 0 8px 0 !important;
 }
 
-/* 🌟 라운드 컬러 박스 완벽 정돈 (Tailwind prose 스타일 무력화 및 가변 높이 수용) */
+/* 라운드 컬러 박스 디자인 */
 #libViewHtmlContent .callout-box,
 .callout-box {
   border-radius: 16px !important;
@@ -274,7 +274,7 @@ html, body {
   overflow: visible !important;
 }
 
-/* 기본/파란색 스타일 (메타 가이드) */
+/* 파란색 스타일 (메타 가이드) */
 #libViewHtmlContent .callout-box.callout-blue,
 .callout-box.callout-blue,
 #libViewHtmlContent .callout-box {

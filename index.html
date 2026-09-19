@@ -35,14 +35,14 @@
     <!-- 폰트어썸 아이콘 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- 외부 CSS 연결 (캐시 무력화 파라미터 v=1.0.7 적용) -->
-    <link rel="stylesheet" href="style.css?v=1.0.7">
+    <!-- 외부 CSS 연결 (캐시 무력화 파라미터 v=1.0.8 적용) -->
+    <link rel="stylesheet" href="style.css?v=1.0.8">
 </head>
 <body class="bg-grid-pattern text-gray-800 font-sans min-h-screen relative flex flex-col justify-between overflow-x-hidden">
 
-    <!-- 🌟 화면 전체 중앙 고정 워터마크 (js에서 렌더링하며 -z-50으로 레이아웃 완벽 고립) -->
-    <div class="fixed inset-0 -z-50 pointer-events-none overflow-hidden flex items-center justify-center select-none" aria-hidden="true">
-        <div id="watermarkGrid" class="flex flex-col opacity-[0.03]" 
+    <!-- 🌟 화면 전체 중앙 고정 워터마크 (z-0으로 body 레이어 상단 노출) -->
+    <div class="fixed inset-0 z-0 pointer-events-none overflow-hidden flex items-center justify-center select-none" aria-hidden="true">
+        <div id="watermarkGrid" class="flex flex-col opacity-[0.05]" 
              style="width: 400vw; height: 400vh; transform: rotate(-20deg); gap: 2.5rem; justify-content: center; align-items: center;"></div>
     </div>
 
@@ -77,7 +77,7 @@
         </div>
     </div>
 
-    <!-- 2. 대시보드 화면 -->
+    <!-- 2. 대시보드 화면 (z-10 레이어로 워터마크 상단 배치) -->
     <div id="dashboardSection" class="hidden relative z-10 min-h-screen flex flex-col md:flex-row w-full">
         
         <div id="mobileOverlay" class="fixed inset-0 bg-black/50 z-30 hidden md:hidden backdrop-blur-sm transition-opacity"></div>
@@ -178,7 +178,7 @@
                 <div id="emptyClients" class="hidden py-12 md:py-16 text-center flex-col items-center justify-center"><i class="fa-solid fa-folder-open text-3xl md:text-4xl text-gray-300 mb-3"></i><p class="text-gray-500 font-medium text-xs md:text-sm">조회 가능한 클라이언트 데이터가 없습니다.</p></div>
             </div>
 
-            <!-- 뷰 3. 업무 / Q&A (전체 항목 오버플로우 스크롤 보장) -->
+            <!-- 뷰 3. 업무 / Q&A -->
             <div id="tasksContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8 w-full min-w-0">
                 <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-white flex-wrap gap-2">
                     <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-table-list text-hermes mr-2"></i> 업무 / Q&A</h2>
@@ -218,7 +218,7 @@
                 <div id="libraryGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 w-full"></div>
             </div>
 
-            <!-- 뷰 5. 멤버 및 권한 관리 (어드민 전용 - 전체 유저 노출 보장) -->
+            <!-- 뷰 5. 멤버 및 권한 관리 (어드민 전용 - 전체 멤버 노출 보장) -->
             <div id="membersContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8 w-full min-w-0">
                 <div class="p-4 md:p-5 border-b border-gray-100 bg-white">
                     <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-users-gear text-hermes mr-2"></i> 전체 멤버 및 권한 관리</h2>
@@ -291,7 +291,7 @@
         </main>
     </div>
 
-    <!-- 🌟 단일화된 전역 모달 영역 (중복 없는 안전한 팝업) -->
+    <!-- 🌟 전역 단일화 모달 영역 -->
     
     <!-- 클라이언트 등록 모달 -->
     <div id="clientModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
@@ -623,7 +623,7 @@
         <img id="modalImgTag" src="" alt="원본 확대 이미지" class="max-w-full max-h-full rounded-lg shadow-2xl object-contain">
     </div>
 
-    <!-- 🌟 인사이트 라이브러리 HTML 상세보기 모달 (단일화된 모달) -->
+    <!-- 인사이트 라이브러리 HTML 상세보기 모달 -->
     <div id="libraryViewModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-4xl p-5 md:p-8 shadow-2xl border border-gray-100 max-h-[95vh] overflow-y-auto flex flex-col relative">
             

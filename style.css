@@ -1,101 +1,325 @@
-/* 커스텀 배경 모눈종이 패턴 */
-.bg-grid-pattern {
-    background-color: #fcfcfc;
-    background-image: 
-        linear-gradient(to right, rgba(0, 0, 0, 0.04) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
-    background-size: 24px 24px;
+/* ==========================================================================
+   ADplanters x NOAH UNIVERSE - Global & Modal Stylesheet
+   ========================================================================== */
+
+/* 기본 리셋 및 글로벌 설정 */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-/* 선명도와 투명도가 최적화된 워터마크 레이어 */
-.watermark-container {
-    position: fixed;
-    top: -50%; 
-    left: -50%;
-    width: 200%; 
-    height: 200%;
-    z-index: 0;
-    pointer-events: none;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    gap: 36px;
-    transform: rotate(-18deg);
-    opacity: 0.07; /* 가독성과 선명도를 동시에 잡은 투명도 */
-    user-select: none;
+body {
+  background-color: #f4f6f8;
+  color: #333333;
 }
 
-/* 워터마크 개별 행 (지그재그 바둑판 오프셋) */
-.watermark-row {
-    display: flex;
-    white-space: nowrap;
-    gap: 50px;
-    font-size: 0.8rem;
-    font-weight: 900;
-    letter-spacing: 0.06em;
+/* --------------------------------------------------------------------------
+   Modal Overlay & Container (겹침 방지 및 z-index 격리)
+   -------------------------------------------------------------------------- */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(3px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  padding: 20px;
 }
 
-/* 워터마크 브랜드 컬러 */
-.wm-ad { color: #111827; }
-.wm-hermes { color: #F37021; }
-.wm-noah { color: #0047AB; }
-
-/* 촘촘한 워터마크 컨테이너 레이어 */
-.watermark-container {
-    position: fixed;
-    top: -50%; left: -50%;
-    width: 200%; height: 200%;
-    z-index: 0;
-    pointer-events: none;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    gap: 36px;
-    transform: rotate(-20deg);
-    opacity: 0.04;
-    user-select: none;
+.modal-container {
+  background: #ffffff;
+  width: 100%;
+  max-width: 800px;
+  max-height: 90vh;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  animation: modalFadeIn 0.25s ease-out;
 }
 
-/* 워터마크 개별 행 (JS에서 반복 생성) */
-.watermark-row {
-    display: flex;
-    white-space: nowrap;
-    gap: 40px;
-    font-size: 0.7rem;
-    font-weight: 800;
-    letter-spacing: 0.05em;
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* 워터마크 브랜드 컬러 적용 */
-.wm-ad { color: #111827; }
-.wm-hermes { color: #F37021; }
-.wm-noah { color: #0047AB; }
-
-/* 팝업 통통 튀는 애니메이션 */
-@keyframes bounceShort {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-8px); }
-}
-.animate-bounce-short {
-    animation: bounceShort 1.5s ease-in-out infinite;
+/* --------------------------------------------------------------------------
+   Modal Header & Toolbar
+   -------------------------------------------------------------------------- */
+.modal-header {
+  padding: 28px 28px 0 28px;
+  position: relative;
+  background-color: #ffffff;
+  flex-shrink: 0;
 }
 
-/* 테이블 및 셀 조정 전역 스타일 */
-.comment-text {
-    white-space: pre-wrap;
-    word-break: break-word;
+.modal-close-btn {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  color: #a0aec0;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px;
+  transition: color 0.2s ease;
 }
 
-#boardTable td, #boardTable th,
-#clientsTable td, #clientsTable th {
-    vertical-align: middle;
+.modal-close-btn:hover {
+  color: #2d3748;
 }
 
-#boardTable td:nth-child(1),
-#boardTable td:nth-child(2),
-#boardTable td:nth-child(6),
-#boardTable td:nth-child(7),
-#boardTable td:nth-child(8),
-#clientsTable td {
-    white-space: nowrap !important;
+.badge-category {
+  display: inline-block;
+  background-color: #fff4ec;
+  color: #ff7e36;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+
+.modal-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #1a202c;
+  line-height: 1.35;
+  margin-bottom: 16px;
+  word-break: keep-all;
+}
+
+.meta-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #edf2f7;
+  margin-bottom: 0;
+}
+
+.meta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #f7fafc;
+  color: #4a5568;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.meta-btn:hover {
+  background-color: #edf2f7;
+}
+
+.meta-btn.btn-admin {
+  color: #2563eb;
+  background-color: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.meta-btn.btn-admin:hover {
+  background-color: #dbeafe;
+}
+
+/* --------------------------------------------------------------------------
+   Modal Body (Vertical Flow layout - 텍스트 겹침 방지 핵심)
+   -------------------------------------------------------------------------- */
+.modal-body {
+  padding: 24px 28px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px; /* 각 본문 요소 간 간격 자동 유지 */
+}
+
+/* 본문 섹션 레벨 설정 */
+.content-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  clear: both; /* float 요소 영향 원천 차단 */
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a202c;
+  line-height: 1.4;
+  position: relative;
+}
+
+.section-text {
+  font-size: 15px;
+  color: #4a5568;
+  line-height: 1.6;
+  word-break: keep-all;
+}
+
+/* 핵심 성과 공식 박스 */
+.callout-box {
+  background-color: #f0f7ff;
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid #e0f0ff;
+}
+
+.callout-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e40af;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.callout-desc {
+  font-size: 14px;
+  color: #2563eb;
+  font-weight: 600;
+  word-break: keep-all;
+}
+
+/* --------------------------------------------------------------------------
+   Attachments Grid & Card Layout (이미지 및 파일 제목 깨짐 방지)
+   -------------------------------------------------------------------------- */
+.attachment-wrapper {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  clear: both;
+}
+
+.attachment-header {
+  font-size: 15px;
+  font-weight: 700;
+  color: #2d3748;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.attachment-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+
+.attachment-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.attachment-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: #cbd5e1;
+}
+
+.attachment-thumb {
+  width: 100%;
+  height: 76px;
+  object-fit: cover;
+  border-radius: 6px;
+  background-color: #f1f5f9;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.attachment-info {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+
+/* 긴 파일 제목 말줄임표(...) 처리 */
+.attachment-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  max-width: 100%;
+  display: block;
+}
+
+.attachment-download-btn {
+  font-size: 11px;
+  color: #2563eb;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   Modal Footer
+   -------------------------------------------------------------------------- */
+.modal-footer {
+  padding: 16px 28px;
+  background-color: #f8fafc;
+  border-top: 1px solid #edf2f7;
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.btn-close {
+  background-color: #e2e8f0;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 20px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.btn-close:hover {
+  background-color: #cbd5e1;
+  color: #1e293b;
 }

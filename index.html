@@ -35,12 +35,12 @@
     <!-- 폰트어썸 아이콘 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- 외부 CSS 연결 (GitHub Pages 캐시 만료 파라미터 v=1.0.5 적용) -->
-    <link rel="stylesheet" href="style.css?v=1.0.5">
+    <!-- 외부 CSS 연결 (캐시 무력화 v=1.0.6) -->
+    <link rel="stylesheet" href="style.css?v=1.0.6">
 </head>
 <body class="bg-grid-pattern text-gray-800 font-sans min-h-screen relative flex flex-col justify-between overflow-x-hidden">
 
-    <!-- 화면 전체 중앙 고정 워터마크 (최하단 고립 -z-50 및 pointer-events-none 적용) -->
+    <!-- 🌟 화면 전체 중앙 고정 워터마크 (js에서 이 영역을 재활용하여 레이아웃 밀림 해결) -->
     <div class="fixed inset-0 -z-50 pointer-events-none overflow-hidden flex items-center justify-center select-none" aria-hidden="true">
         <div id="watermarkGrid" class="flex flex-col opacity-[0.03]" 
              style="width: 400vw; height: 400vh; transform: rotate(-20deg); gap: 2.5rem; justify-content: center; align-items: center;"></div>
@@ -215,9 +215,7 @@
                         <i class="fa-solid fa-plus"></i> 콘텐츠 작성 (ADMIN)
                     </button>
                 </div>
-                
-                <div id="libraryGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 w-full">
-                </div>
+                <div id="libraryGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 w-full"></div>
             </div>
 
             <!-- 뷰 5. 멤버 및 권한 관리 (어드민 전용) -->
@@ -288,7 +286,8 @@
         </main>
     </div>
 
-    <!-- 모달 팝업 영역 -->
+    <!-- 🌟 단일화된 공통 모달 영역 (중복 제거됨) -->
+    
     <div id="clientModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-xl p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-5 border-b pb-3"><h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-address-card text-hermes mr-2"></i> 신규 클라이언트 DB 등록</h3><button id="closeClientModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button></div>
@@ -507,7 +506,6 @@
     <div id="detailModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-2xl p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[95vh] overflow-y-auto flex flex-col relative">
             
-            <!-- 닫기(X) 버튼 -->
             <button id="closeDetailModalBtn" type="button" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-1.5 rounded-lg transition z-20 cursor-pointer text-xl" title="닫기">
                 <i class="fa-solid fa-xmark"></i>
             </button>
@@ -562,8 +560,7 @@
 
             <div id="detailFileArea" class="mb-6">
                 <p class="font-bold text-gray-900 mb-1.5"><i class="fa-solid fa-paperclip text-hermes mr-1"></i> 첨부파일</p>
-                <div id="detailFileBtn" class="flex flex-wrap gap-3">
-                </div>
+                <div id="detailFileBtn" class="flex flex-wrap gap-3"></div>
             </div>
 
             <div id="authorActionArea" class="flex justify-end gap-2 mb-6 hidden">
@@ -581,7 +578,6 @@
                         <span class="text-blue-800 text-base">🗣️</span> 소통 및 답변 
                         <span id="commentCountBadge" class="text-orange-600 text-xs bg-orange-100 px-2 py-0.5 rounded-full font-bold ml-1">0</span>
                     </p>
-                    
                     <div id="adminStatusChangeArea" class="hidden flex items-center gap-2">
                         <label class="text-[10px] font-bold text-gray-500">상태 변경:</label>
                         <select id="adminStatusSelect" class="text-xs border border-gray-300 rounded p-1 focus:border-noah outline-none bg-white font-semibold">
@@ -592,8 +588,7 @@
                     </div>
                 </div>
 
-                <div id="commentListArea" class="space-y-2.5 mb-3 max-h-[350px] overflow-y-auto px-0.5">
-                </div>
+                <div id="commentListArea" class="space-y-2.5 mb-3 max-h-[350px] overflow-y-auto px-0.5"></div>
 
                 <div class="space-y-2">
                     <div id="pendingFilesPreview" class="flex flex-wrap gap-2 hidden"></div>
@@ -623,7 +618,6 @@
     <div id="libraryViewModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-4xl p-5 md:p-8 shadow-2xl border border-gray-100 max-h-[95vh] overflow-y-auto flex flex-col relative">
             
-            <!-- 상단 닫기(X) 버튼 -->
             <button id="closeLibViewModalBtn" type="button" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-1.5 rounded-lg transition z-30 cursor-pointer text-xl" title="닫기">
                 <i class="fa-solid fa-xmark"></i>
             </button>
@@ -645,8 +639,7 @@
                                     <div class="font-bold text-gray-900 border-b border-gray-100 pb-1.5 mb-2 flex items-center justify-between">
                                         <span class="flex items-center gap-1 text-blue-900"><i class="fa-solid fa-users-viewfinder text-blue-600"></i> 최근 조회 기록 (최대 10명)</span>
                                     </div>
-                                    <div id="libViewersListContent" class="space-y-1.5 max-h-48 overflow-y-auto">
-                                    </div>
+                                    <div id="libViewersListContent" class="space-y-1.5 max-h-48 overflow-y-auto"></div>
                                 </div>
                             </div>
                         </div>
@@ -662,8 +655,8 @@
                 </div>
             </div>
 
-            <!-- 본문 상세 HTML 내용 (콜아웃 박스 및 제목 겹침 방지 처리) -->
-            <div id="libViewHtmlContent" class="prose max-w-none text-sm text-gray-800 leading-relaxed min-h-[150px] mb-6 border-b pb-6 block overflow-hidden clear-both">
+            <!-- 본문 상세 HTML 내용 (콜아웃 박스 및 제목 겹침 강제 분리) -->
+            <div id="libViewHtmlContent" class="prose max-w-none text-sm text-gray-800 leading-relaxed min-h-[150px] mb-6 border-b pb-6 block overflow-hidden clear-both w-full box-border">
                 <div class="content-section">
                     <h2>1. 왜 머신러닝 기반 메타광고인가?</h2>
                     <p>메타(Meta) 광고는 단순 타겟팅을 넘어 AI 알고리즘이 구매 가능성이 가장 높은 잠재고객을 찾아내는 강력한 솔루션입니다.</p>
@@ -682,46 +675,13 @@
                 </div>
             </div>
 
-            <!-- 첨부 자료 다운로드 영역 -->
             <div id="libViewFileArea" class="mb-6 clear-both relative">
                 <p class="font-bold text-gray-900 mb-2 flex items-center gap-1">
                     <i class="fa-solid fa-paperclip text-hermes mr-1"></i> 첨부 자료 다운로드
                 </p>
-                <div id="libViewFileBtn" class="attachment-grid">
-                    <div class="attachment-card">
-                        <img src="assets/og-image.png" alt="첨부1" class="w-full h-16 object-cover rounded-md mb-2 bg-slate-100" onerror="this.src='https://via.placeholder.com/150x100/2563eb/ffffff?text=Meta+Guide'">
-                        <span class="text-[11px] font-semibold text-slate-700 truncate w-full block">메타 타겟광고 효과 극대화</span>
-                        <span class="text-[10px] text-blue-600 font-bold mt-1">📥 다운로드</span>
-                    </div>
-                    <div class="attachment-card">
-                        <img src="assets/og-image.png" alt="첨부2" class="w-full h-16 object-cover rounded-md mb-2 bg-slate-100" onerror="this.src='https://via.placeholder.com/150x100/0284c7/ffffff?text=Cost+Setup'">
-                        <span class="text-[11px] font-semibold text-slate-700 truncate w-full block">압도적 비용 효율의 비밀</span>
-                        <span class="text-[10px] text-blue-600 font-bold mt-1">📥 다운로드</span>
-                    </div>
-                    <div class="attachment-card">
-                        <img src="assets/og-image.png" alt="첨부3" class="w-full h-16 object-cover rounded-md mb-2 bg-slate-100" onerror="this.src='https://via.placeholder.com/150x100/0d9488/ffffff?text=ML+Optimize'">
-                        <span class="text-[11px] font-semibold text-slate-700 truncate w-full block">업체 목적별 맞춤형 세팅</span>
-                        <span class="text-[10px] text-blue-600 font-bold mt-1">📥 다운로드</span>
-                    </div>
-                    <div class="attachment-card">
-                        <img src="assets/og-image.png" alt="첨부4" class="w-full h-16 object-cover rounded-md mb-2 bg-slate-100" onerror="this.src='https://via.placeholder.com/150x100/4f46e5/ffffff?text=Lookalike'">
-                        <span class="text-[11px] font-semibold text-slate-700 truncate w-full block">50억 이상 광고비 집행</span>
-                        <span class="text-[10px] text-blue-600 font-bold mt-1">📥 다운로드</span>
-                    </div>
-                    <div class="attachment-card">
-                        <img src="assets/og-image.png" alt="첨부5" class="w-full h-16 object-cover rounded-md mb-2 bg-slate-100" onerror="this.src='https://via.placeholder.com/150x100/0891b2/ffffff?text=ROAS+Strategy'">
-                        <span class="text-[11px] font-semibold text-slate-700 truncate w-full block">최단기 성과 확인 전략</span>
-                        <span class="text-[10px] text-blue-600 font-bold mt-1">📥 다운로드</span>
-                    </div>
-                    <div class="attachment-card">
-                        <img src="assets/og-image.png" alt="첨부6" class="w-full h-16 object-cover rounded-md mb-2 bg-slate-100" onerror="this.src='https://via.placeholder.com/150x100/2563eb/ffffff?text=Free+Consult'">
-                        <span class="text-[11px] font-semibold text-slate-700 truncate w-full block">Meta 타겟광고 무료 진단</span>
-                        <span class="text-[10px] text-blue-600 font-bold mt-1">📥 다운로드</span>
-                    </div>
-                </div>
+                <div id="libViewFileBtn" class="attachment-grid"></div>
             </div>
 
-            <!-- 하단 닫기 버튼 -->
             <div class="flex justify-end items-center mt-auto border-t pt-4">
                 <button id="closeLibViewBtn" type="button" class="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-xs font-bold cursor-pointer transition">닫기</button>
             </div>

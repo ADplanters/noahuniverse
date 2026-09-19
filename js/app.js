@@ -1,3 +1,8 @@
+/**
+ * ADplanters x NOAH UNIVERSE - Application Main Module
+ * File Location: ./js/app.js
+ */
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, getDocs, query, where, deleteDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -99,7 +104,6 @@ function safeAddListener(id, eventType, callback) {
     }
 }
 
-// 모바일 사이드바 햄버거 메뉴 토글 전용 유틸리티
 function toggleMobileSidebar(forceState) {
     const sidebarEl = document.getElementById('sidebar');
     const overlayEl = document.getElementById('mobileOverlay');
@@ -119,43 +123,28 @@ function toggleMobileSidebar(forceState) {
     }
 }
 
-// 최상위 관리자 권한 확인
 function checkIsAdmin() {
-    if (currentUserRole === 'admin') {
-        return true;
-    }
-    if (auth.currentUser && ADMIN_EMAILS.includes(auth.currentUser.email)) {
-        return true;
-    }
+    if (currentUserRole === 'admin') return true;
+    if (auth.currentUser && ADMIN_EMAILS.includes(auth.currentUser.email)) return true;
     return false;
 }
 
-// 작성자 본인 확인 로직
 function checkIsAuthor(task) {
-    if (!auth.currentUser || !task) {
-        return false;
-    }
+    if (!auth.currentUser || !task) return false;
     return (task.staff === currentUserName) || 
            (task.email === auth.currentUser.email) || 
            (task.uid === auth.currentUser.uid);
 }
 
-/**
- * 고유 URL 기반 탭 전환 및 최상위 관리자 권한 검증 라우터
- * @param {string} tabName - 이동할 탭 구분값 (dashboard, clients, inquiries, library, members, approvals, logs)
- * @param {boolean} pushHistory - URL 히스토리 누적 여부
- */
 function switchTab(tabName, pushHistory = true) {
     const adminOnlyTabs = ['members', 'approvals', 'logs'];
     const isAdmin = checkIsAdmin();
 
-    // 최상위 관리자 전용 탭 비권한 계정 접근 제어
     if (adminOnlyTabs.includes(tabName) && !isAdmin) {
         alert("최상위 관리자(Admin) 권한이 필요한 메뉴입니다.");
         tabName = 'dashboard';
     }
 
-    // URL 쿼리 파라미터 갱신 (?tab=메뉴명)
     if (pushHistory) {
         const newUrl = `${window.location.pathname}?tab=${tabName}`;
         window.history.pushState({ tab: tabName }, '', newUrl);
@@ -163,7 +152,6 @@ function switchTab(tabName, pushHistory = true) {
 
     toggleMobileSidebar(false);
 
-    // 네비게이션 버튼 UI 활성화 스타일 교체
     navItems.forEach(n => {
         const m = n.getAttribute('data-menu');
         if (m === tabName) {
@@ -173,7 +161,6 @@ function switchTab(tabName, pushHistory = true) {
         }
     });
 
-    // 모든 컨테이너 숨김
     if (statsContainer) statsContainer.classList.add('hidden');
     if (tasksContainer) tasksContainer.classList.add('hidden');
     if (clientsContainer) clientsContainer.classList.add('hidden');
@@ -182,7 +169,6 @@ function switchTab(tabName, pushHistory = true) {
     if (logsContainer) logsContainer.classList.add('hidden');
     if (libraryContainer) libraryContainer.classList.add('hidden');
 
-    // 선택 탭 컨테이너 노출 및 데이터 페치
     if (tabName === 'dashboard') {
         if (statsContainer) statsContainer.classList.remove('hidden');
         if (tasksContainer) tasksContainer.classList.remove('hidden');
@@ -208,9 +194,6 @@ function switchTab(tabName, pushHistory = true) {
     }
 }
 
-/**
- * 24시간 이내 등록된 신규 데이터 존재 여부를 검사하여 메뉴 옆에 빨간색 고급 알림 표식을 표시하는 로직
- */
 function checkAllNavBadges() {
     const NOW = Date.now();
     const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
@@ -232,30 +215,15 @@ function checkAllNavBadges() {
     let hasNewClients = false;
     let hasNewLibrary = false;
 
-    Object.values(tasksMap).forEach(t => {
-        if (isWithin24Hours(t.createdAt || t.date)) {
-            hasNewInquiries = true;
-        }
-    });
-
-    Object.values(clientsMap).forEach(c => {
-        if (isWithin24Hours(c.createdAt)) {
-            hasNewClients = true;
-        }
-    });
-
-    Object.values(libraryMap).forEach(l => {
-        if (isWithin24Hours(l.createdAt)) {
-            hasNewLibrary = true;
-        }
-    });
+    Object.values(tasksMap).forEach(t => { if (isWithin24Hours(t.createdAt || t.date)) hasNewInquiries = true; });
+    Object.values(clientsMap).forEach(c => { if (isWithin24Hours(c.createdAt)) hasNewClients = true; });
+    Object.values(libraryMap).forEach(l => { if (isWithin24Hours(l.createdAt)) hasNewLibrary = true; });
 
     const setMenuBadge = (menuName, showBadge) => {
         const targetLinks = document.querySelectorAll(`.nav-item[data-menu="${menuName}"]`);
         targetLinks.forEach(link => {
             const existingBadge = link.querySelector('.nav-new-badge');
             if (existingBadge) existingBadge.remove();
-
             if (showBadge) {
                 const badgeEl = document.createElement('span');
                 badgeEl.className = 'nav-new-badge ml-auto relative flex h-2.5 w-2.5 shrink-0 self-center';
@@ -273,31 +241,25 @@ function checkAllNavBadges() {
     setMenuBadge('library', hasNewLibrary);
 }
 
-// 사선 지그재그 바둑판 패턴 워터마크 동적 생성
+// 🌟 사선 지그재그 바둑판 패턴 워터마크 렌더링 (레이아웃 밀림 방지를 위해 기존 HTML 요소 활용)
 function renderWatermark() {
-    if (document.getElementById('autoWatermarkLayer')) {
-        return;
-    }
-    
-    const container = document.createElement('div');
-    container.id = 'autoWatermarkLayer';
-    container.className = 'watermark-container';
+    const container = document.getElementById('watermarkGrid');
+    if (!container || container.innerHTML.trim() !== '') return;
 
     let rowsHtml = '';
+    const textRow = "ADplanters X NOAH UNIVERSE COMPANY ";
     for (let i = 0; i < 24; i++) {
         const shiftStyle = (i % 2 === 0) ? 'margin-left: 0px;' : 'margin-left: 140px;';
-        rowsHtml += `<div class="watermark-row" style="${shiftStyle}">`;
+        rowsHtml += `<div class="whitespace-nowrap font-black text-sm tracking-widest text-slate-900 select-none" style="${shiftStyle}">`;
         for (let j = 0; j < 10; j++) {
-            rowsHtml += `<span class="wm-ad">ADplanters</span> <span class="wm-hermes">✕</span> <span class="wm-noah">NOAH UNIVERSE COMPANY</span>`;
+            rowsHtml += `<span style="margin-right:1rem;">${textRow}</span>`;
         }
         rowsHtml += `</div>`;
     }
     
     container.innerHTML = rowsHtml;
-    document.body.prepend(container);
 }
 
-// 이미지 원본 보기 전용 모달 (ESC / 배경 클릭 닫기 지원)
 function openImageModal(imgUrl) {
     let modal = document.getElementById('globalImageModal');
     
@@ -330,9 +292,7 @@ function openImageModal(imgUrl) {
 // 모든 모달 닫기
 function closeAllModals() {
     const globalImgModal = document.getElementById('globalImageModal');
-    if (globalImgModal) {
-        globalImgModal.classList.add('hidden');
-    }
+    if (globalImgModal) globalImgModal.classList.add('hidden');
 
     const modals = [
         createModal, editTaskModal, clientModal, 
@@ -346,28 +306,27 @@ function closeAllModals() {
         }
     });
     
+    document.body.style.overflow = ''; // 스크롤 잠금 일괄 해제
+    
     const urlParams = new URLSearchParams(window.location.search);
     const activeTab = urlParams.get('tab') || 'dashboard';
     window.history.pushState({ tab: activeTab }, '', `${window.location.pathname}?tab=${activeTab}`);
 }
 
-// 키보드 ESC 키 감지 모달 닫기
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         closeAllModals();
     }
 });
 
-// 모달 바깥 배경 클릭 및 내부 X(닫기) / 취소 버튼 강제 바인딩 (클라이언트 창 오류 해결)
+// 모달 바깥 배경 클릭 및 내부 X/취소 버튼 강제 바인딩
 [createModal, editTaskModal, clientModal, editClientModal, assignModal, detailModal, libraryViewModal, libraryEditModal, pendingModal].forEach(modalEl => {
     if (modalEl) {
         modalEl.addEventListener('click', (e) => {
-            if (e.target === modalEl) {
-                closeAllModals();
-            }
+            if (e.target === modalEl) closeAllModals();
         });
 
-        const closeBtns = modalEl.querySelectorAll('.fa-xmark, button[title="닫기"]');
+        const closeBtns = modalEl.querySelectorAll('.fa-xmark, button[title="닫기"], #closeLibViewModalBtn, #closeLibViewBtn');
         closeBtns.forEach(icon => {
             const btn = icon.closest('button') || icon;
             btn.addEventListener('click', (e) => {
@@ -388,7 +347,6 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// 조회수 뱃지 클릭 시 최근 방문자 툴팁 토글 동작
 safeAddListener('viewCountBadgeBtn', 'click', (e) => {
     e.stopPropagation();
     const tooltip = document.getElementById('viewersTooltip');
@@ -403,7 +361,6 @@ safeAddListener('viewCountBadgeBtn', 'click', (e) => {
     }
 });
 
-// 🌟 인사이트 라이브러리 전용 조회수 뱃지 클릭 시 툴팁 토글
 safeAddListener('libViewCountBadgeBtn', 'click', (e) => {
     e.stopPropagation();
     const tooltip = document.getElementById('libViewersTooltip');
@@ -418,9 +375,7 @@ safeAddListener('libViewCountBadgeBtn', 'click', (e) => {
     }
 });
 
-// 전역 클릭 이벤트 핸들러
 document.addEventListener('click', (e) => {
-    // 로고 클릭 감지 -> 파트너 통합 보드(?tab=dashboard) 이동
     const logoTrigger = e.target.closest('#mobileLogoBtn') || e.target.closest('#sidebarLogoBtn') || e.target.closest('.logo-home-btn');
     if (logoTrigger) {
         e.preventDefault();
@@ -458,7 +413,6 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 신규 이슈 등록 버튼 전용 클릭 수신
     const openTaskModalBtn = e.target.closest('#openModalBtn');
     if (openTaskModalBtn && createModal) {
         e.preventDefault();
@@ -468,7 +422,6 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 신규 클라이언트 추가 버튼 전용 클릭 수신
     const addClientBtn = e.target.closest('#openClientModalBtn');
     if (addClientBtn && clientModal) {
         e.preventDefault();
@@ -483,9 +436,7 @@ document.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
         const url = imgTrigger.getAttribute('data-url');
-        if (url) {
-            openImageModal(url);
-        }
+        if (url) openImageModal(url);
     }
 
     const shareTrigger = e.target.closest('#shareLinkBtn') || (e.target.closest('button') && e.target.closest('button').textContent.includes('링크 복사'));
@@ -502,32 +453,23 @@ document.addEventListener('click', (e) => {
     }
 });
 
-/**
- * Firebase Storage 원본 파일 업로드 (디버깅 강화 및 완벽 파일명 정제)
- */
 async function uploadFilesToStorage(fileList, folderName) {
     const uploadedFiles = [];
     const filesArray = Array.from(fileList); 
 
     for (let i = 0; i < filesArray.length; i++) {
         const file = filesArray[i];
-        
         const extIndex = file.name.lastIndexOf('.');
         const nameWithoutExt = extIndex !== -1 ? file.name.substring(0, extIndex) : file.name;
         const ext = extIndex !== -1 ? file.name.substring(extIndex) : '';
-        
         const safeName = nameWithoutExt.replace(/[^a-zA-Z0-9._-]/g, '_');
-        
         const uniqueFileName = `${Date.now()}_${Math.floor(Math.random()*1000)}_${safeName}${ext}`;
         const storageReference = ref(storage, `${folderName}/${uniqueFileName}`);
         
         try {
             await uploadBytes(storageReference, file);
             const downloadUrl = await getDownloadURL(storageReference);
-            uploadedFiles.push({ 
-                fileName: file.name, 
-                fileUrl: downloadUrl 
-            });
+            uploadedFiles.push({ fileName: file.name, fileUrl: downloadUrl });
         } catch (error) {
             console.error("Storage 업로드 상세 오류 객체:", error);
             const detailMsg = error.code ? `코드: ${error.code} / 메시지: ${error.message}` : error.message;
@@ -537,11 +479,9 @@ async function uploadFilesToStorage(fileList, folderName) {
     return uploadedFiles;
 }
 
-// 드래그 & 드롭 기본 이벤트 차단 및 스타일 핸들러
 function setupDragAndDrop(dropAreaId, fileInputId) {
     const dropArea = document.getElementById(dropAreaId);
     const fileInput = document.getElementById(fileInputId);
-    
     if (!dropArea) return;
 
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -573,7 +513,6 @@ function setupDragAndDrop(dropAreaId, fileInputId) {
     }
 }
 
-// 이미지 파일 판별 헬퍼
 function isImageFile(fileName, url) {
     const imgExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp'];
     const lowerName = (fileName || '').toLowerCase();
@@ -582,11 +521,6 @@ function isImageFile(fileName, url) {
     return isDataImg || imgExts.some(ext => lowerName.endsWith(ext) || lowerUrl.includes(ext));
 }
 
-/**
- * 첨부파일 렌더링 헬퍼 (테이블 목록 / 상세 모달 이중화 지원)
- * @param {Object} item - 파일 목록을 포함하는 객체 ({ files: [...] })
- * @param {boolean} isTableList - true일 경우 목록용 콤팩트 뱃지([이미지 1], [파일 1])로 표시
- */
 function renderFileButtons(item, isTableList = false) {
     if (item.files && item.files.length > 0) {
         return item.files.map((f, idx) => {
@@ -624,11 +558,8 @@ function renderFileButtons(item, isTableList = false) {
     return `<span class="text-gray-300 text-[10px] whitespace-nowrap">첨부파일 없음</span>`;
 }
 
-// 활동 로그 기록 (IP 주소 수집 포함)
 async function logActivity(action, details = "") {
-    if (!auth.currentUser) {
-        return;
-    }
+    if (!auth.currentUser) return;
     try {
         await addDoc(collection(db, "activity_logs"), {
             uid: auth.currentUser.uid,
@@ -644,7 +575,6 @@ async function logActivity(action, details = "") {
     }
 }
 
-// 클립보드 복사 헬퍼
 function copyToClipboard(text, label = "링크") {
     if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(text).then(() => {
@@ -657,7 +587,6 @@ function copyToClipboard(text, label = "링크") {
     }
 }
 
-// 예비 클립보드 복사 헬퍼
 function fallbackCopyToClipboard(text, label = "링크") {
     const textArea = document.createElement("textarea");
     textArea.value = text;
@@ -676,10 +605,8 @@ function fallbackCopyToClipboard(text, label = "링크") {
 }
 
 // ============================================================================
-// 4. 인증 및 사용자 권한 제어 (예외 안전 처리 강화)
+// 4. 인증 및 사용자 권한 제어
 // ============================================================================
-
-// 리디렉션 로그인 리턴 처리 (페이지 로드 시)
 getRedirectResult(auth).catch((error) => {
     if (error && error.code !== 'auth/popup-closed-by-user') {
         console.error("Redirect 로그인 에러 객체:", error);
@@ -692,16 +619,13 @@ onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUserName = user.displayName || (user.email ? user.email.split('@')[0] : "담당자");
         const staffInput = document.getElementById('inputStaff');
-        if(staffInput) {
-            staffInput.value = currentUserName;
-        }
+        if(staffInput) staffInput.value = currentUserName;
 
         if(!isInitialLoginLogged) {
             logActivity("로그인", "시스템에 성공적으로 접속했습니다.");
             isInitialLoginLogged = true;
         }
 
-        // ADMIN_EMAILS 목록 지정 관리자 자동 승인
         if (ADMIN_EMAILS.includes(user.email)) {
             currentUserRole = 'admin';
             try {
@@ -719,7 +643,6 @@ onAuthStateChanged(auth, async (user) => {
             return;
         }
 
-        // 이메일 기반 기존 UID 자동 매핑 및 예외 안전 처리
         try {
             const userRef = doc(db, "users", user.uid);
             const userSnap = await getDoc(userRef);
@@ -811,7 +734,6 @@ function showDashboard(user) {
     setupDragAndDrop('inputContent', 'inputFile');
     initNewCommentDragAndDrop();
 
-    // URL 쿼리 파라미터 기반 초기 탭 딥링크 파싱 및 이동 (?tab=메뉴명)
     const urlParams = new URLSearchParams(window.location.search);
     const initialTab = urlParams.get('tab') || urlParams.get('menu') || 'dashboard';
     switchTab(initialTab, false);
@@ -824,7 +746,7 @@ function showPendingPopup() {
 }
 
 // ============================================================================
-// 5. 업무 이슈/요청 게시판 (신규 작성 및 삭제)
+// 5. 업무 이슈/요청 게시판
 // ============================================================================
 safeAddListener('openModalBtn', 'click', () => {
     if (createModal) {
@@ -919,9 +841,6 @@ async function deleteTask(taskId) {
     }
 }
 
-/**
- * 수정 모달 오픈 (클라이언트, 분류, 소속, 제목, 본문, 담당자 등 전체 항목 바인딩)
- */
 function openEditTaskModal(taskId) {
     const task = tasksMap[taskId];
     if (!task) return;
@@ -939,7 +858,6 @@ function openEditTaskModal(taskId) {
     if (agencyIn) agencyIn.value = task.agency || 'noah';
     if (contentIn) contentIn.value = task.content || '';
 
-    // Admin일 경우 담당자 지정 체크박스 리스트 바인딩
     const editAssignArea = document.getElementById('editAssignManagerArea');
     const editAssignList = document.getElementById('editAssignManagerList');
     if (editAssignArea && editAssignList && checkIsAdmin()) {
@@ -1092,9 +1010,6 @@ function bindAssignSubmitEvents() {
     }
 }
 
-/**
- * 게시글 수정 폼 저장 핸들러 (클라이언트, 분류, 소속, 제목, 본문, 담당자, 파일 전체 갱신)
- */
 safeAddListener('editTaskForm', 'submit', async (e) => {
     e.preventDefault();
     if (!currentDetailTaskId) return;
@@ -1123,13 +1038,11 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
             updatedAt: new Date().toISOString()
         };
 
-        // 첨부파일 신규 선택 시 업로드 반영
         if (fileInput && fileInput.files.length > 0) {
             const newFiles = await uploadFilesToStorage(fileInput.files, "crm_tasks");
             updatedData.files = newFiles;
         }
 
-        // Admin 담당자 변경 체크박스 갱신 반영
         if (checkIsAdmin()) {
             const checkboxes = editTaskModal.querySelectorAll('.edit-assign-manager-checkbox:checked');
             if (checkboxes.length > 0 || editTaskModal.querySelector('.edit-assign-manager-checkbox')) {
@@ -1138,8 +1051,6 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
         }
 
         await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), updatedData);
-        
-        // 메모리 객체 동기화
         Object.assign(tasksMap[currentDetailTaskId], updatedData);
 
         if (editTaskModal) {
@@ -1161,9 +1072,6 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
     }
 });
 
-/**
- * 업무 이슈 요청 게시판 리스트 불러오기 (등록일 바로 아래 눈 아이콘과 누적 조회수 복구)
- */
 async function fetchTasks() {
     const tbody = document.getElementById('boardTable');
     const emptyState = document.getElementById('emptyState');
@@ -1286,9 +1194,6 @@ async function fetchTasks() {
     } catch (e) { console.error("Firestore error:", e); }
 }
 
-/**
- * 게시글 상세 모달 오픈 (지정 담당자 ID 바인딩 교정 + 소속 매핑 공란 수정 + 조회수/IP 수집 렌더링)
- */
 async function openDetailModal(taskId) {
     const task = tasksMap[taskId];
     if(!task) return;
@@ -1314,7 +1219,6 @@ async function openDetailModal(taskId) {
     newCommentSelectedFiles = [];
     renderNewCommentFilePreviews();
 
-    // 조회 기록 및 IP 객체 누적 생성 (최대 10개 유지)
     const newViewerObj = {
         name: currentUserName || "사용자",
         ip: currentClientIP,
@@ -1333,13 +1237,11 @@ async function openDetailModal(taskId) {
         });
     } catch (e) { console.error("View increment error:", e); }
 
-    // 모달 상단 조회수 숫자 교체
     const viewCountNumEl = document.getElementById('detailViewCountNum');
     if (viewCountNumEl) {
         viewCountNumEl.innerText = task.views;
     }
 
-    // 최근 10명 방문자 리스트 및 IP 툴팁 HTML 렌더링
     const viewersListContentEl = document.getElementById('viewersListContent');
     if (viewersListContentEl) {
         if (!task.viewers || task.viewers.length === 0) {
@@ -1413,7 +1315,6 @@ async function openDetailModal(taskId) {
         ? task.assignedManagers.join(', ') 
         : '미지정';
 
-    // 지정 담당자 ID 매핑 완벽 수정
     const detailAssignEl = document.getElementById('detailAssignManager') || document.getElementById('detailAssign') || document.getElementById('detailAssignedManagers');
     if (detailAssignEl) {
         detailAssignEl.innerText = assignedStr;
@@ -1422,7 +1323,6 @@ async function openDetailModal(taskId) {
 
     document.getElementById('detailDate').innerText = task.date || '-';
 
-    // 소속 (Agency) noah -> 노아유니버스 / adplanters -> 애드플랜터스 정밀 매핑
     const agencyNameMap = { 'noah': '노아유니버스', 'adplanters': '애드플랜터스' };
     const detailAgencyEl = document.getElementById('detailAgency');
     if (detailAgencyEl) {
@@ -1536,7 +1436,7 @@ function bindInlineEditMode(taskId) {
 }
 
 // ============================================================================
-// 7. 소통 댓글 모듈 (미리보기 렌더링 + 인라인 수정 + 다중 파일 끌어놓기)
+// 7. 소통 댓글 모듈
 // ============================================================================
 
 function renderNewCommentFilePreviews() {
@@ -1883,7 +1783,6 @@ function renderComments(commentsArr) {
     });
 }
 
-// 신규 댓글 등록 버튼 이벤트
 safeAddListener('submitNewCommentBtn', 'click', async () => {
     if(!currentDetailTaskId) return;
     const task = tasksMap[currentDetailTaskId];
@@ -1943,10 +1842,8 @@ safeAddListener('submitNewCommentBtn', 'click', async () => {
 });
 
 // ============================================================================
-// 8. 클라이언트 관리 (날짜 저장 복구 및 수정/삭제 연동)
+// 8. 클라이언트 관리
 // ============================================================================
-
-// 신규 클라이언트 추가 폼 처리
 safeAddListener('clientForm', 'submit', async (e) => {
     e.preventDefault();
     if (!clientModal) return;
@@ -2267,9 +2164,6 @@ async function fetchLibraryItems() {
     } catch (e) { console.error("Library fetch error:", e); }
 }
 
-/**
- * 🌟 인사이트 라이브러리 상세보기 모달 오픈 (조회수 누적, 최근 10인 IP 툴팁, 최상위 관리자 수정버튼, 첨부 자료 다운로드 렌더링)
- */
 async function openLibraryViewModal(id) {
     const item = libraryMap[id];
     if (!item) return;
@@ -2280,7 +2174,6 @@ async function openLibraryViewModal(id) {
     const newUrl = `${window.location.pathname}?tab=${activeTab}&libId=${id}`;
     window.history.pushState({ tab: activeTab, libId: id }, '', newUrl);
 
-    // 조회 기록 및 IP 객체 누적 생성 (최대 10개)
     const newViewerObj = {
         name: currentUserName || "사용자",
         ip: currentClientIP,
@@ -2303,13 +2196,11 @@ async function openLibraryViewModal(id) {
     if (document.getElementById('libViewTitle')) document.getElementById('libViewTitle').innerText = item.title;
     if (document.getElementById('libViewHtmlContent')) document.getElementById('libViewHtmlContent').innerHTML = item.htmlContent || '<p>상세 내용이 없습니다.</p>';
 
-    // 모달 상단 조회수 숫자 교체
     const libViewCountNumEl = document.getElementById('libViewCountNum');
     if (libViewCountNumEl) {
         libViewCountNumEl.innerText = item.views;
     }
 
-    // 최근 10명 방문자 리스트 및 IP 툴팁 HTML 렌더링
     const libViewersListContentEl = document.getElementById('libViewersListContent');
     if (libViewersListContentEl) {
         if (!item.viewers || item.viewers.length === 0) {
@@ -2329,13 +2220,12 @@ async function openLibraryViewModal(id) {
         }
     }
 
-    // 최상위 관리자 전용 수정 버튼 제어 및 클릭 바인딩
     const libViewEditBtn = document.getElementById('libViewEditBtn');
     if (libViewEditBtn) {
         if (checkIsAdmin()) {
             libViewEditBtn.classList.remove('hidden');
             libViewEditBtn.onclick = () => {
-                libraryViewModal.classList.add('hidden');
+                if (libraryViewModal) libraryViewModal.classList.add('hidden');
                 openLibraryEditModal(id);
             };
         } else {
@@ -2343,19 +2233,18 @@ async function openLibraryViewModal(id) {
         }
     }
 
-    // 첨부 자료 다운로드 렌더링
     const libViewFileBtn = document.getElementById('libViewFileBtn');
     if (libViewFileBtn) {
         libViewFileBtn.innerHTML = renderFileButtons(item, false);
     }
 
-    if (libraryViewModal) libraryViewModal.classList.remove('hidden');
+    if (libraryViewModal) {
+        libraryViewModal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden'; 
+    }
     logActivity("라이브러리 열람", `[${item.title}] 가이드북 HTML 열람`);
 }
 
-/**
- * 🌟 라이브러리 수정 모달 오픈
- */
 function openLibraryEditModal(id) {
     const item = libraryMap[id];
     if (!item) return;
@@ -2373,7 +2262,6 @@ function openLibraryEditModal(id) {
     }
 }
 
-// 🌟 인사이트 라이브러리 폼 제출 (신규 작성 및 수정 저장)
 safeAddListener('libraryForm', 'submit', async (e) => {
     e.preventDefault();
     const submitBtn = libraryEditModal.querySelector('button[type="submit"]');
@@ -2432,7 +2320,7 @@ safeAddListener('libraryForm', 'submit', async (e) => {
 });
 
 // ============================================================================
-// 10. 멤버 관리 / 승인 관리 / 로그 모니터링 모듈 (IP 컬럼 렌더링 포함)
+// 10. 멤버 관리 / 승인 관리 / 로그 모니터링 모듈
 // ============================================================================
 async function fetchMembers() {
     const isAdmin = checkIsAdmin();
@@ -2575,9 +2463,6 @@ async function fetchApprovals() {
     } catch (error) { console.error("유저 로드 에러:", error); }
 }
 
-/**
- * 접속 및 작업 이력 로그 조회 (IP 주소 항목 포함 렌더링)
- */
 async function fetchLogs() {
     const isAdmin = checkIsAdmin();
     if(!isAdmin) return;
@@ -2629,8 +2514,6 @@ async function fetchLogs() {
 // ============================================================================
 // 11. 네비게이션 및 로그인 핸들러 연동
 // ============================================================================
-
-// Google 인증 로그인 예비/디버깅 처리 강화
 safeAddListener('googleLoginBtn', 'click', async () => {
     try {
         await signInWithPopup(auth, provider);
@@ -2655,7 +2538,6 @@ safeAddListener('googleLoginBtn', 'click', async () => {
 safeAddListener('logoutBtn', 'click', () => signOut(auth));
 safeAddListener('closePendingBtn', 'click', () => signOut(auth));
 
-// 메뉴 탭 클릭 시 고유 URL 딥링크 저장 및 라우팅 수행
 navItems.forEach(item => {
     item.addEventListener('click', (e) => {
         e.preventDefault();
@@ -2664,7 +2546,6 @@ navItems.forEach(item => {
     });
 });
 
-// 브라우저 뒤로가기 / 앞으로가기 클릭 시 탭 상태 자동 동기화
 window.addEventListener('popstate', (e) => {
     const urlParams = new URLSearchParams(window.location.search);
     const currentTab = urlParams.get('tab') || urlParams.get('menu') || 'dashboard';
@@ -2678,39 +2559,29 @@ window.addEventListener('popstate', (e) => {
     }
 });
 
-const boardTableEl = document.getElementById('boardTable');
-if (boardTableEl) {
-    boardTableEl.addEventListener('click', (e) => {
-        if (e.target.closest('.download-link') || e.target.closest('.img-preview-btn')) return;
-
-        const delBtn = e.target.closest('.delete-task-btn');
-        if (delBtn) {
-            e.stopPropagation();
-            const taskId = delBtn.getAttribute('data-id');
-            if (taskId) deleteTask(taskId);
-            return;
-        }
-
-        const editBtn = e.target.closest('.edit-task-btn');
+const libraryGridEl = document.getElementById('libraryGrid');
+if (libraryGridEl) {
+    libraryGridEl.addEventListener('click', (e) => {
+        const editBtn = e.target.closest('.edit-lib-btn');
         if (editBtn) {
             e.stopPropagation();
-            const taskId = editBtn.getAttribute('data-id');
-            if (taskId) openEditTaskModal(taskId);
+            const libId = editBtn.getAttribute('data-id');
+            if (libId) openLibraryEditModal(libId);
             return;
         }
 
-        const assignBtn = e.target.closest('.assign-task-btn');
-        if (assignBtn) {
+        const delBtn = e.target.closest('.delete-lib-btn');
+        if (delBtn) {
             e.stopPropagation();
-            const taskId = assignBtn.getAttribute('data-id');
-            if (taskId) openAssignModal(taskId);
+            const libId = delBtn.getAttribute('data-id');
+            const item = libraryMap[libId];
+            if (item && confirm(`[${item.title}] 라이브러리를 삭제하시겠습니까?`)) {
+                deleteDoc(doc(db, "crm_library", libId)).then(() => {
+                    alert("삭제되었습니다.");
+                    fetchLibraryItems();
+                }).catch(err => alert("삭제 실패: " + err.message));
+            }
             return;
-        }
-
-        const row = e.target.closest('.task-detail-trigger');
-        if (row) {
-            const taskId = row.getAttribute('data-id');
-            if (taskId) openDetailModal(taskId);
         }
     });
 }

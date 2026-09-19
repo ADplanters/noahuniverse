@@ -241,7 +241,7 @@ function checkAllNavBadges() {
     setMenuBadge('library', hasNewLibrary);
 }
 
-// 🌟 사선 지그재그 워터마크 동적 렌더링 (HTML 요소 활용으로 상단 레이아웃 밀림 방지)
+// 🌟 사선 지그재그 워터마크 동적 렌더링 (HTML 요소 활용 및 투명도 반영)
 function renderWatermark() {
     const container = document.getElementById('watermarkGrid');
     if (!container || container.children.length > 0) return;
@@ -375,7 +375,7 @@ safeAddListener('libViewCountBadgeBtn', 'click', (e) => {
     }
 });
 
-// 🌟 전역 문서 레벨 클릭 위임 (수정, 담당자, 삭제 버튼 이벤트 실행)
+// 🌟 전역 문서 레벨 클릭 위임 (수정, 담당자, 삭제 및 게시글 제목/클라이언트 클릭 시 상세 창 자동 열기)
 document.addEventListener('click', (e) => {
     // 1. 관리 버튼: 수정 (Edit Task)
     const editBtn = e.target.closest('.edit-task-btn');
@@ -407,7 +407,15 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 4. 로고 클릭
+    // 4. 게시글 행 / 제목 / 클라이언트 셀 클릭 시 자동 상세 창 열기
+    const taskRow = e.target.closest('.task-detail-trigger');
+    if (taskRow && !e.target.closest('a') && !e.target.closest('button')) {
+        const taskId = taskRow.getAttribute('data-id');
+        if (taskId) openDetailModal(taskId);
+        return;
+    }
+
+    // 5. 로고 클릭
     const logoTrigger = e.target.closest('#mobileLogoBtn') || e.target.closest('#sidebarLogoBtn') || e.target.closest('.logo-home-btn');
     if (logoTrigger) {
         e.preventDefault();
@@ -417,7 +425,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 5. 사이드바 / 모바일 메뉴 제어
+    // 6. 사이드바 / 모바일 메뉴 제어
     const closeSidebarTrigger = e.target.closest('#closeSidebarBtn') || 
                                 e.target.closest('#closeSidebar') || 
                                 (e.target.closest('button') && e.target.closest('button').querySelector('#closeSidebarBtn'));
@@ -446,7 +454,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 6. 신규 모달 오픈 버튼
+    // 7. 신규 모달 오픈 버튼
     const openTaskModalBtn = e.target.closest('#openModalBtn');
     if (openTaskModalBtn && createModal) {
         e.preventDefault();
@@ -465,7 +473,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 7. 이미지 프리뷰
+    // 8. 이미지 프리뷰
     const imgTrigger = e.target.closest('.img-preview-btn');
     if (imgTrigger) {
         e.preventDefault();
@@ -474,7 +482,7 @@ document.addEventListener('click', (e) => {
         if (url) openImageModal(url);
     }
 
-    // 8. 공유 링크 복사
+    // 9. 공유 링크 복사
     const shareTrigger = e.target.closest('#shareLinkBtn') || (e.target.closest('button') && e.target.closest('button').textContent.includes('링크 복사'));
     if (shareTrigger) {
         e.preventDefault();
@@ -493,6 +501,7 @@ document.addEventListener('click', (e) => {
 window.openEditTaskModal = openEditTaskModal;
 window.openAssignModal = openAssignModal;
 window.deleteTask = deleteTask;
+window.openDetailModal = openDetailModal;
 
 async function uploadFilesToStorage(fileList, folderName) {
     const uploadedFiles = [];
@@ -646,7 +655,7 @@ function fallbackCopyToClipboard(text, label = "링크") {
 }
 
 // ============================================================================
-// 4. 인증 및 사용자 권한 제어 (유저 DB 파괴 방지 파이프라인)
+// 4. 인증 및 사용자 권한 제어
 // ============================================================================
 getRedirectResult(auth).catch((error) => {
     if (error && error.code !== 'auth/popup-closed-by-user') {
@@ -684,7 +693,6 @@ onAuthStateChanged(auth, async (user) => {
             return;
         }
 
-        // 🌟 유저 유실을 유발하던 deleteDoc 제거 및 안전한 setDoc merge 보장
         try {
             const userRef = doc(db, "users", user.uid);
             const userSnap = await getDoc(userRef);
@@ -762,7 +770,7 @@ function showPendingPopup() {
 }
 
 // ============================================================================
-// 5. 업무 이슈/요청 게시판 (전체 게시글 수집 및 노출 보장)
+// 5. 업무 이슈/요청 게시판
 // ============================================================================
 safeAddListener('openModalBtn', 'click', () => {
     if (createModal) {
@@ -1087,7 +1095,6 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
     }
 });
 
-// 🌟 업무 Q&A 전체 글 로딩 및 렌더링
 async function fetchTasks() {
     const tbody = document.getElementById('boardTable');
     const emptyState = document.getElementById('emptyState');
@@ -1128,9 +1135,9 @@ async function fetchTasks() {
                 adminActions = `
                     <td class="p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col align-middle whitespace-nowrap">
                         <div class="flex items-center justify-center gap-1">
-                            <button type="button" class="edit-task-btn bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-2 py-1 rounded transition text-[11px] font-bold whitespace-nowrap" data-id="${item.id}">수정</button>
-                            <button type="button" class="assign-task-btn bg-orange-50 text-hermes hover:bg-hermes hover:text-white px-2 py-1 rounded transition text-[11px] font-bold whitespace-nowrap" data-id="${item.id}">담당자</button>
-                            <button type="button" class="delete-task-btn bg-red-50 text-red-500 hover:bg-red-500 hover:text-white px-2 py-1 rounded transition text-[11px] font-bold whitespace-nowrap" data-id="${item.id}" data-t="${item.title}">삭제</button>
+                            <button type="button" class="edit-task-btn bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-2 py-1 rounded transition text-[11px] font-bold whitespace-nowrap cursor-pointer" data-id="${item.id}">수정</button>
+                            <button type="button" class="assign-task-btn bg-orange-50 text-hermes hover:bg-hermes hover:text-white px-2 py-1 rounded transition text-[11px] font-bold whitespace-nowrap cursor-pointer" data-id="${item.id}">담당자</button>
+                            <button type="button" class="delete-task-btn bg-red-50 text-red-500 hover:bg-red-500 hover:text-white px-2 py-1 rounded transition text-[11px] font-bold whitespace-nowrap cursor-pointer" data-id="${item.id}" data-t="${item.title}">삭제</button>
                         </div>
                     </td>
                 `;
@@ -1138,7 +1145,7 @@ async function fetchTasks() {
                 adminActions = `
                     <td class="p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col align-middle whitespace-nowrap">
                         <div class="flex items-center justify-center gap-1">
-                            <button type="button" class="edit-task-btn bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-2 py-1 rounded transition text-[11px] font-bold whitespace-nowrap" data-id="${item.id}">수정</button>
+                            <button type="button" class="edit-task-btn bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-2 py-1 rounded transition text-[11px] font-bold whitespace-nowrap cursor-pointer" data-id="${item.id}">수정</button>
                         </div>
                     </td>
                 `;
@@ -2329,7 +2336,7 @@ safeAddListener('libraryForm', 'submit', async (e) => {
 });
 
 // ============================================================================
-// 10. 멤버 관리 / 승인 관리 / 로그 모니터링 모듈 (전체 멤버 표시 보장)
+// 10. 멤버 관리 / 승인 관리 / 로그 모니터링 모듈
 // ============================================================================
 async function fetchMembers() {
     const isAdmin = checkIsAdmin();

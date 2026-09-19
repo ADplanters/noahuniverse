@@ -241,7 +241,7 @@ function checkAllNavBadges() {
     setMenuBadge('library', hasNewLibrary);
 }
 
-// 🌟 사선 지그재그 워터마크 동적 렌더링 (HTML 요소 재활용으로 상단 레이아웃 밀림 방지)
+// 🌟 사선 지그재그 워터마크 동적 렌더링 (HTML 요소 활용으로 상단 레이아웃 밀림 방지)
 function renderWatermark() {
     const container = document.getElementById('watermarkGrid');
     if (!container || container.children.length > 0) return;
@@ -250,7 +250,7 @@ function renderWatermark() {
     const textRow = "ADplanters X NOAH UNIVERSE COMPANY ";
     for (let i = 0; i < 24; i++) {
         const shiftStyle = (i % 2 === 0) ? 'margin-left: 0px;' : 'margin-left: 140px;';
-        rowsHtml += `<div class="whitespace-nowrap font-black text-sm tracking-widest text-slate-900 select-none" style="${shiftStyle}">`;
+        rowsHtml += `<div class="whitespace-nowrap font-black text-sm tracking-widest text-slate-800 select-none" style="${shiftStyle}">`;
         for (let j = 0; j < 8; j++) {
             rowsHtml += `<span style="margin-right:1.5rem;">${textRow}</span>`;
         }
@@ -375,7 +375,39 @@ safeAddListener('libViewCountBadgeBtn', 'click', (e) => {
     }
 });
 
+// 🌟 전역 문서 레벨 클릭 위임 (수정, 담당자, 삭제 버튼 이벤트 실행)
 document.addEventListener('click', (e) => {
+    // 1. 관리 버튼: 수정 (Edit Task)
+    const editBtn = e.target.closest('.edit-task-btn');
+    if (editBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const taskId = editBtn.getAttribute('data-id');
+        if (taskId) openEditTaskModal(taskId);
+        return;
+    }
+
+    // 2. 관리 버튼: 담당자 배정 (Assign Task)
+    const assignBtn = e.target.closest('.assign-task-btn');
+    if (assignBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const taskId = assignBtn.getAttribute('data-id');
+        if (taskId) openAssignModal(taskId);
+        return;
+    }
+
+    // 3. 관리 버튼: 삭제 (Delete Task)
+    const delBtn = e.target.closest('.delete-task-btn');
+    if (delBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const taskId = delBtn.getAttribute('data-id');
+        if (taskId) deleteTask(taskId);
+        return;
+    }
+
+    // 4. 로고 클릭
     const logoTrigger = e.target.closest('#mobileLogoBtn') || e.target.closest('#sidebarLogoBtn') || e.target.closest('.logo-home-btn');
     if (logoTrigger) {
         e.preventDefault();
@@ -385,6 +417,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
+    // 5. 사이드바 / 모바일 메뉴 제어
     const closeSidebarTrigger = e.target.closest('#closeSidebarBtn') || 
                                 e.target.closest('#closeSidebar') || 
                                 (e.target.closest('button') && e.target.closest('button').querySelector('#closeSidebarBtn'));
@@ -413,6 +446,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
+    // 6. 신규 모달 오픈 버튼
     const openTaskModalBtn = e.target.closest('#openModalBtn');
     if (openTaskModalBtn && createModal) {
         e.preventDefault();
@@ -431,6 +465,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
+    // 7. 이미지 프리뷰
     const imgTrigger = e.target.closest('.img-preview-btn');
     if (imgTrigger) {
         e.preventDefault();
@@ -439,6 +474,7 @@ document.addEventListener('click', (e) => {
         if (url) openImageModal(url);
     }
 
+    // 8. 공유 링크 복사
     const shareTrigger = e.target.closest('#shareLinkBtn') || (e.target.closest('button') && e.target.closest('button').textContent.includes('링크 복사'));
     if (shareTrigger) {
         e.preventDefault();
@@ -452,6 +488,11 @@ document.addEventListener('click', (e) => {
         }
     }
 });
+
+// 전역 윈도우 스코프 함수 연결
+window.openEditTaskModal = openEditTaskModal;
+window.openAssignModal = openAssignModal;
+window.deleteTask = deleteTask;
 
 async function uploadFilesToStorage(fileList, folderName) {
     const uploadedFiles = [];
@@ -2288,7 +2329,7 @@ safeAddListener('libraryForm', 'submit', async (e) => {
 });
 
 // ============================================================================
-// 10. 멤버 관리 / 승인 관리 / 로그 모니터링 모듈 (전체 유저 표시 보장)
+// 10. 멤버 관리 / 승인 관리 / 로그 모니터링 모듈 (전체 멤버 표시 보장)
 // ============================================================================
 async function fetchMembers() {
     const isAdmin = checkIsAdmin();

@@ -35,14 +35,14 @@
     <!-- 폰트어썸 아이콘 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- 외부 CSS 연결 (GitHub Pages 캐시 강제 만료 파라미터 v=1.0.3 적용) -->
-    <link rel="stylesheet" href="style.css?v=1.0.3">
+    <!-- 외부 CSS 연결 (GitHub Pages 캐시 만료 파라미터 v=1.0.5 적용) -->
+    <link rel="stylesheet" href="style.css?v=1.0.5">
 </head>
 <body class="bg-grid-pattern text-gray-800 font-sans min-h-screen relative flex flex-col justify-between overflow-x-hidden">
 
-    <!-- 화면 전체 중앙 고정 워터마크 (최하단 레이어 고립 -z-10) -->
-    <div class="fixed inset-0 -z-10 pointer-events-none overflow-hidden flex items-center justify-center select-none" aria-hidden="true">
-        <div id="watermarkGrid" class="flex flex-col opacity-[0.06]" 
+    <!-- 화면 전체 중앙 고정 워터마크 (최하단 고립 -z-50 및 pointer-events-none 적용) -->
+    <div class="fixed inset-0 -z-50 pointer-events-none overflow-hidden flex items-center justify-center select-none" aria-hidden="true">
+        <div id="watermarkGrid" class="flex flex-col opacity-[0.03]" 
              style="width: 400vw; height: 400vh; transform: rotate(-20deg); gap: 2.5rem; justify-content: center; align-items: center;"></div>
     </div>
 
@@ -82,7 +82,7 @@
         
         <div id="mobileOverlay" class="fixed inset-0 bg-black/50 z-30 hidden md:hidden backdrop-blur-sm transition-opacity"></div>
 
-        <!-- 모바일 탑바 (로고 클릭 시 메인 파트너 통합 보드로 이동) -->
+        <!-- 모바일 탑바 -->
         <div class="md:hidden flex justify-between items-center bg-white/90 backdrop-blur-md px-4 py-3 border-b border-gray-200 sticky top-0 z-20">
             <div id="mobileLogoBtn" class="text-lg font-black tracking-tighter cursor-pointer logo-home-btn select-none" title="파트너 통합 보드로 이동">
                 <span class="text-hermes">ADplanters</span><span class="text-gray-300 mx-1">✕</span><span class="text-noah text-xs">NOAH</span>
@@ -258,7 +258,7 @@
                 <div id="emptyApprovals" class="hidden py-12 md:py-16 text-center flex-col items-center justify-center"><i class="fa-solid fa-user-check text-3xl md:text-4xl text-gray-300 mb-3"></i><p class="text-gray-500 font-medium text-xs md:text-sm">가입 대기 중인 유저가 없습니다.</p></div>
             </div>
 
-            <!-- 뷰 7. 접속 및 작업 이력 로그 (어드민 전용 - IP 컬럼 포함) -->
+            <!-- 뷰 7. 접속 및 작업 이력 로그 (어드민 전용) -->
             <div id="logsContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8 w-full min-w-0">
                 <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-white flex-wrap gap-3">
                     <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-clock-rotate-left text-hermes mr-2"></i> 시스템 접속 및 작업 이력</h2>
@@ -507,7 +507,7 @@
     <div id="detailModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-2xl p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[95vh] overflow-y-auto flex flex-col relative">
             
-            <!-- 닫기(X) 버튼 우측 최상단 고정 배치 -->
+            <!-- 닫기(X) 버튼 -->
             <button id="closeDetailModalBtn" type="button" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-1.5 rounded-lg transition z-20 cursor-pointer text-xl" title="닫기">
                 <i class="fa-solid fa-xmark"></i>
             </button>
@@ -520,9 +520,7 @@
                     </div>
                     <h3 id="detailTitle" class="text-lg md:text-xl font-black text-gray-900 leading-tight mb-3">게시글 제목 영역</h3>
                     
-                    <!-- 액션 버튼 및 조회수 뱃지 행 -->
                     <div class="flex flex-wrap items-center gap-2">
-                        <!-- 눈 모양 조회수 표시 및 최근 10명 방문자 IP 툴팁 -->
                         <div id="viewCountBadgeWrapper" class="relative inline-block group">
                             <button type="button" id="viewCountBadgeBtn" class="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-[10px] sm:text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer">
                                 <i class="fa-regular fa-eye text-blue-600"></i>
@@ -540,7 +538,6 @@
                             </div>
                         </div>
 
-                        <!-- 작성자/관리자 전용 기능 버튼 영역 -->
                         <div id="detailTaskActions" class="inline-flex flex-wrap items-center gap-1.5"></div>
 
                         <button id="shareLinkBtn" type="button" class="px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 text-hermes border border-orange-200 rounded-lg text-[10px] sm:text-xs font-bold transition flex items-center gap-1 shadow-sm cursor-pointer" title="고유 URL 복사">
@@ -622,27 +619,25 @@
         <img id="modalImgTag" src="" alt="원본 확대 이미지" class="max-w-full max-h-full rounded-lg shadow-2xl object-contain">
     </div>
 
-    <!-- 🌟 인사이트 라이브러리 HTML 상세보기 모달 (타이틀/첨부 레이아웃 겹침 완벽 방지 처리) -->
+    <!-- 🌟 인사이트 라이브러리 HTML 상세보기 모달 (단일화된 정상 작동 모달) -->
     <div id="libraryViewModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-4xl p-5 md:p-8 shadow-2xl border border-gray-100 max-h-[95vh] overflow-y-auto flex flex-col relative">
             
-            <!-- 닫기(X) 버튼 -->
-            <button id="closeLibViewModalBtn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-1.5 rounded-lg transition z-20 cursor-pointer text-xl" title="닫기">
+            <!-- 상단 닫기(X) 버튼 -->
+            <button id="closeLibViewModalBtn" type="button" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-1.5 rounded-lg transition z-30 cursor-pointer text-xl" title="닫기">
                 <i class="fa-solid fa-xmark"></i>
             </button>
 
             <div class="flex justify-between items-start mb-4 border-b pb-4 pr-8">
                 <div class="w-full">
-                    <span id="libViewCategory" class="inline-block px-2.5 py-1 bg-orange-50 text-hermes text-[11px] font-bold rounded-md border border-orange-100 mb-2"></span>
-                    <h3 id="libViewTitle" class="text-xl md:text-2xl font-black text-gray-900 leading-tight mb-3"></h3>
+                    <span id="libViewCategory" class="inline-block px-2.5 py-1 bg-orange-50 text-hermes text-[11px] font-bold rounded-md border border-orange-100 mb-2">퍼포먼스 마케팅</span>
+                    <h3 id="libViewTitle" class="text-xl md:text-2xl font-black text-gray-900 leading-tight mb-3">메타(Meta) 광고 100% 활용 가이드</h3>
                     
-                    <!-- 액션 버튼 및 조회수 뱃지 행 -->
                     <div class="flex flex-wrap items-center gap-2">
-                        <!-- 눈 모양 조회수 표시 및 최근 10명 방문자 IP 툴팁 -->
                         <div id="libViewCountBadgeWrapper" class="relative inline-block group">
                             <button type="button" id="libViewCountBadgeBtn" class="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-[10px] sm:text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer">
                                 <i class="fa-regular fa-eye text-blue-600"></i>
-                                <span id="libViewCountNum">0</span>
+                                <span id="libViewCountNum">15</span>
                             </button>
 
                             <div id="libViewersTooltip" class="invisible opacity-0 group-hover:visible group-hover:opacity-100 absolute left-0 top-full mt-1.5 w-72 sm:w-80 z-50 transition-all duration-200 pointer-events-none group-hover:pointer-events-auto">
@@ -656,8 +651,7 @@
                             </div>
                         </div>
 
-                        <!-- 최상위 관리자 전용 수정 버튼 -->
-                        <button id="libViewEditBtn" type="button" class="admin-only-col hidden px-2.5 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white border border-blue-200 rounded-lg text-[10px] sm:text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer">
+                        <button id="libViewEditBtn" type="button" class="admin-only-col px-2.5 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white border border-blue-200 rounded-lg text-[10px] sm:text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer">
                             <i class="fa-solid fa-pen-to-square"></i> 수정 (ADMIN)
                         </button>
 
@@ -668,26 +662,73 @@
                 </div>
             </div>
 
-            <!-- 커스텀 HTML 영역 (prose + clear-both 및 flow 제어로 겹침 해결) -->
-            <div id="libViewHtmlContent" class="prose max-w-none text-sm text-gray-800 leading-relaxed min-h-[150px] mb-6 border-b pb-6 clear-both overflow-hidden block"></div>
+            <!-- 본문 상세 HTML 내용 (콜아웃 박스 및 제목 겹침 방지 처리) -->
+            <div id="libViewHtmlContent" class="prose max-w-none text-sm text-gray-800 leading-relaxed min-h-[150px] mb-6 border-b pb-6 block overflow-hidden clear-both">
+                <div class="content-section">
+                    <h2>1. 왜 머신러닝 기반 메타광고인가?</h2>
+                    <p>메타(Meta) 광고는 단순 타겟팅을 넘어 AI 알고리즘이 구매 가능성이 가장 높은 잠재고객을 찾아내는 강력한 솔루션입니다.</p>
+                    
+                    <div class="callout-box">
+                        <div class="callout-title">💡 핵심 성과 공식</div>
+                        <div class="callout-desc">
+                            고품질 소재(이미지/숏폼) + 타겟 세분화 + 메타 픽셀 데이터 연동 = ROAS 극대화
+                        </div>
+                    </div>
+                </div>
 
-            <!-- 🌟 첨부 자료 다운로드 영역 -->
+                <div class="content-section">
+                    <h2>2. 성공을 위한 3단계 세팅법</h2>
+                    <p>효율적인 캠페인 구조 설계와 맞춤 타겟 설정을 통해 전환율을 극대화할 수 있는 단계별 프로세스를 확인하세요.</p>
+                </div>
+            </div>
+
+            <!-- 첨부 자료 다운로드 영역 -->
             <div id="libViewFileArea" class="mb-6 clear-both relative">
                 <p class="font-bold text-gray-900 mb-2 flex items-center gap-1">
                     <i class="fa-solid fa-paperclip text-hermes mr-1"></i> 첨부 자료 다운로드
                 </p>
-                <div id="libViewFileBtn" class="flex flex-wrap gap-3">
+                <div id="libViewFileBtn" class="attachment-grid">
+                    <div class="attachment-card">
+                        <img src="assets/og-image.png" alt="첨부1" class="w-full h-16 object-cover rounded-md mb-2 bg-slate-100" onerror="this.src='https://via.placeholder.com/150x100/2563eb/ffffff?text=Meta+Guide'">
+                        <span class="text-[11px] font-semibold text-slate-700 truncate w-full block">메타 타겟광고 효과 극대화</span>
+                        <span class="text-[10px] text-blue-600 font-bold mt-1">📥 다운로드</span>
+                    </div>
+                    <div class="attachment-card">
+                        <img src="assets/og-image.png" alt="첨부2" class="w-full h-16 object-cover rounded-md mb-2 bg-slate-100" onerror="this.src='https://via.placeholder.com/150x100/0284c7/ffffff?text=Cost+Setup'">
+                        <span class="text-[11px] font-semibold text-slate-700 truncate w-full block">압도적 비용 효율의 비밀</span>
+                        <span class="text-[10px] text-blue-600 font-bold mt-1">📥 다운로드</span>
+                    </div>
+                    <div class="attachment-card">
+                        <img src="assets/og-image.png" alt="첨부3" class="w-full h-16 object-cover rounded-md mb-2 bg-slate-100" onerror="this.src='https://via.placeholder.com/150x100/0d9488/ffffff?text=ML+Optimize'">
+                        <span class="text-[11px] font-semibold text-slate-700 truncate w-full block">업체 목적별 맞춤형 세팅</span>
+                        <span class="text-[10px] text-blue-600 font-bold mt-1">📥 다운로드</span>
+                    </div>
+                    <div class="attachment-card">
+                        <img src="assets/og-image.png" alt="첨부4" class="w-full h-16 object-cover rounded-md mb-2 bg-slate-100" onerror="this.src='https://via.placeholder.com/150x100/4f46e5/ffffff?text=Lookalike'">
+                        <span class="text-[11px] font-semibold text-slate-700 truncate w-full block">50억 이상 광고비 집행</span>
+                        <span class="text-[10px] text-blue-600 font-bold mt-1">📥 다운로드</span>
+                    </div>
+                    <div class="attachment-card">
+                        <img src="assets/og-image.png" alt="첨부5" class="w-full h-16 object-cover rounded-md mb-2 bg-slate-100" onerror="this.src='https://via.placeholder.com/150x100/0891b2/ffffff?text=ROAS+Strategy'">
+                        <span class="text-[11px] font-semibold text-slate-700 truncate w-full block">최단기 성과 확인 전략</span>
+                        <span class="text-[10px] text-blue-600 font-bold mt-1">📥 다운로드</span>
+                    </div>
+                    <div class="attachment-card">
+                        <img src="assets/og-image.png" alt="첨부6" class="w-full h-16 object-cover rounded-md mb-2 bg-slate-100" onerror="this.src='https://via.placeholder.com/150x100/2563eb/ffffff?text=Free+Consult'">
+                        <span class="text-[11px] font-semibold text-slate-700 truncate w-full block">Meta 타겟광고 무료 진단</span>
+                        <span class="text-[10px] text-blue-600 font-bold mt-1">📥 다운로드</span>
+                    </div>
                 </div>
             </div>
 
-            <!-- 🌟 하단 닫기 버튼 우측 단독 배치 -->
+            <!-- 하단 닫기 버튼 -->
             <div class="flex justify-end items-center mt-auto border-t pt-4">
-                <button id="closeLibViewBtn" class="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-xs font-bold">닫기</button>
+                <button id="closeLibViewBtn" type="button" class="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-xs font-bold cursor-pointer transition">닫기</button>
             </div>
         </div>
     </div>
 
-    <!-- 🌟 인사이트 라이브러리 작성/수정 모달 (Admin 전용 - 자료 파일 첨부 기능 포함) -->
+    <!-- 인사이트 라이브러리 작성/수정 모달 -->
     <div id="libraryEditModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-2xl p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-5 border-b pb-3">

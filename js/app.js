@@ -241,7 +241,7 @@ function checkAllNavBadges() {
     setMenuBadge('library', hasNewLibrary);
 }
 
-// 🌟 사선 지그재그 워터마크 동적 렌더링
+// 사선 지그재그 워터마크 동적 렌더링
 function renderWatermark() {
     const container = document.getElementById('watermarkGrid');
     if (!container || container.children.length > 0) return;
@@ -375,7 +375,7 @@ safeAddListener('libViewCountBadgeBtn', 'click', (e) => {
     }
 });
 
-// 🌟 전역 클릭 이벤트 핸들러 (게시글 제목 / 클라이언트 셀 클릭 시 자동 상세 보기)
+// 전역 클릭 이벤트 핸들러
 document.addEventListener('click', (e) => {
     // 1. 관리 버튼: 수정 (Edit Task)
     const editBtn = e.target.closest('.edit-task-btn');

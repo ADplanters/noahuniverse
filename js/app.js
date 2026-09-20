@@ -375,8 +375,21 @@ safeAddListener('libViewCountBadgeBtn', 'click', (e) => {
     }
 });
 
-// 전역 클릭 이벤트 핸들러
+// 🌟 전역 클릭 이벤트 핸들러
 document.addEventListener('click', (e) => {
+    // 🌟 0. ID / PW 원클릭 복사 버튼 처리 추가
+    const copyTextBtn = e.target.closest('.copy-text-btn');
+    if (copyTextBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const textToCopy = copyTextBtn.getAttribute('data-copy');
+        const labelName = copyTextBtn.getAttribute('title') || '계정 정보';
+        if (textToCopy) {
+            copyToClipboard(textToCopy, labelName);
+        }
+        return;
+    }
+
     // 1. 관리 버튼: 수정 (Edit Task)
     const editBtn = e.target.closest('.edit-task-btn');
     if (editBtn) {
@@ -1095,7 +1108,6 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
     }
 });
 
-// 🌟 업무 Q&A 전체 글 로딩 및 렌더링
 async function fetchTasks() {
     const tbody = document.getElementById('boardTable');
     const emptyState = document.getElementById('emptyState');
@@ -1859,7 +1871,7 @@ safeAddListener('submitNewCommentBtn', 'click', async () => {
 });
 
 // ============================================================================
-// 8. 클라이언트 관리
+// 8. 클라이언트 관리 (복사 기능이 적용된 테이블 렌더링)
 // ============================================================================
 safeAddListener('clientForm', 'submit', async (e) => {
     e.preventDefault();
@@ -1995,6 +2007,7 @@ safeAddListener('editClientForm', 'submit', async (e) => {
     }
 });
 
+// 🌟 클라이언트 리스트 렌더링 (ID/PW 원클릭 복사 버튼 및 아이콘 포함)
 async function fetchClients() {
     const tbody = document.getElementById('clientsTable');
     const emptyState = document.getElementById('emptyClients');
@@ -2070,6 +2083,19 @@ async function fetchClients() {
                     </div>
                 </td>` : `<td class="admin-only-col hidden"></td>`;
 
+            // 🌟 메타 계정 ID / PW 바로 옆 원클릭 복사 버튼 적용
+            const copyIdBtn = data.metaId ? `
+                <button type="button" class="copy-text-btn text-gray-400 hover:text-hermes transition p-0.5 rounded cursor-pointer" data-copy="${data.metaId}" title="ID 복사">
+                    <i class="fa-regular fa-copy text-[11px]"></i>
+                </button>
+            ` : '';
+
+            const copyPwBtn = data.metaPw ? `
+                <button type="button" class="copy-text-btn text-gray-400 hover:text-hermes transition p-0.5 rounded cursor-pointer" data-copy="${data.metaPw}" title="PW 복사">
+                    <i class="fa-regular fa-copy text-[11px]"></i>
+                </button>
+            ` : '';
+
             const tr = `
                 <tr class="hover:bg-orange-50/30 transition border-b border-gray-100 break-keep">
                     <td class="p-3 md:p-4 font-black text-gray-900 align-middle whitespace-nowrap">${data.name}</td>
@@ -2078,8 +2104,14 @@ async function fetchClients() {
                         ${data.instaUrl ? `<a href="${data.instaUrl}" target="_blank" class="text-pink-500 hover:underline"><i class="fa-brands fa-instagram"></i> 인스타</a>` : ''}
                     </td>
                     <td class="p-3 md:p-4 text-xs align-middle whitespace-nowrap">
-                        <div class="text-gray-700 font-medium">ID: ${data.metaId || '-'}</div>
-                        <div class="text-gray-900 font-bold flex items-center gap-1 mt-0.5">PW: ${data.metaPw || '-'}</div>
+                        <div class="text-gray-700 font-medium flex items-center gap-1.5">
+                            <span>ID: ${data.metaId || '-'}</span>
+                            ${copyIdBtn}
+                        </div>
+                        <div class="text-gray-900 font-bold flex items-center gap-1.5 mt-0.5">
+                            <span>PW: ${data.metaPw || '-'}</span>
+                            ${copyPwBtn}
+                        </div>
                     </td>
                     <td class="p-3 md:p-4 font-bold text-hermes text-xs align-middle whitespace-nowrap">${data.budget || '-'}</td>
                     <td class="p-3 md:p-4 text-xs text-gray-600 align-middle whitespace-nowrap"><div>인스타: ${data.instaDate || '-'}</div><div>메타: ${data.metaDate || '-'}</div></td>

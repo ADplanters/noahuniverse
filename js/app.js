@@ -241,7 +241,7 @@ function checkAllNavBadges() {
     setMenuBadge('library', hasNewLibrary);
 }
 
-// 워터마크 동적 렌더링
+// 사선 지그재그 워터마크 동적 렌더링
 function renderWatermark() {
     const container = document.getElementById('watermarkGrid');
     if (!container || container.children.length > 0) return;
@@ -407,7 +407,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 4. 게시글 행 / 제목 / 클라이언트 셀 클릭 시 자동 상세 창 오픈
+    // 4. 게시글 행 클릭 시 자동 상세 창 오픈
     const taskRow = e.target.closest('.task-detail-trigger');
     if (taskRow && !e.target.closest('a') && !e.target.closest('button')) {
         const taskId = taskRow.getAttribute('data-id');
@@ -766,11 +766,11 @@ function showDashboard(user) {
 function showPendingPopup() {
     if(loginSection) loginSection.classList.remove('hidden');
     if(dashboardSection) dashboardSection.classList.add('hidden');
-    if(pendingModal) pendingModal.classList.add('hidden');
+    if(pendingModal) pendingModal.classList.remove('hidden');
 }
 
 // ============================================================================
-// 5. 업무 이슈/요청 게시판 (전체 게시글 수집 및 노출 보장)
+// 5. 업무 이슈/요청 게시판
 // ============================================================================
 safeAddListener('openModalBtn', 'click', () => {
     if (createModal) {

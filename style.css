@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ADplanters x NOAH UNIVERSE - Global & Modal Stylesheet (v1.1.6)
+   ADplanters x NOAH UNIVERSE - Global & Modal Stylesheet (v1.1.7)
    ========================================================================== */
 
 /* 1. Global Reset & Layout Isolation */
@@ -18,7 +18,7 @@ html, body {
   overflow-x: hidden;
 }
 
-/* 2. Background Watermark Isolation (배경 워터마크 z-index: 0 노출) */
+/* 2. Background Watermark Isolation */
 #watermarkGrid,
 .bg-watermark-container,
 .watermark-container {
@@ -92,7 +92,7 @@ html, body {
   overflow-y: auto;
 }
 
-/* 4. Modal System (2차원 상하좌우 스크롤 지원) */
+/* 4. Modal System (2차원 스크롤 지원) */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -215,7 +215,7 @@ html, body {
   background-color: #dbeafe;
 }
 
-/* 5. Modal Body (상하/좌우 2D 스크롤 활성화) */
+/* 5. Modal Body (Vertical Flow) */
 .modal-body {
   padding: 24px 28px;
   overflow-x: auto !important;

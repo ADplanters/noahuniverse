@@ -241,7 +241,7 @@ function checkAllNavBadges() {
     setMenuBadge('library', hasNewLibrary);
 }
 
-// 사선 지그재그 워터마크 동적 렌더링
+// 🌟 사선 지그재그 워터마크 동적 렌더링
 function renderWatermark() {
     const container = document.getElementById('watermarkGrid');
     if (!container || container.children.length > 0) return;
@@ -347,37 +347,57 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-safeAddListener('viewCountBadgeBtn', 'click', (e) => {
-    e.stopPropagation();
-    const tooltip = document.getElementById('viewersTooltip');
-    if (tooltip) {
-        if (tooltip.classList.contains('invisible')) {
-            tooltip.classList.remove('invisible', 'opacity-0', 'pointer-events-none');
-            tooltip.classList.add('visible', 'opacity-100', 'pointer-events-auto');
-        } else {
+// 🌟 툴팁 일괄 닫기 헬퍼
+function hideAllViewersTooltips() {
+    ['viewersTooltip', 'libViewersTooltip'].forEach(id => {
+        const tooltip = document.getElementById(id);
+        if (tooltip) {
             tooltip.classList.add('invisible', 'opacity-0', 'pointer-events-none');
             tooltip.classList.remove('visible', 'opacity-100', 'pointer-events-auto');
         }
-    }
-});
+    });
+}
 
-safeAddListener('libViewCountBadgeBtn', 'click', (e) => {
-    e.stopPropagation();
-    const tooltip = document.getElementById('libViewersTooltip');
-    if (tooltip) {
-        if (tooltip.classList.contains('invisible')) {
-            tooltip.classList.remove('invisible', 'opacity-0', 'pointer-events-none');
-            tooltip.classList.add('visible', 'opacity-100', 'pointer-events-auto');
-        } else {
-            tooltip.classList.add('invisible', 'opacity-0', 'pointer-events-none');
-            tooltip.classList.remove('visible', 'opacity-100', 'pointer-events-auto');
-        }
+// 🌟 툴팁 토글 헬퍼
+function toggleViewerTooltip(tooltipId, e) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    const tooltip = document.getElementById(tooltipId);
+    if (!tooltip) return;
+
+    const isCurrentlyVisible = !tooltip.classList.contains('invisible') && tooltip.classList.contains('visible');
+
+    hideAllViewersTooltips();
+
+    if (!isCurrentlyVisible) {
+        tooltip.classList.remove('invisible', 'opacity-0', 'pointer-events-none');
+        tooltip.classList.add('visible', 'opacity-100', 'pointer-events-auto');
+    }
+}
+
+safeAddListener('viewCountBadgeBtn', 'click', (e) => toggleViewerTooltip('viewersTooltip', e));
+safeAddListener('libViewCountBadgeBtn', 'click', (e) => toggleViewerTooltip('libViewersTooltip', e));
+
+// 🌟 마우스 이탈 시 툴팁 자동 닫기 (데스크톱 대응)
+['viewCountBadgeWrapper', 'libViewCountBadgeWrapper'].forEach(wrapperId => {
+    const wrapper = document.getElementById(wrapperId);
+    if (wrapper) {
+        wrapper.addEventListener('mouseleave', () => {
+            hideAllViewersTooltips();
+        });
     }
 });
 
 // 🌟 전역 클릭 이벤트 핸들러
 document.addEventListener('click', (e) => {
-    // 🌟 0. ID / PW 원클릭 복사 버튼 처리 추가
+    // 툴팁 외부 클릭 시 자동 닫기 (모바일 및 데스크톱)
+    if (!e.target.closest('#viewCountBadgeWrapper') && !e.target.closest('#libViewCountBadgeWrapper')) {
+        hideAllViewersTooltips();
+    }
+
+    // 0. ID / PW 원클릭 복사 버튼 처리
     const copyTextBtn = e.target.closest('.copy-text-btn');
     if (copyTextBtn) {
         e.preventDefault();
@@ -783,7 +803,7 @@ function showPendingPopup() {
 }
 
 // ============================================================================
-// 5. 업무 이슈/요청 게시판
+// 5. 업무 이슈/요청 게시판 (전체 게시글 수집 및 노출 보장)
 // ============================================================================
 safeAddListener('openModalBtn', 'click', () => {
     if (createModal) {
@@ -1108,6 +1128,7 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
     }
 });
 
+// 🌟 업무 Q&A 전체 글 로딩 및 렌더링
 async function fetchTasks() {
     const tbody = document.getElementById('boardTable');
     const emptyState = document.getElementById('emptyState');
@@ -2007,7 +2028,6 @@ safeAddListener('editClientForm', 'submit', async (e) => {
     }
 });
 
-// 🌟 클라이언트 리스트 렌더링 (ID/PW 원클릭 복사 버튼 및 아이콘 포함)
 async function fetchClients() {
     const tbody = document.getElementById('clientsTable');
     const emptyState = document.getElementById('emptyClients');
@@ -2083,7 +2103,6 @@ async function fetchClients() {
                     </div>
                 </td>` : `<td class="admin-only-col hidden"></td>`;
 
-            // 🌟 메타 계정 ID / PW 바로 옆 원클릭 복사 버튼 적용
             const copyIdBtn = data.metaId ? `
                 <button type="button" class="copy-text-btn text-gray-400 hover:text-hermes transition p-0.5 rounded cursor-pointer" data-copy="${data.metaId}" title="ID 복사">
                     <i class="fa-regular fa-copy text-[11px]"></i>

@@ -43,7 +43,7 @@ let clientsMap = {};
 let libraryMap = {}; 
 let cachedClientNames = []; 
 
-// 🌟 클라이언트 리스트 페이지네이션 전역 변수
+// 클라이언트 리스트 페이지네이션 전역 변수
 let allClientsData = [];
 let currentClientPage = 1;
 const CLIENTS_PER_PAGE = 10;
@@ -395,14 +395,34 @@ safeAddListener('libViewCountBadgeBtn', 'click', (e) => toggleViewerTooltip('lib
     }
 });
 
-// 전역 클릭 이벤트 핸들러
+// 🌟 전역 문서 클릭 이벤트 위임 핸들러 (수정, 삭제, 복사, 모달 오픈 등 통합 관리)
 document.addEventListener('click', (e) => {
     // 툴팁 외부 클릭 시 자동 닫기
     if (!e.target.closest('#viewCountBadgeWrapper') && !e.target.closest('#libViewCountBadgeWrapper')) {
         hideAllViewersTooltips();
     }
 
-    // 0. ID / PW 원클릭 복사 버튼 처리
+    // 🌟 0. 클라이언트 수정 버튼 클릭 이벤트를 전역 위임으로 확실히 수집 및 모달 오픈
+    const editClientBtn = e.target.closest('.edit-client-btn');
+    if (editClientBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const clientId = editClientBtn.getAttribute('data-id');
+        if (clientId) openEditClientModal(clientId);
+        return;
+    }
+
+    // 🌟 0-1. 클라이언트 삭제 버튼 전역 위임
+    const delClientBtn = e.target.closest('.delete-client-btn');
+    if (delClientBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const clientId = delClientBtn.getAttribute('data-id');
+        if (clientId) deleteClient(clientId);
+        return;
+    }
+
+    // 0-2. ID / PW 원클릭 복사 버튼 처리
     const copyTextBtn = e.target.closest('.copy-text-btn');
     if (copyTextBtn) {
         e.preventDefault();
@@ -415,7 +435,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 1. 관리 버튼: 수정 (Edit Task)
+    // 1. 관리 버튼: 게시글 수정 (Edit Task)
     const editBtn = e.target.closest('.edit-task-btn');
     if (editBtn) {
         e.preventDefault();
@@ -425,7 +445,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 2. 관리 버튼: 담당자 배정 (Assign Task)
+    // 2. 관리 버튼: 게시글 담당자 배정 (Assign Task)
     const assignBtn = e.target.closest('.assign-task-btn');
     if (assignBtn) {
         e.preventDefault();
@@ -435,7 +455,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 3. 관리 버튼: 삭제 (Delete Task)
+    // 3. 관리 버튼: 게시글 삭제 (Delete Task)
     const delBtn = e.target.closest('.delete-task-btn');
     if (delBtn) {
         e.preventDefault();
@@ -492,13 +512,13 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 🌟 7. 신규 클라이언트 등록 모달 오픈 (등록자 자동입력 처리 반영)
+    // 7. 신규 클라이언트 등록 모달 오픈 (등록자 자동입력 처리 반영)
     const addClientBtn = e.target.closest('#openClientModalBtn');
     if (addClientBtn && clientModal) {
         e.preventDefault();
         e.stopPropagation();
         const regIn = document.getElementById('c_registerName');
-        if (regIn) regIn.value = currentUserName; // 로그인 계정 자동입력
+        if (regIn) regIn.value = currentUserName;
         clientModal.classList.remove('hidden');
         clientModal.style.zIndex = "99999";
         return;
@@ -538,11 +558,13 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// 전역 윈도우 스코프 함수 연결
+// 전역 윈도우 스코프 함수 바인딩
 window.openEditTaskModal = openEditTaskModal;
 window.openAssignModal = openAssignModal;
 window.deleteTask = deleteTask;
 window.openDetailModal = openDetailModal;
+window.openEditClientModal = openEditClientModal;
+window.deleteClient = deleteClient;
 
 async function uploadFilesToStorage(fileList, folderName) {
     const uploadedFiles = [];
@@ -1136,7 +1158,7 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
     }
 });
 
-// 🌟 업무 Q&A 전체 게시글 로딩 및 복구 보장 렌더링
+// 업무 Q&A 전체 게시글 로딩 및 복구 보장 렌더링
 async function fetchTasks() {
     const tbody = document.getElementById('boardTable');
     const emptyState = document.getElementById('emptyState');
@@ -1905,21 +1927,21 @@ safeAddListener('submitNewCommentBtn', 'click', async () => {
 });
 
 // ============================================================================
-// 🌟 8. 클라이언트 관리 (페이지네이션 적용 완료)
+// 8. 클라이언트 관리 (페이지네이션 적용 완료)
 // ============================================================================
 safeAddListener('clientForm', 'submit', async (e) => {
     e.preventDefault();
     if (!clientModal) return;
 
     const inputs = clientModal.querySelectorAll('input');
-    const nameIn = document.getElementById('inputClientName') || clientModal.querySelector('[name="name"]') || inputs[0];
-    const homeIn = document.getElementById('inputClientHomeUrl') || clientModal.querySelector('[name="homeUrl"]') || inputs[1];
-    const instaIn = document.getElementById('inputClientInstaUrl') || clientModal.querySelector('[name="instaUrl"]') || inputs[2];
-    const metaIdIn = document.getElementById('inputClientMetaId') || clientModal.querySelector('[name="metaId"]') || inputs[3];
-    const metaPwIn = document.getElementById('inputClientMetaPw') || clientModal.querySelector('[name="metaPw"]') || inputs[4];
-    const budgetIn = document.getElementById('inputClientBudget') || clientModal.querySelector('[name="budget"]') || inputs[5];
-    const instaDateIn = document.getElementById('inputClientInstaDate') || clientModal.querySelector('[name="instaDate"]') || inputs[6];
-    const metaDateIn = document.getElementById('inputClientMetaDate') || clientModal.querySelector('[name="metaDate"]') || inputs[7];
+    const nameIn = document.getElementById('c_name') || document.getElementById('inputClientName') || clientModal.querySelector('[name="name"]') || inputs[0];
+    const homeIn = document.getElementById('c_homeUrl') || document.getElementById('inputClientHomeUrl') || clientModal.querySelector('[name="homeUrl"]') || inputs[1];
+    const instaIn = document.getElementById('c_instaUrl') || document.getElementById('inputClientInstaUrl') || clientModal.querySelector('[name="instaUrl"]') || inputs[2];
+    const metaIdIn = document.getElementById('c_metaId') || document.getElementById('inputClientMetaId') || clientModal.querySelector('[name="metaId"]') || inputs[3];
+    const metaPwIn = document.getElementById('c_metaPw') || document.getElementById('inputClientMetaPw') || clientModal.querySelector('[name="metaPw"]') || inputs[4];
+    const budgetIn = document.getElementById('c_budget') || document.getElementById('inputClientBudget') || clientModal.querySelector('[name="budget"]') || inputs[5];
+    const instaDateIn = document.getElementById('c_instaDate') || document.getElementById('inputClientInstaDate') || clientModal.querySelector('[name="instaDate"]') || inputs[6];
+    const metaDateIn = document.getElementById('c_metaDate') || document.getElementById('inputClientMetaDate') || clientModal.querySelector('[name="metaDate"]') || inputs[7];
 
     const submitBtn = clientModal.querySelector('button[type="submit"]');
     const origText = submitBtn ? submitBtn.innerText : '저장';
@@ -1939,7 +1961,7 @@ safeAddListener('clientForm', 'submit', async (e) => {
             instaDate: instaDateIn ? instaDateIn.value : '',
             metaDate: metaDateIn ? metaDateIn.value : '',
             registeredBy: currentUserName,
-            managers: [currentUserName], // 🌟 신규 등록 시 본인을 담당자로 자동 지정
+            managers: [currentUserName], // 신규 등록 시 로그인한 사용자를 담당자로 자동 배정
             createdAt: new Date().toISOString()
         };
 
@@ -1977,22 +1999,21 @@ async function deleteClient(clientId) {
     }
 }
 
-// 🌟 클라이언트 정보 수정 모달 오픈 (담당자 선택 영역 포함)
+// 🌟 클라이언트 수정 모달 오픈 (ID/PW 및 담당자 바인딩 정밀 연동)
 function openEditClientModal(clientId) {
     const client = clientsMap[clientId];
     if (!client) return;
     currentEditClientId = clientId;
 
     if (editClientModal) {
-        const inputs = editClientModal.querySelectorAll('input');
-        const nameIn = document.getElementById('editClientName') || editClientModal.querySelector('[name="name"]') || inputs[0];
-        const homeIn = document.getElementById('editClientHomeUrl') || editClientModal.querySelector('[name="homeUrl"]') || inputs[1];
-        const instaIn = document.getElementById('editClientInstaUrl') || editClientModal.querySelector('[name="instaUrl"]') || inputs[2];
-        const metaIdIn = document.getElementById('editClientMetaId') || editClientModal.querySelector('[name="metaId"]') || inputs[3];
-        const metaPwIn = document.getElementById('editClientMetaPw') || editClientModal.querySelector('[name="metaPw"]') || inputs[4];
-        const budgetIn = document.getElementById('editClientBudget') || editClientModal.querySelector('[name="budget"]') || inputs[5];
-        const instaDateIn = document.getElementById('editClientInstaDate') || editClientModal.querySelector('[name="instaDate"]') || inputs[6];
-        const metaDateIn = document.getElementById('editClientMetaDate') || editClientModal.querySelector('[name="metaDate"]') || inputs[7];
+        const nameIn = document.getElementById('edit_c_name');
+        const homeIn = document.getElementById('edit_c_homeUrl');
+        const instaIn = document.getElementById('edit_c_instaUrl');
+        const metaIdIn = document.getElementById('edit_c_metaId');
+        const metaPwIn = document.getElementById('edit_c_metaPw');
+        const budgetIn = document.getElementById('edit_c_budget');
+        const instaDateIn = document.getElementById('edit_c_instaDate');
+        const metaDateIn = document.getElementById('edit_c_metaDate');
 
         if (nameIn) nameIn.value = client.name || '';
         if (homeIn) homeIn.value = client.homeUrl || '';
@@ -2003,7 +2024,7 @@ function openEditClientModal(clientId) {
         if (instaDateIn) instaDateIn.value = client.instaDate || '';
         if (metaDateIn) metaDateIn.value = client.metaDate || '';
 
-        // 담당자 체크박스 렌더링 영역
+        // 담당자 연결 체크박스 영역
         const editManagerList = document.getElementById('editClientManagerList');
         if (editManagerList) {
             editManagerList.innerHTML = '<div class="text-xs text-gray-400 p-2 text-center font-bold"><i class="fa-solid fa-spinner animate-spin mr-1"></i> 멤버 목록 불러오는 중...</div>';
@@ -2029,19 +2050,19 @@ function openEditClientModal(clientId) {
     }
 }
 
+// 🌟 클라이언트 수정폼 제출 바인딩
 safeAddListener('editClientForm', 'submit', async (e) => {
     e.preventDefault();
     if (!currentEditClientId) return;
 
-    const inputs = editClientModal.querySelectorAll('input');
-    const nameIn = document.getElementById('editClientName') || editClientModal.querySelector('[name="name"]') || inputs[0];
-    const homeIn = document.getElementById('editClientHomeUrl') || editClientModal.querySelector('[name="homeUrl"]') || inputs[1];
-    const instaIn = document.getElementById('editClientInstaUrl') || editClientModal.querySelector('[name="instaUrl"]') || inputs[2];
-    const metaIdIn = document.getElementById('editClientMetaId') || editClientModal.querySelector('[name="metaId"]') || inputs[3];
-    const metaPwIn = document.getElementById('editClientMetaPw') || editClientModal.querySelector('[name="metaPw"]') || inputs[4];
-    const budgetIn = document.getElementById('editClientBudget') || editClientModal.querySelector('[name="budget"]') || inputs[5];
-    const instaDateIn = document.getElementById('editClientInstaDate') || editClientModal.querySelector('[name="instaDate"]') || inputs[6];
-    const metaDateIn = document.getElementById('editClientMetaDate') || editClientModal.querySelector('[name="metaDate"]') || inputs[7];
+    const nameIn = document.getElementById('edit_c_name');
+    const homeIn = document.getElementById('edit_c_homeUrl');
+    const instaIn = document.getElementById('edit_c_instaUrl');
+    const metaIdIn = document.getElementById('edit_c_metaId');
+    const metaPwIn = document.getElementById('edit_c_metaPw');
+    const budgetIn = document.getElementById('edit_c_budget');
+    const instaDateIn = document.getElementById('edit_c_instaDate');
+    const metaDateIn = document.getElementById('edit_c_metaDate');
 
     let updatedManagers = clientsMap[currentEditClientId].managers || [];
     const checkboxes = editClientModal.querySelectorAll('.edit-client-manager-checkbox');
@@ -2059,7 +2080,7 @@ safeAddListener('editClientForm', 'submit', async (e) => {
             budget: budgetIn ? budgetIn.value : clientsMap[currentEditClientId].budget,
             instaDate: instaDateIn ? instaDateIn.value : (clientsMap[currentEditClientId].instaDate || ''),
             metaDate: metaDateIn ? metaDateIn.value : (clientsMap[currentEditClientId].metaDate || ''),
-            managers: updatedManagers, // 업데이트된 담당자 적용
+            managers: updatedManagers,
             updatedAt: new Date().toISOString()
         });
         editClientModal.classList.add('hidden');
@@ -2070,7 +2091,7 @@ safeAddListener('editClientForm', 'submit', async (e) => {
     }
 });
 
-// 🌟 전체 클라이언트 수집 후 지정된 페이지에 맞춰 10개씩 렌더링
+// 전체 클라이언트 수집 및 렌더링
 async function fetchClients() {
     const tbody = document.getElementById('clientsTable');
     const emptyState = document.getElementById('emptyClients');
@@ -2115,12 +2136,12 @@ async function fetchClients() {
         // 최신 등록순 정렬
         allClientsData.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
-        renderClientsPage(1);
+        renderClientsPage(currentClientPage || 1);
 
     } catch (e) { console.error("Client fetch error:", e); }
 }
 
-// 🌟 페이징 처리 전용 렌더링 함수
+// 페이징 처리 전용 렌더링 함수
 function renderClientsPage(page) {
     currentClientPage = page;
     const tbody = document.getElementById('clientsTable');
@@ -2170,8 +2191,8 @@ function renderClientsPage(page) {
         const adminActions = isAdmin ? 
             `<td class="p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col align-middle whitespace-nowrap">
                 <div class="flex items-center justify-center gap-1.5">
-                    <button class="edit-client-btn bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-2.5 py-1.5 rounded transition shadow-sm whitespace-nowrap" data-id="${data.id}">수정</button>
-                    <button class="delete-client-btn bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold px-2.5 py-1.5 rounded transition shadow-sm whitespace-nowrap" data-id="${data.id}" data-name="${data.name}">삭제</button>
+                    <button type="button" class="edit-client-btn bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-2.5 py-1.5 rounded transition shadow-sm whitespace-nowrap cursor-pointer" data-id="${data.id}">수정</button>
+                    <button type="button" class="delete-client-btn bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold px-2.5 py-1.5 rounded transition shadow-sm whitespace-nowrap cursor-pointer" data-id="${data.id}" data-name="${data.name}">삭제</button>
                 </div>
             </td>` : `<td class="admin-only-col hidden"></td>`;
 
@@ -2218,7 +2239,7 @@ function renderClientsPage(page) {
         pagination.classList.remove('hidden');
         let pageHtml = '';
         for (let i = 1; i <= totalPages; i++) {
-            pageHtml += `<button class="client-page-btn px-3 py-1 text-xs font-bold rounded-md transition ${i === page ? 'bg-hermes text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}" data-page="${i}">${i}</button>`;
+            pageHtml += `<button type="button" class="client-page-btn px-3 py-1 text-xs font-bold rounded-md transition ${i === page ? 'bg-hermes text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}" data-page="${i}">${i}</button>`;
         }
         pagination.innerHTML = pageHtml;
         

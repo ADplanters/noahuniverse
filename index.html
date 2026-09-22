@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
+    <!-- 기본 SEO 메타데이터 -->
+    <title>ADplanters x NOAH UNIVERSE | 공식 파트너십 관리 시스템</title>
+    <meta name="description" content="ADplanters와 NOAH UNIVERSE의 성공적인 프로젝트와 동반 성장을 이끄는 통합 비즈니스 협업 공간입니다.">
+    <meta name="keywords" content="ADplanters, NOAH UNIVERSE, 애드플랜터스, 노아유니버스, 파트너십, 마케팅 CRM">
+    <meta name="robots" content="index, follow">
+
+    <!-- 구글 서치콘솔 색인 오류 해결을 위한 표준(Canonical) URL 태그 -->
+    <link rel="canonical" href="https://placepartner.cloud/">
+    
     <!-- 파비콘 -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='16' fill='%23F37021'/><text x='50%' y='50%' font-family='system-ui, -apple-system, sans-serif' font-weight='900' font-size='40' fill='%23FFFFFF' text-anchor='middle' dominant-baseline='central' dy='-2px'>AP</text></svg>">
     
@@ -12,9 +21,8 @@
     <meta property="og:title" content="ADplanters x NOAH UNIVERSE | 공식 파트너십">
     <meta property="og:description" content="양사의 성공적인 프로젝트와 동반 성장을 이끄는 통합 비즈니스 협업 공간입니다.">
     <meta property="og:image" content="https://adplanters.github.io/noahuniverse/assets/og-image.png">
-    <meta property="og:url" content="https://adplanters.github.io/noahuniverse/">
-
-    <title>ADplanters x NOAH UNIVERSE | 공식 파트너십 관리 시스템</title>
+    <meta property="og:url" content="https://placepartner.cloud/">
+    <meta property="og:site_name" content="ADplanters x NOAH UNIVERSE">
 
     <!-- Tailwind CSS (Typography 플러그인 포함) -->
     <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
@@ -35,8 +43,8 @@
     <!-- 폰트어썸 아이콘 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- 외부 CSS 연결 (캐시 무력화 파라미터 v=1.1.8 적용) -->
-    <link rel="stylesheet" href="style.css?v=1.1.8">
+    <!-- 외부 CSS 연결 (캐시 무력화 파라미터 v=1.1.9 적용) -->
+    <link rel="stylesheet" href="style.css?v=1.1.9">
 </head>
 <body class="bg-grid-pattern text-gray-800 font-sans min-h-screen relative flex flex-col justify-between overflow-x-hidden">
 
@@ -152,13 +160,13 @@
                 <div class="bg-white p-4 md:p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between"><div><p class="text-xs font-bold text-gray-500 mb-1">완료 항목</p><p class="text-xl md:text-2xl font-black text-gray-900" id="statDone">0<span class="text-xs font-medium text-gray-500 ml-1">건</span></p></div><div class="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gray-100 text-gray-600 flex items-center justify-center text-lg md:text-xl"><i class="fa-solid fa-check-double"></i></div></div>
             </div>
 
-            <!-- 뷰 2. 클라이언트 관리 리스트 -->
-            <div id="clientsContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8 w-full min-w-0">
-                <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-white flex-wrap gap-2">
+            <!-- 뷰 2. 클라이언트 관리 리스트 (최대 10개 및 하단 페이지네이션 적용) -->
+            <div id="clientsContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8 w-full min-w-0 flex flex-col">
+                <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-white flex-wrap gap-2 shrink-0">
                     <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-address-book text-hermes mr-2"></i> 클라이언트 리스트</h2>
                     <button id="openClientModalBtn" type="button" class="bg-hermes hover:bg-hermes-hover text-white text-xs font-bold px-3 py-2 md:px-4 md:py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5 shrink-0"><i class="fa-solid fa-plus"></i> <span class="inline">신규 클라이언트 추가</span></button>
                 </div>
-                <div class="w-full overflow-x-auto">
+                <div class="w-full overflow-x-auto flex-1 p-1 sm:p-2 pb-4">
                     <table class="w-full text-left border-collapse min-w-[950px]">
                         <thead>
                             <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
@@ -176,9 +184,11 @@
                     </table>
                 </div>
                 <div id="emptyClients" class="hidden py-12 md:py-16 text-center flex-col items-center justify-center"><i class="fa-solid fa-folder-open text-3xl md:text-4xl text-gray-300 mb-3"></i><p class="text-gray-500 font-medium text-xs md:text-sm">조회 가능한 클라이언트 데이터가 없습니다.</p></div>
+                <!-- 페이지네이션 버튼 영역 -->
+                <div id="clientPagination" class="flex justify-center items-center gap-2 p-4 border-t border-gray-100 hidden mt-auto shrink-0"></div>
             </div>
 
-            <!-- 🌟 뷰 3. 업무 / Q&A (하단 잘림 문제 원천 제거 및 유연한 뷰포트 높이 확보) -->
+            <!-- 뷰 3. 업무 / Q&A -->
             <div id="tasksContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm flex-1 mb-6 md:mb-8 w-full min-w-0">
                 <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-white flex-wrap gap-2 rounded-t-2xl">
                     <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-table-list text-hermes mr-2"></i> 업무 / Q&A</h2>
@@ -316,12 +326,22 @@
         </div>
     </div>
 
-    <!-- 클라이언트 수정 모달 -->
+    <!-- 클라이언트 수정 모달 (+ 담당자 지정 영역 포함) -->
     <div id="editClientModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-xl p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-5 border-b pb-3"><h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-pen-to-square text-blue-600 mr-2"></i> 클라이언트 정보 수정</h3><button id="closeEditClientModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button></div>
             <form id="editClientForm" class="space-y-4">
                 <div><label class="block text-xs font-bold text-gray-700 mb-1">1. 상호명 (필수)</label><input type="text" id="edit_c_name" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
+                
+                <!-- 담당자 연결 영역 -->
+                <div id="editClientManagerArea" class="col-span-1 sm:col-span-2">
+                    <label class="block text-xs font-bold text-gray-700 mb-1">
+                        <i class="fa-solid fa-user-gear text-blue-600 mr-1"></i> 담당자 연결 (다중 선택 가능)
+                    </label>
+                    <div id="editClientManagerList" class="flex flex-col gap-1.5 max-h-36 overflow-y-auto p-2 bg-blue-50/30 border border-blue-200 rounded-lg">
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">2. 홈페이지 URL</label><input type="url" id="edit_c_homeUrl" placeholder="https://" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">3. 인스타그램 URL</label><input type="url" id="edit_c_instaUrl" placeholder="https://instagram.com/" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>

@@ -43,6 +43,11 @@ let clientsMap = {};
 let libraryMap = {}; 
 let cachedClientNames = []; 
 
+// 🌟 클라이언트 리스트 페이지네이션 전역 변수
+let allClientsData = [];
+let currentClientPage = 1;
+const CLIENTS_PER_PAGE = 10;
+
 // 접속자 IP 전역 보존 변수
 let currentClientIP = '127.0.0.1';
 
@@ -241,7 +246,7 @@ function checkAllNavBadges() {
     setMenuBadge('library', hasNewLibrary);
 }
 
-// 🌟 사선 지그재그 워터마크 동적 렌더링
+// 사선 지그재그 워터마크 동적 렌더링
 function renderWatermark() {
     const container = document.getElementById('watermarkGrid');
     if (!container || container.children.length > 0) return;
@@ -347,7 +352,7 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// 🌟 툴팁 일괄 닫기 헬퍼
+// 툴팁 일괄 닫기 헬퍼
 function hideAllViewersTooltips() {
     ['viewersTooltip', 'libViewersTooltip'].forEach(id => {
         const tooltip = document.getElementById(id);
@@ -358,7 +363,7 @@ function hideAllViewersTooltips() {
     });
 }
 
-// 🌟 툴팁 토글 헬퍼
+// 툴팁 토글 헬퍼
 function toggleViewerTooltip(tooltipId, e) {
     if (e) {
         e.preventDefault();
@@ -380,7 +385,7 @@ function toggleViewerTooltip(tooltipId, e) {
 safeAddListener('viewCountBadgeBtn', 'click', (e) => toggleViewerTooltip('viewersTooltip', e));
 safeAddListener('libViewCountBadgeBtn', 'click', (e) => toggleViewerTooltip('libViewersTooltip', e));
 
-// 🌟 마우스 이탈 시 툴팁 자동 닫기 (데스크톱 대응)
+// 마우스 이탈 시 툴팁 자동 닫기 (데스크톱 대응)
 ['viewCountBadgeWrapper', 'libViewCountBadgeWrapper'].forEach(wrapperId => {
     const wrapper = document.getElementById(wrapperId);
     if (wrapper) {
@@ -390,9 +395,9 @@ safeAddListener('libViewCountBadgeBtn', 'click', (e) => toggleViewerTooltip('lib
     }
 });
 
-// 🌟 전역 클릭 이벤트 핸들러
+// 전역 클릭 이벤트 핸들러
 document.addEventListener('click', (e) => {
-    // 툴팁 외부 클릭 시 자동 닫기 (모바일 및 데스크톱)
+    // 툴팁 외부 클릭 시 자동 닫기
     if (!e.target.closest('#viewCountBadgeWrapper') && !e.target.closest('#libViewCountBadgeWrapper')) {
         hideAllViewersTooltips();
     }
@@ -487,7 +492,19 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 7. 신규 모달 오픈 버튼
+    // 🌟 7. 신규 클라이언트 등록 모달 오픈 (등록자 자동입력 처리 반영)
+    const addClientBtn = e.target.closest('#openClientModalBtn');
+    if (addClientBtn && clientModal) {
+        e.preventDefault();
+        e.stopPropagation();
+        const regIn = document.getElementById('c_registerName');
+        if (regIn) regIn.value = currentUserName; // 로그인 계정 자동입력
+        clientModal.classList.remove('hidden');
+        clientModal.style.zIndex = "99999";
+        return;
+    }
+
+    // 8. 신규 이슈 모달 오픈 버튼
     const openTaskModalBtn = e.target.closest('#openModalBtn');
     if (openTaskModalBtn && createModal) {
         e.preventDefault();
@@ -497,16 +514,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    const addClientBtn = e.target.closest('#openClientModalBtn');
-    if (addClientBtn && clientModal) {
-        e.preventDefault();
-        e.stopPropagation();
-        clientModal.classList.remove('hidden');
-        clientModal.style.zIndex = "99999";
-        return;
-    }
-
-    // 8. 이미지 프리뷰
+    // 9. 이미지 프리뷰
     const imgTrigger = e.target.closest('.img-preview-btn');
     if (imgTrigger) {
         e.preventDefault();
@@ -515,7 +523,7 @@ document.addEventListener('click', (e) => {
         if (url) openImageModal(url);
     }
 
-    // 9. 공유 링크 복사
+    // 10. 공유 링크 복사
     const shareTrigger = e.target.closest('#shareLinkBtn') || (e.target.closest('button') && e.target.closest('button').textContent.includes('링크 복사'));
     if (shareTrigger) {
         e.preventDefault();
@@ -803,7 +811,7 @@ function showPendingPopup() {
 }
 
 // ============================================================================
-// 5. 업무 이슈/요청 게시판 (전체 게시글 수집 및 노출 보장)
+// 5. 업무 이슈/요청 게시판
 // ============================================================================
 safeAddListener('openModalBtn', 'click', () => {
     if (createModal) {
@@ -1128,7 +1136,7 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
     }
 });
 
-// 🌟 업무 Q&A 전체 글 로딩 및 렌더링
+// 🌟 업무 Q&A 전체 게시글 로딩 및 복구 보장 렌더링
 async function fetchTasks() {
     const tbody = document.getElementById('boardTable');
     const emptyState = document.getElementById('emptyState');
@@ -1147,7 +1155,12 @@ async function fetchTasks() {
             tasksMap[docSnap.id] = tItem;
         });
 
-        fetchedData.sort((a, b) => new Date((b.date || '').replace(/\./g, '-')) - new Date((a.date || '').replace(/\./g, '-')));
+        // 정밀 정렬: createdAt ISO 타임스탬프 또는 date 문자열 기준 내림차순 정렬 (최신글 상단 배치)
+        fetchedData.sort((a, b) => {
+            const timeA = a.createdAt ? new Date(a.createdAt).getTime() : new Date((a.date || '').replace(/\./g, '-')).getTime();
+            const timeB = b.createdAt ? new Date(b.createdAt).getTime() : new Date((b.date || '').replace(/\./g, '-')).getTime();
+            return timeB - timeA;
+        });
 
         tbody.innerHTML = '';
         if (fetchedData.length === 0) {
@@ -1206,23 +1219,23 @@ async function fetchTasks() {
 
             rowsHtml += `
                 <tr class="hover:bg-hermes-light/30 transition group border-b border-gray-100 cursor-pointer task-detail-trigger break-keep" data-id="${item.id}">
-                    <td class="p-3 md:p-4 align-middle text-gray-900 text-[11px] font-bold whitespace-nowrap">
+                    <td class="p-3.5 md:p-4 align-middle text-gray-900 text-[11px] font-bold whitespace-nowrap">
                         <div>${item.date || '-'}</div>
                         <div class="text-[10px] text-gray-400 font-normal flex items-center gap-1 mt-0.5">
                             <i class="fa-regular fa-eye text-gray-400"></i> ${item.views || 0}
                         </div>
                     </td>
-                    <td class="p-3 md:p-4 align-middle text-center whitespace-nowrap"><span class="${statusBadgeClass} px-2 py-0.5 rounded text-[10px] font-bold border whitespace-nowrap">${item.status || '답변대기'}</span></td>
-                    <td class="p-3 md:p-4 font-bold text-gray-900 align-middle text-xs whitespace-nowrap min-w-[80px]">${item.client || '-'}</td>
-                    <td class="p-3 md:p-4 align-middle whitespace-nowrap"><span class="bg-gray-100 text-gray-600 text-[10px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap">${item.type || '-'}</span></td>
-                    <td class="p-3 md:p-4 align-middle min-w-[200px]">
+                    <td class="p-3.5 md:p-4 align-middle text-center whitespace-nowrap"><span class="${statusBadgeClass} px-2 py-0.5 rounded text-[10px] font-bold border whitespace-nowrap">${item.status || '답변대기'}</span></td>
+                    <td class="p-3.5 md:p-4 font-bold text-gray-900 align-middle text-xs whitespace-nowrap min-w-[80px]">${item.client || '-'}</td>
+                    <td class="p-3.5 md:p-4 align-middle whitespace-nowrap"><span class="bg-gray-100 text-gray-600 text-[10px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap">${item.type || '-'}</span></td>
+                    <td class="p-3.5 md:p-4 align-middle min-w-[200px]">
                         <div class="font-bold text-gray-900 group-hover:text-hermes transition flex items-center gap-1 break-keep">
                             <span class="break-all">${item.title || '-'}</span> 
                             ${commentCount > 0 ? `<span class="text-hermes text-[10px] font-black shrink-0">[${commentCount}]</span>` : ''}
                         </div>
                     </td>
-                    <td class="p-3 md:p-4 align-middle whitespace-nowrap">${fileButton}</td>
-                    <td class="p-3 md:p-4 align-middle text-xs font-bold break-keep min-w-[140px]">${displayStaffHtml}</td>
+                    <td class="p-3.5 md:p-4 align-middle whitespace-nowrap">${fileButton}</td>
+                    <td class="p-3.5 md:p-4 align-middle text-xs font-bold break-keep min-w-[140px]">${displayStaffHtml}</td>
                     ${adminActions}
                 </tr>
             `;
@@ -1892,7 +1905,7 @@ safeAddListener('submitNewCommentBtn', 'click', async () => {
 });
 
 // ============================================================================
-// 8. 클라이언트 관리 (복사 기능이 적용된 테이블 렌더링)
+// 🌟 8. 클라이언트 관리 (페이지네이션 적용 완료)
 // ============================================================================
 safeAddListener('clientForm', 'submit', async (e) => {
     e.preventDefault();
@@ -1926,7 +1939,7 @@ safeAddListener('clientForm', 'submit', async (e) => {
             instaDate: instaDateIn ? instaDateIn.value : '',
             metaDate: metaDateIn ? metaDateIn.value : '',
             registeredBy: currentUserName,
-            managers: [],
+            managers: [currentUserName], // 🌟 신규 등록 시 본인을 담당자로 자동 지정
             createdAt: new Date().toISOString()
         };
 
@@ -1964,6 +1977,7 @@ async function deleteClient(clientId) {
     }
 }
 
+// 🌟 클라이언트 정보 수정 모달 오픈 (담당자 선택 영역 포함)
 function openEditClientModal(clientId) {
     const client = clientsMap[clientId];
     if (!client) return;
@@ -1989,6 +2003,27 @@ function openEditClientModal(clientId) {
         if (instaDateIn) instaDateIn.value = client.instaDate || '';
         if (metaDateIn) metaDateIn.value = client.metaDate || '';
 
+        // 담당자 체크박스 렌더링 영역
+        const editManagerList = document.getElementById('editClientManagerList');
+        if (editManagerList) {
+            editManagerList.innerHTML = '<div class="text-xs text-gray-400 p-2 text-center font-bold"><i class="fa-solid fa-spinner animate-spin mr-1"></i> 멤버 목록 불러오는 중...</div>';
+            getDocs(query(collection(db, "users"), where("status", "==", "approved"))).then(usersSnap => {
+                let html = '';
+                const currentAssigned = client.managers || [];
+                usersSnap.forEach(uDoc => {
+                    const u = uDoc.data();
+                    const isChecked = currentAssigned.includes(u.name) ? 'checked' : '';
+                    html += `
+                        <label class="flex items-center gap-2 p-1.5 hover:bg-white rounded cursor-pointer text-xs font-bold text-gray-700 transition border border-transparent hover:border-gray-200">
+                            <input type="checkbox" value="${u.name}" class="edit-client-manager-checkbox rounded text-hermes" ${isChecked} />
+                            <span>${u.name} <span class="text-[10px] text-gray-400 font-normal">(${u.email})</span></span>
+                        </label>
+                    `;
+                });
+                editManagerList.innerHTML = html;
+            });
+        }
+
         editClientModal.classList.remove('hidden');
         editClientModal.style.zIndex = "99999";
     }
@@ -2008,6 +2043,12 @@ safeAddListener('editClientForm', 'submit', async (e) => {
     const instaDateIn = document.getElementById('editClientInstaDate') || editClientModal.querySelector('[name="instaDate"]') || inputs[6];
     const metaDateIn = document.getElementById('editClientMetaDate') || editClientModal.querySelector('[name="metaDate"]') || inputs[7];
 
+    let updatedManagers = clientsMap[currentEditClientId].managers || [];
+    const checkboxes = editClientModal.querySelectorAll('.edit-client-manager-checkbox');
+    if (checkboxes.length > 0) {
+        updatedManagers = Array.from(editClientModal.querySelectorAll('.edit-client-manager-checkbox:checked')).map(cb => cb.value);
+    }
+
     try {
         await updateDoc(doc(db, "clients", currentEditClientId), {
             name: nameIn ? nameIn.value : clientsMap[currentEditClientId].name,
@@ -2018,6 +2059,7 @@ safeAddListener('editClientForm', 'submit', async (e) => {
             budget: budgetIn ? budgetIn.value : clientsMap[currentEditClientId].budget,
             instaDate: instaDateIn ? instaDateIn.value : (clientsMap[currentEditClientId].instaDate || ''),
             metaDate: metaDateIn ? metaDateIn.value : (clientsMap[currentEditClientId].metaDate || ''),
+            managers: updatedManagers, // 업데이트된 담당자 적용
             updatedAt: new Date().toISOString()
         });
         editClientModal.classList.add('hidden');
@@ -2028,6 +2070,7 @@ safeAddListener('editClientForm', 'submit', async (e) => {
     }
 });
 
+// 🌟 전체 클라이언트 수집 후 지정된 페이지에 맞춰 10개씩 렌더링
 async function fetchClients() {
     const tbody = document.getElementById('clientsTable');
     const emptyState = document.getElementById('emptyClients');
@@ -2049,123 +2092,146 @@ async function fetchClients() {
         }
 
         const querySnapshot = await getDocs(q);
-        tbody.innerHTML = '';
+        allClientsData = [];
         clientsMap = {};
 
         if (querySnapshot.empty) {
+            tbody.innerHTML = '';
             if(emptyState) emptyState.style.display = 'flex';
             checkAllNavBadges();
+            const pagination = document.getElementById('clientPagination');
+            if(pagination) pagination.classList.add('hidden');
             return;
         }
         if(emptyState) emptyState.style.display = 'none';
 
         querySnapshot.forEach((docSnap) => {
             const data = docSnap.data();
-            clientsMap[docSnap.id] = { id: docSnap.id, ...data };
-            
-            let managersHtml = '<span class="text-gray-400 text-xs whitespace-nowrap">미배정</span>';
-            if (data.managers && data.managers.length > 0) {
-                const maxVisible = 1; 
-                const visibleManagers = data.managers.slice(0, maxVisible);
-                const hiddenCount = data.managers.length - maxVisible;
-
-                let badges = visibleManagers.map(m => `
-                    <span class="inline-flex items-center bg-blue-50 text-noah text-[10px] px-1.5 py-0.5 rounded border border-blue-100 font-bold truncate max-w-[75px]" title="${m}">
-                        ${m}
-                    </span>
-                `).join('');
-                
-                if (hiddenCount > 0) {
-                    const allList = data.managers.map(m => `<div class="py-0.5 flex items-center gap-1"><i class="fa-solid fa-user text-orange-400 text-[9px]"></i> ${m}</div>`).join('');
-                    badges += `
-                        <div class="inline-block relative group align-middle">
-                            <span class="inline-flex items-center bg-gray-100 hover:bg-orange-100 text-gray-600 hover:text-hermes text-[10px] px-1.5 py-0.5 rounded border border-gray-200 cursor-pointer font-bold transition shadow-2xs whitespace-nowrap">
-                                +${hiddenCount}명
-                            </span>
-                            <div class="hidden group-hover:block absolute bottom-full right-0 mb-2 p-3 bg-gray-900/95 text-white text-[11px] rounded-xl shadow-2xl z-50 whitespace-nowrap min-w-[120px] border border-gray-700/80 backdrop-blur-xs">
-                                <div class="font-bold border-b border-gray-700 pb-1.5 mb-1.5 text-orange-400 text-[10px] flex items-center gap-1">
-                                    <i class="fa-solid fa-users"></i> 전체 담당자 (${data.managers.length}명)
-                                </div>
-                                <div class="space-y-0.5 text-left text-gray-200 font-medium">${allList}</div>
-                            </div>
-                        </div>
-                    `;
-                }
-                managersHtml = `<div class="flex items-center gap-1 w-full max-w-[130px] overflow-hidden">${badges}</div>`;
-            }
-
-            const isAdmin = checkIsAdmin();
-            const adminActions = isAdmin ? 
-                `<td class="p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col align-middle whitespace-nowrap">
-                    <div class="flex items-center justify-center gap-1.5">
-                        <button class="edit-client-btn bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-2.5 py-1.5 rounded transition shadow-sm whitespace-nowrap" data-id="${docSnap.id}">수정</button>
-                        <button class="delete-client-btn bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold px-2.5 py-1.5 rounded transition shadow-sm whitespace-nowrap" data-id="${docSnap.id}" data-name="${data.name}">삭제</button>
-                    </div>
-                </td>` : `<td class="admin-only-col hidden"></td>`;
-
-            const copyIdBtn = data.metaId ? `
-                <button type="button" class="copy-text-btn text-gray-400 hover:text-hermes transition p-0.5 rounded cursor-pointer" data-copy="${data.metaId}" title="ID 복사">
-                    <i class="fa-regular fa-copy text-[11px]"></i>
-                </button>
-            ` : '';
-
-            const copyPwBtn = data.metaPw ? `
-                <button type="button" class="copy-text-btn text-gray-400 hover:text-hermes transition p-0.5 rounded cursor-pointer" data-copy="${data.metaPw}" title="PW 복사">
-                    <i class="fa-regular fa-copy text-[11px]"></i>
-                </button>
-            ` : '';
-
-            const tr = `
-                <tr class="hover:bg-orange-50/30 transition border-b border-gray-100 break-keep">
-                    <td class="p-3 md:p-4 font-black text-gray-900 align-middle whitespace-nowrap">${data.name}</td>
-                    <td class="p-3 md:p-4 text-xs text-gray-500 align-middle whitespace-nowrap">
-                        ${data.homeUrl ? `<a href="${data.homeUrl}" target="_blank" class="text-blue-500 hover:underline"><i class="fa-solid fa-link"></i> 웹</a> ` : ''}
-                        ${data.instaUrl ? `<a href="${data.instaUrl}" target="_blank" class="text-pink-500 hover:underline"><i class="fa-brands fa-instagram"></i> 인스타</a>` : ''}
-                    </td>
-                    <td class="p-3 md:p-4 text-xs align-middle whitespace-nowrap">
-                        <div class="text-gray-700 font-medium flex items-center gap-1.5">
-                            <span>ID: ${data.metaId || '-'}</span>
-                            ${copyIdBtn}
-                        </div>
-                        <div class="text-gray-900 font-bold flex items-center gap-1.5 mt-0.5">
-                            <span>PW: ${data.metaPw || '-'}</span>
-                            ${copyPwBtn}
-                        </div>
-                    </td>
-                    <td class="p-3 md:p-4 font-bold text-hermes text-xs align-middle whitespace-nowrap">${data.budget || '-'}</td>
-                    <td class="p-3 md:p-4 text-xs text-gray-600 align-middle whitespace-nowrap"><div>인스타: ${data.instaDate || '-'}</div><div>메타: ${data.metaDate || '-'}</div></td>
-                    <td class="p-3 md:p-4 text-xs font-bold text-gray-500 align-middle whitespace-nowrap">${data.registeredBy || '-'}</td>
-                    <td class="p-3 md:p-4 max-w-[130px] overflow-hidden align-middle">${managersHtml}</td>
-                    ${adminActions}
-                </tr>
-            `;
-            tbody.innerHTML += tr;
+            const clientObj = { id: docSnap.id, ...data };
+            allClientsData.push(clientObj);
+            clientsMap[docSnap.id] = clientObj;
         });
 
-        checkAllNavBadges();
+        // 최신 등록순 정렬
+        allClientsData.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+        renderClientsPage(1);
 
     } catch (e) { console.error("Client fetch error:", e); }
 }
 
-const clientsTableEl = document.getElementById('clientsTable');
-if (clientsTableEl) {
-    clientsTableEl.addEventListener('click', (e) => {
-        const editBtn = e.target.closest('.edit-client-btn');
-        if (editBtn) {
-            e.stopPropagation();
-            const clientId = editBtn.getAttribute('data-id');
-            if (clientId) openEditClientModal(clientId);
-            return;
+// 🌟 페이징 처리 전용 렌더링 함수
+function renderClientsPage(page) {
+    currentClientPage = page;
+    const tbody = document.getElementById('clientsTable');
+    const pagination = document.getElementById('clientPagination');
+    if(!tbody) return;
+
+    tbody.innerHTML = '';
+    
+    const totalPages = Math.ceil(allClientsData.length / CLIENTS_PER_PAGE);
+    const startIndex = (page - 1) * CLIENTS_PER_PAGE;
+    const endIndex = startIndex + CLIENTS_PER_PAGE;
+    const pageData = allClientsData.slice(startIndex, endIndex);
+
+    pageData.forEach(data => {
+        let managersHtml = '<span class="text-gray-400 text-xs whitespace-nowrap">미배정</span>';
+        if (data.managers && data.managers.length > 0) {
+            const maxVisible = 1; 
+            const visibleManagers = data.managers.slice(0, maxVisible);
+            const hiddenCount = data.managers.length - maxVisible;
+
+            let badges = visibleManagers.map(m => `
+                <span class="inline-flex items-center bg-blue-50 text-noah text-[10px] px-1.5 py-0.5 rounded border border-blue-100 font-bold truncate max-w-[75px]" title="${m}">
+                    ${m}
+                </span>
+            `).join('');
+            
+            if (hiddenCount > 0) {
+                const allList = data.managers.map(m => `<div class="py-0.5 flex items-center gap-1"><i class="fa-solid fa-user text-orange-400 text-[9px]"></i> ${m}</div>`).join('');
+                badges += `
+                    <div class="inline-block relative group align-middle">
+                        <span class="inline-flex items-center bg-gray-100 hover:bg-orange-100 text-gray-600 hover:text-hermes text-[10px] px-1.5 py-0.5 rounded border border-gray-200 cursor-pointer font-bold transition shadow-2xs whitespace-nowrap">
+                            +${hiddenCount}명
+                        </span>
+                        <div class="hidden group-hover:block absolute bottom-full right-0 mb-2 p-3 bg-gray-900/95 text-white text-[11px] rounded-xl shadow-2xl z-50 whitespace-nowrap min-w-[120px] border border-gray-700/80 backdrop-blur-xs">
+                            <div class="font-bold border-b border-gray-700 pb-1.5 mb-1.5 text-orange-400 text-[10px] flex items-center gap-1">
+                                <i class="fa-solid fa-users"></i> 전체 담당자 (${data.managers.length}명)
+                            </div>
+                            <div class="space-y-0.5 text-left text-gray-200 font-medium">${allList}</div>
+                        </div>
+                    </div>
+                `;
+            }
+            managersHtml = `<div class="flex items-center gap-1 w-full max-w-[130px] overflow-hidden">${badges}</div>`;
         }
 
-        const delBtn = e.target.closest('.delete-client-btn');
-        if (delBtn) {
-            e.stopPropagation();
-            const clientId = delBtn.getAttribute('data-id');
-            if (clientId) deleteClient(clientId);
-            return;
-        }
+        const isAdmin = checkIsAdmin();
+        const adminActions = isAdmin ? 
+            `<td class="p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col align-middle whitespace-nowrap">
+                <div class="flex items-center justify-center gap-1.5">
+                    <button class="edit-client-btn bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-2.5 py-1.5 rounded transition shadow-sm whitespace-nowrap" data-id="${data.id}">수정</button>
+                    <button class="delete-client-btn bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold px-2.5 py-1.5 rounded transition shadow-sm whitespace-nowrap" data-id="${data.id}" data-name="${data.name}">삭제</button>
+                </div>
+            </td>` : `<td class="admin-only-col hidden"></td>`;
+
+        const copyIdBtn = data.metaId ? `
+            <button type="button" class="copy-text-btn text-gray-400 hover:text-hermes transition p-0.5 rounded cursor-pointer" data-copy="${data.metaId}" title="ID 복사">
+                <i class="fa-regular fa-copy text-[11px]"></i>
+            </button>
+        ` : '';
+
+        const copyPwBtn = data.metaPw ? `
+            <button type="button" class="copy-text-btn text-gray-400 hover:text-hermes transition p-0.5 rounded cursor-pointer" data-copy="${data.metaPw}" title="PW 복사">
+                <i class="fa-regular fa-copy text-[11px]"></i>
+            </button>
+        ` : '';
+
+        const tr = `
+            <tr class="hover:bg-orange-50/30 transition border-b border-gray-100 break-keep">
+                <td class="p-3 md:p-4 font-black text-gray-900 align-middle whitespace-nowrap">${data.name}</td>
+                <td class="p-3 md:p-4 text-xs text-gray-500 align-middle whitespace-nowrap">
+                    ${data.homeUrl ? `<a href="${data.homeUrl}" target="_blank" class="text-blue-500 hover:underline"><i class="fa-solid fa-link"></i> 웹</a> ` : ''}
+                    ${data.instaUrl ? `<a href="${data.instaUrl}" target="_blank" class="text-pink-500 hover:underline"><i class="fa-brands fa-instagram"></i> 인스타</a>` : ''}
+                </td>
+                <td class="p-3 md:p-4 text-xs align-middle whitespace-nowrap">
+                    <div class="text-gray-700 font-medium flex items-center gap-1.5">
+                        <span>ID: ${data.metaId || '-'}</span>
+                        ${copyIdBtn}
+                    </div>
+                    <div class="text-gray-900 font-bold flex items-center gap-1.5 mt-0.5">
+                        <span>PW: ${data.metaPw || '-'}</span>
+                        ${copyPwBtn}
+                    </div>
+                </td>
+                <td class="p-3 md:p-4 font-bold text-hermes text-xs align-middle whitespace-nowrap">${data.budget || '-'}</td>
+                <td class="p-3 md:p-4 text-xs text-gray-600 align-middle whitespace-nowrap"><div>인스타: ${data.instaDate || '-'}</div><div>메타: ${data.metaDate || '-'}</div></td>
+                <td class="p-3 md:p-4 text-xs font-bold text-gray-500 align-middle whitespace-nowrap">${data.registeredBy || '-'}</td>
+                <td class="p-3 md:p-4 max-w-[130px] overflow-hidden align-middle">${managersHtml}</td>
+                ${adminActions}
+            </tr>
+        `;
+        tbody.innerHTML += tr;
     });
+
+    if (totalPages > 1 && pagination) {
+        pagination.classList.remove('hidden');
+        let pageHtml = '';
+        for (let i = 1; i <= totalPages; i++) {
+            pageHtml += `<button class="client-page-btn px-3 py-1 text-xs font-bold rounded-md transition ${i === page ? 'bg-hermes text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}" data-page="${i}">${i}</button>`;
+        }
+        pagination.innerHTML = pageHtml;
+        
+        document.querySelectorAll('.client-page-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                renderClientsPage(parseInt(e.target.getAttribute('data-page')));
+            });
+        });
+    } else if (pagination) {
+        pagination.classList.add('hidden');
+    }
+
+    checkAllNavBadges();
 }
 
 // ============================================================================

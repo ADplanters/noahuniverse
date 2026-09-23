@@ -43,8 +43,8 @@
     <!-- 폰트어썸 아이콘 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- 외부 CSS 연결 (캐시 무력화 파라미터 적용) -->
-    <link rel="stylesheet" href="style.css?v=1.2.4">
+    <!-- 외부 CSS 연결 -->
+    <link rel="stylesheet" href="style.css?v=1.2.5">
 </head>
 <body class="bg-grid-pattern text-gray-800 font-sans min-h-screen relative flex flex-col justify-between overflow-x-hidden">
 
@@ -96,10 +96,23 @@
                 <span class="text-hermes">ADplanters</span><span class="text-gray-300 mx-1">✕</span><span class="text-noah text-xs">NOAH</span>
             </div>
             <div class="flex items-center gap-3">
-                <button type="button" id="mobileNotifBellBtn" class="relative text-gray-500 hover:text-hermes text-lg focus:outline-none transition cursor-pointer">
-                    <i class="fa-regular fa-bell"></i>
-                    <span id="mobileNotifBadge" class="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-red-500 text-[8px] font-black text-white hidden z-10">0</span>
-                </button>
+                <!-- 🌟 모바일 전용 알림 종모양 -->
+                <div class="relative">
+                    <button type="button" id="mobileNotifBellBtn" class="relative text-gray-500 hover:text-hermes text-lg focus:outline-none transition cursor-pointer p-1">
+                        <i class="fa-regular fa-bell"></i>
+                        <span id="mobileNotifBadge" class="absolute top-0 right-0 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white hidden z-10 shadow border border-white">0</span>
+                    </button>
+                    <!-- 모바일 알림 드롭다운 팝업창 -->
+                    <div id="mobileNotifDropdown" class="absolute top-full right-0 mt-3 w-[280px] sm:w-[320px] bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 hidden overflow-hidden transition-all origin-top-right">
+                        <div class="flex justify-between items-center bg-gray-50 border-b border-gray-100 p-3">
+                            <span class="text-xs font-bold text-gray-800"><i class="fa-solid fa-bell text-hermes mr-1"></i> 최근 업무 알림</span>
+                            <button id="mobileCloseNotifBtn" type="button" class="text-gray-400 hover:text-gray-700 p-0.5"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                        <div id="mobileNotifList" class="max-h-[300px] overflow-y-auto flex flex-col divide-y divide-gray-100 bg-white">
+                            <div class="p-4 text-center text-gray-400 text-xs">최신 알림이 없습니다.</div>
+                        </div>
+                    </div>
+                </div>
                 <button id="mobileMenuBtn" class="text-gray-700 hover:text-hermes text-xl p-1.5 focus:outline-none rounded-lg hover:bg-gray-100 transition">
                     <i class="fa-solid fa-bars"></i>
                 </button>
@@ -139,28 +152,30 @@
             </nav>
 
             <div class="p-4 border-t border-gray-100 flex flex-col gap-3">
-                <div class="flex items-center justify-between overflow-hidden px-1 relative">
-                    <div class="flex items-center gap-3 truncate">
+                <div class="flex items-center justify-between overflow-hidden px-1 relative w-full">
+                    <div class="flex items-center gap-2.5 truncate w-full pr-2">
                         <div class="w-9 h-9 rounded-full bg-hermes-light text-hermes flex items-center justify-center text-sm font-bold flex-shrink-0"><i class="fa-solid fa-user-check"></i></div>
-                        <div class="truncate">
+                        <div class="truncate flex-1">
                             <p class="text-xs font-bold text-gray-800 truncate" id="currentUserName">사용자</p>
-                            <p class="text-[9px] text-gray-400 font-medium truncate" id="currentUserEmail">email@example.com</p>
+                            <!-- 🌟 계정 이메일 노출 추가 -->
+                            <p class="text-[9px] text-gray-500 font-medium truncate" id="currentUserEmail">email@example.com</p>
                             <p class="text-[10px] text-hermes font-bold truncate mt-0.5" id="currentUserRoleName">직책</p>
                         </div>
                     </div>
-                    <!-- 알림 종모양 버튼 -->
-                    <button type="button" id="notifBellBtn" class="relative text-gray-400 hover:text-hermes text-lg focus:outline-none transition cursor-pointer p-1">
-                        <i class="fa-regular fa-bell"></i>
-                        <span id="notifBadge" class="absolute top-0 right-0 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white hidden z-10 shadow border border-white">0</span>
-                    </button>
-                    <!-- 알림 드롭다운 팝업창 -->
-                    <div id="notifDropdown" class="absolute bottom-full left-0 mb-2 w-[320px] bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 hidden overflow-hidden transition-all origin-bottom-left">
-                        <div class="flex justify-between items-center bg-gray-50 border-b border-gray-100 p-3">
-                            <span class="text-xs font-bold text-gray-800"><i class="fa-solid fa-bell text-hermes mr-1"></i> 최근 업무 알림</span>
-                            <button id="closeNotifBtn" type="button" class="text-gray-400 hover:text-gray-700 p-0.5"><i class="fa-solid fa-xmark"></i></button>
-                        </div>
-                        <div id="notifList" class="max-h-[300px] overflow-y-auto flex flex-col divide-y divide-gray-100 bg-white">
-                            <div class="p-4 text-center text-gray-400 text-xs">최신 알림이 없습니다.</div>
+                    <!-- 🌟 PC(사이드바) 알림 종모양 및 드롭다운 -->
+                    <div class="relative shrink-0">
+                        <button type="button" id="notifBellBtn" class="relative text-gray-400 hover:text-hermes text-lg focus:outline-none transition cursor-pointer p-1">
+                            <i class="fa-regular fa-bell"></i>
+                            <span id="notifBadge" class="absolute top-0 right-0 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white hidden z-10 shadow border border-white">0</span>
+                        </button>
+                        <div id="notifDropdown" class="absolute bottom-full left-0 mb-3 w-[280px] bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 hidden overflow-hidden transition-all origin-bottom-left">
+                            <div class="flex justify-between items-center bg-gray-50 border-b border-gray-100 p-3">
+                                <span class="text-xs font-bold text-gray-800"><i class="fa-solid fa-bell text-hermes mr-1"></i> 최근 업무 알림</span>
+                                <button id="closeNotifBtn" type="button" class="text-gray-400 hover:text-gray-700 p-0.5"><i class="fa-solid fa-xmark"></i></button>
+                            </div>
+                            <div id="notifList" class="max-h-[300px] overflow-y-auto flex flex-col divide-y divide-gray-100 bg-white">
+                                <div class="p-4 text-center text-gray-400 text-xs">최신 알림이 없습니다.</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -188,33 +203,33 @@
             <!-- 🌟 뷰 3. 업무 / Q&A (롤링 Ticker 대시보드 추가) -->
             <div id="tasksContainer" class="hidden flex-1 flex flex-col gap-6 md:gap-8 w-full min-w-0">
                 
-                <!-- 롤링 Ticker 박스 컨테이너 -->
+                <!-- 롤링 Ticker 박스 컨테이너 (최소 3개 보이도록 h-[180px], 목록 h-[120px] 적용) -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-                    <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 relative overflow-hidden flex flex-col h-[100px]">
-                        <div class="flex items-center gap-2 mb-2 text-xs font-black text-gray-800 border-b border-gray-100 pb-2 z-10 bg-white">
+                    <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 relative flex flex-col h-[180px]">
+                        <div class="flex items-center gap-2 mb-2 text-sm font-black text-gray-800 border-b border-gray-100 pb-2 z-10 bg-white shrink-0">
                             <i class="fa-solid fa-bolt text-hermes"></i> 실시간 최신 등록 업무
                         </div>
-                        <div class="flex-1 overflow-hidden relative w-full h-[40px] z-0">
+                        <div class="flex-1 overflow-hidden relative w-full h-[120px] z-0">
                             <ul id="tickerLatestList" class="absolute top-0 left-0 w-full flex flex-col m-0 p-0 text-xs transition-transform duration-500 ease-in-out">
-                                <li class="h-[40px] flex items-center text-gray-400 font-normal">불러오는 중...</li>
+                                <li class="h-[40px] flex items-center text-gray-400 font-normal px-2">불러오는 중...</li>
                             </ul>
                         </div>
                     </div>
                     
-                    <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 relative overflow-hidden flex flex-col h-[100px]">
-                        <div class="flex items-center gap-2 mb-2 text-xs font-black text-gray-800 border-b border-gray-100 pb-2 z-10 bg-white">
+                    <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 relative flex flex-col h-[180px]">
+                        <div class="flex items-center gap-2 mb-2 text-sm font-black text-gray-800 border-b border-gray-100 pb-2 z-10 bg-white shrink-0">
                             <i class="fa-solid fa-spinner animate-spin text-noah"></i> 현재 진행 중인 주요 이슈
                         </div>
-                        <div class="flex-1 overflow-hidden relative w-full h-[40px] z-0">
+                        <div class="flex-1 overflow-hidden relative w-full h-[120px] z-0">
                             <ul id="tickerProgressList" class="absolute top-0 left-0 w-full flex flex-col m-0 p-0 text-xs transition-transform duration-500 ease-in-out">
-                                <li class="h-[40px] flex items-center text-gray-400 font-normal">불러오는 중...</li>
+                                <li class="h-[40px] flex items-center text-gray-400 font-normal px-2">불러오는 중...</li>
                             </ul>
                         </div>
                     </div>
                 </div>
 
                 <!-- 기존 게시판 테이블 레이아웃 -->
-                <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 w-full min-w-0">
+                <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 w-full min-w-0 mt-2">
                     <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-white flex-wrap gap-2 rounded-t-2xl">
                         <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-table-list text-hermes mr-2"></i> 업무 / Q&A</h2>
                         <button id="openModalBtn" type="button" class="bg-hermes hover:bg-hermes-hover text-white text-xs font-bold px-3 py-2 md:px-4 md:py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5 shrink-0 cursor-pointer"><i class="fa-solid fa-plus"></i> <span class="inline">신규 이슈 등록</span></button>
@@ -404,7 +419,6 @@
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">5. 메타광고계정 PW</label><input type="text" id="c_metaPw" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                 </div>
                 
-                <!-- 담당자 추가 정보 및 메모 -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 p-3 bg-gray-50 rounded-xl border border-gray-200 mt-2">
                     <div class="col-span-1 sm:col-span-2 text-[11px] font-black text-gray-600 border-b border-gray-200 pb-1 mb-1">6. 담당자 추가 정보 및 메모</div>
                     <div><label class="block text-[10px] font-bold text-gray-600 mb-1">메타 연결 이메일</label><input type="email" id="c_metaEmail" placeholder="example@email.com" class="w-full text-xs border border-gray-300 rounded-md p-2 focus:border-hermes outline-none"></div>
@@ -446,7 +460,6 @@
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">5. 메타광고계정 PW</label><input type="text" id="edit_c_metaPw" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                 </div>
                 
-                <!-- 추가 메타 정보 수정 -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 p-3 bg-gray-50 rounded-xl border border-gray-200 mt-2">
                     <div class="col-span-1 sm:col-span-2 text-[11px] font-black text-gray-600 border-b border-gray-200 pb-1 mb-1">6. 담당자 추가 정보 및 메모</div>
                     <div><label class="block text-[10px] font-bold text-gray-600 mb-1">메타 연결 이메일</label><input type="email" id="edit_c_metaEmail" class="w-full text-xs border border-gray-300 rounded-md p-2 focus:border-hermes outline-none"></div>
@@ -513,13 +526,11 @@
                 <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
             <form id="taskForm" class="space-y-4">
-                <!-- 클라이언트 드롭다운 및 실시간 예산 연동 배지 -->
                 <div>
                     <label class="block text-xs font-bold text-gray-700 mb-1">클라이언트명 (등록된 클라이언트 자동 연동)</label>
                     <select id="inputClient" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none bg-white font-bold cursor-pointer">
                         <option value="">클라이언트를 선택하세요</option>
                     </select>
-
                     <div id="createClientBudgetInfo" class="mt-1.5 p-2 bg-gray-50 border border-gray-100 rounded-lg text-[11px] text-gray-500 hidden"></div>
                 </div>
 

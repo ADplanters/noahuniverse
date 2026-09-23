@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ADplanters x NOAH UNIVERSE - Global & Modal Stylesheet (v1.2.2)
+   ADplanters x NOAH UNIVERSE - Global & Modal Stylesheet (v1.2.4)
    ========================================================================== */
 
 /* 1. Global Reset & Layout Isolation */
@@ -90,6 +90,18 @@ html, body {
   flex: 1;
   padding: 32px;
   overflow-y: auto;
+}
+
+/* 🌟 Rolling Ticker Box Animation */
+.rolling-ticker-wrapper {
+  height: 40px;
+  overflow: hidden;
+  position: relative;
+}
+
+.rolling-ticker-list {
+  transition: transform 0.5s ease-in-out;
+  will-change: transform;
 }
 
 /* 4. Modal System (2차원 상하좌우 스크롤 지원) */

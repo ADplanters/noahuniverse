@@ -36,13 +36,11 @@ let currentEditClientId = null;
 let currentDetailTaskId = null; 
 let currentEditLibId = null; 
 let currentViewLibId = null; 
-let currentRechargeClientId = null;
 let isInitialLoginLogged = false;
 let isInitialDeepLinkChecked = false; 
 let tasksMap = {}; 
 let clientsMap = {};
 let libraryMap = {}; 
-let cachedClientNames = []; 
 
 // 클라이언트 리스트 페이지네이션 전역 변수
 let allClientsData = [];
@@ -54,11 +52,6 @@ let currentClientIP = '127.0.0.1';
 
 // 신규 댓글 작성용 드래그앤드롭 누적 파일 배열
 let newCommentSelectedFiles = [];
-
-// 화폐 포맷 유틸리티 (원화 표시)
-function formatKW(amount) {
-    return new Intl.NumberFormat('ko-KR').format(Number(amount) || 0) + '원';
-}
 
 // ============================================================================
 // 클라이언트 IP 주소 자동 수집 헬퍼
@@ -90,7 +83,6 @@ const membersContainer = document.getElementById('membersContainer');
 const approvalsContainer = document.getElementById('approvalsContainer');
 const logsContainer = document.getElementById('logsContainer');
 const libraryContainer = document.getElementById('libraryContainer'); 
-const budgetContainer = document.getElementById('budgetContainer');
 
 const navItems = document.querySelectorAll('.nav-item');
 const sidebar = document.getElementById('sidebar');
@@ -102,7 +94,6 @@ const clientModal = document.getElementById('clientModal');
 const editClientModal = document.getElementById('editClientModal');
 const assignModal = document.getElementById('assignModal');
 const detailModal = document.getElementById('detailModal');
-const rechargeModal = document.getElementById('rechargeModal');
 
 const libraryViewModal = document.getElementById('libraryViewModal');
 const libraryEditModal = document.getElementById('libraryEditModal');
@@ -150,7 +141,7 @@ function checkIsAuthor(task) {
 }
 
 function switchTab(tabName, pushHistory = true) {
-    const adminOnlyTabs = ['members', 'approvals', 'logs', 'budget'];
+    const adminOnlyTabs = ['members', 'approvals', 'logs'];
     const isAdmin = checkIsAdmin();
 
     if (adminOnlyTabs.includes(tabName) && !isAdmin) {
@@ -181,7 +172,6 @@ function switchTab(tabName, pushHistory = true) {
     if (approvalsContainer) approvalsContainer.classList.add('hidden');
     if (logsContainer) logsContainer.classList.add('hidden');
     if (libraryContainer) libraryContainer.classList.add('hidden');
-    if (budgetContainer) budgetContainer.classList.add('hidden');
 
     if (tabName === 'dashboard') {
         if (statsContainer) statsContainer.classList.remove('hidden');
@@ -205,9 +195,6 @@ function switchTab(tabName, pushHistory = true) {
     } else if (tabName === 'library') {
         if (libraryContainer) libraryContainer.classList.remove('hidden');
         fetchLibraryItems();
-    } else if (tabName === 'budget') {
-        if (budgetContainer) budgetContainer.classList.remove('hidden');
-        fetchBudgetDashboard();
     }
 }
 
@@ -258,7 +245,6 @@ function checkAllNavBadges() {
     setMenuBadge('library', hasNewLibrary);
 }
 
-// 사선 지그재그 워터마크 동적 렌더링
 function renderWatermark() {
     const container = document.getElementById('watermarkGrid');
     if (!container || container.children.length > 0) return;
@@ -306,7 +292,6 @@ function openImageModal(imgUrl) {
     modal.classList.remove('hidden');
 }
 
-// 모든 모달 닫기
 function closeAllModals() {
     const globalImgModal = document.getElementById('globalImageModal');
     if (globalImgModal) globalImgModal.classList.add('hidden');
@@ -314,7 +299,7 @@ function closeAllModals() {
     const modals = [
         createModal, editTaskModal, clientModal, 
         editClientModal, assignModal, detailModal, 
-        libraryViewModal, libraryEditModal, pendingModal, rechargeModal
+        libraryViewModal, libraryEditModal, pendingModal
     ];
     
     modals.forEach(m => { 
@@ -336,14 +321,13 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// 모달 바깥 배경 클릭 및 내부 X/취소 버튼 강제 바인딩
-[createModal, editTaskModal, clientModal, editClientModal, assignModal, detailModal, libraryViewModal, libraryEditModal, pendingModal, rechargeModal].forEach(modalEl => {
+[createModal, editTaskModal, clientModal, editClientModal, assignModal, detailModal, libraryViewModal, libraryEditModal, pendingModal].forEach(modalEl => {
     if (modalEl) {
         modalEl.addEventListener('click', (e) => {
             if (e.target === modalEl) closeAllModals();
         });
 
-        const closeBtns = modalEl.querySelectorAll('.fa-xmark, button[title="닫기"], #closeLibViewModalBtn, #closeLibViewBtn, #closeRechargeModalBtn');
+        const closeBtns = modalEl.querySelectorAll('.fa-xmark, button[title="닫기"], #closeLibViewModalBtn, #closeLibViewBtn');
         closeBtns.forEach(icon => {
             const btn = icon.closest('button') || icon;
             btn.addEventListener('click', (e) => {
@@ -364,7 +348,6 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// 툴팁 일괄 닫기 헬퍼
 function hideAllViewersTooltips() {
     ['viewersTooltip', 'libViewersTooltip'].forEach(id => {
         const tooltip = document.getElementById(id);
@@ -375,7 +358,6 @@ function hideAllViewersTooltips() {
     });
 }
 
-// 툴팁 토글 헬퍼
 function toggleViewerTooltip(tooltipId, e) {
     if (e) {
         e.preventDefault();
@@ -397,7 +379,6 @@ function toggleViewerTooltip(tooltipId, e) {
 safeAddListener('viewCountBadgeBtn', 'click', (e) => toggleViewerTooltip('viewersTooltip', e));
 safeAddListener('libViewCountBadgeBtn', 'click', (e) => toggleViewerTooltip('libViewersTooltip', e));
 
-// 마우스 이탈 시 툴팁 자동 닫기 (데스크톱 대응)
 ['viewCountBadgeWrapper', 'libViewCountBadgeWrapper'].forEach(wrapperId => {
     const wrapper = document.getElementById(wrapperId);
     if (wrapper) {
@@ -407,12 +388,16 @@ safeAddListener('libViewCountBadgeBtn', 'click', (e) => toggleViewerTooltip('lib
     }
 });
 
-// 🌟 전역 문서 클릭 이벤트 위임 핸들러
+// ============================================================================
+// 🌟 전역 문서 클릭 이벤트 (수정, 삭제, 모달 오픈 통합 이벤트 위임)
+// ============================================================================
 document.addEventListener('click', (e) => {
+    // 툴팁 외부 클릭 시 닫기
     if (!e.target.closest('#viewCountBadgeWrapper') && !e.target.closest('#libViewCountBadgeWrapper')) {
         hideAllViewersTooltips();
     }
 
+    // 🌟 1. 클라이언트 수정 버튼 (완벽 바인딩)
     const editClientBtn = e.target.closest('.edit-client-btn');
     if (editClientBtn) {
         e.preventDefault();
@@ -422,6 +407,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
+    // 🌟 2. 클라이언트 삭제 버튼 (완벽 바인딩)
     const delClientBtn = e.target.closest('.delete-client-btn');
     if (delClientBtn) {
         e.preventDefault();
@@ -431,6 +417,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
+    // 3. ID / PW 원클릭 복사 버튼 처리
     const copyTextBtn = e.target.closest('.copy-text-btn');
     if (copyTextBtn) {
         e.preventDefault();
@@ -443,15 +430,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    const rechargeBtn = e.target.closest('.recharge-budget-btn');
-    if (rechargeBtn) {
-        e.preventDefault();
-        e.stopPropagation();
-        const clientId = rechargeBtn.getAttribute('data-id');
-        if (clientId) openRechargeModal(clientId);
-        return;
-    }
-
+    // 4. 업무 게시글: 수정 (Edit Task)
     const editBtn = e.target.closest('.edit-task-btn');
     if (editBtn) {
         e.preventDefault();
@@ -461,6 +440,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
+    // 5. 업무 게시글: 담당자 배정 (Assign Task)
     const assignBtn = e.target.closest('.assign-task-btn');
     if (assignBtn) {
         e.preventDefault();
@@ -470,6 +450,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
+    // 6. 업무 게시글: 삭제 (Delete Task)
     const delBtn = e.target.closest('.delete-task-btn');
     if (delBtn) {
         e.preventDefault();
@@ -479,6 +460,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
+    // 7. 게시글 행 클릭 시 자동 상세 창 오픈
     const taskRow = e.target.closest('.task-detail-trigger');
     if (taskRow && !e.target.closest('a') && !e.target.closest('button')) {
         const taskId = taskRow.getAttribute('data-id');
@@ -486,6 +468,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
+    // 8. 로고 클릭
     const logoTrigger = e.target.closest('#mobileLogoBtn') || e.target.closest('#sidebarLogoBtn') || e.target.closest('.logo-home-btn');
     if (logoTrigger) {
         e.preventDefault();
@@ -495,6 +478,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
+    // 9. 사이드바 제어
     const closeSidebarTrigger = e.target.closest('#closeSidebarBtn') || 
                                 e.target.closest('#closeSidebar') || 
                                 (e.target.closest('button') && e.target.closest('button').querySelector('#closeSidebarBtn'));
@@ -523,27 +507,45 @@ document.addEventListener('click', (e) => {
         return;
     }
 
+    // 10. 신규 클라이언트 등록 모달 오픈
     const addClientBtn = e.target.closest('#openClientModalBtn');
     if (addClientBtn && clientModal) {
         e.preventDefault();
         e.stopPropagation();
         const regIn = document.getElementById('c_registerName');
-        if (regIn) regIn.value = currentUserName;
+        if (regIn) regIn.value = currentUserName; // 로그인 계정 자동입력
+        
+        const form = document.getElementById('clientForm');
+        if (form) form.reset();
+        
         clientModal.classList.remove('hidden');
         clientModal.style.zIndex = "99999";
         return;
     }
 
+    // 11. 신규 이슈 등록 모달 오픈
     const openTaskModalBtn = e.target.closest('#openModalBtn');
     if (openTaskModalBtn && createModal) {
         e.preventDefault();
         e.stopPropagation();
-        populateClientSelectDropdown();
+        
+        const clientSelect = document.getElementById('inputClient');
+        if (clientSelect) {
+            clientSelect.innerHTML = '<option value="">클라이언트를 선택하세요</option>';
+            allClientsData.forEach(c => {
+                clientSelect.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+            });
+        }
+        
+        const budgetInfo = document.getElementById('createClientBudgetInfo');
+        if (budgetInfo) budgetInfo.classList.add('hidden');
+
         createModal.classList.remove('hidden');
         createModal.style.zIndex = "99999";
         return;
     }
 
+    // 12. 이미지 프리뷰
     const imgTrigger = e.target.closest('.img-preview-btn');
     if (imgTrigger) {
         e.preventDefault();
@@ -552,6 +554,7 @@ document.addEventListener('click', (e) => {
         if (url) openImageModal(url);
     }
 
+    // 13. 공유 링크 복사
     const shareTrigger = e.target.closest('#shareLinkBtn') || (e.target.closest('button') && e.target.closest('button').textContent.includes('링크 복사'));
     if (shareTrigger) {
         e.preventDefault();
@@ -566,14 +569,32 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// 전역 윈도우 스코프 함수 바인딩
+// 업무 등록 시 클라이언트 드롭다운 선택 이벤트 연동 (예산 요약 표시)
+safeAddListener('inputClient', 'change', (e) => {
+    const clientName = e.target.value;
+    const infoDiv = document.getElementById('createClientBudgetInfo');
+    if(!infoDiv) return;
+    
+    const client = allClientsData.find(c => c.name === clientName);
+    if (client) {
+        const total = Number(client.totalBudget) || 0;
+        const recharged = Number(client.rechargedBudget) || 0;
+        const used = Number(client.usedBudget) || 0;
+        const rem = (total + recharged) - used;
+        infoDiv.innerHTML = `<span class="font-bold text-hermes">현재 잔여 예산: ${rem.toLocaleString()}원</span> (총 ${((total+recharged)/10000).toLocaleString()}만 / 소진 ${(used/10000).toLocaleString()}만)`;
+        infoDiv.classList.remove('hidden');
+    } else {
+        infoDiv.classList.add('hidden');
+    }
+});
+
+// 🌟 전역 윈도우 스코프 함수 바인딩
 window.openEditTaskModal = openEditTaskModal;
 window.openAssignModal = openAssignModal;
 window.deleteTask = deleteTask;
 window.openDetailModal = openDetailModal;
 window.openEditClientModal = openEditClientModal;
 window.deleteClient = deleteClient;
-window.openRechargeModal = openRechargeModal;
 
 async function uploadFilesToStorage(fileList, folderName) {
     const uploadedFiles = [];
@@ -829,7 +850,6 @@ function showDashboard(user) {
     setupDragAndDrop('commentInputBox', 'commentFileInputBox');
     setupDragAndDrop('inputContent', 'inputFile');
     initNewCommentDragAndDrop();
-    setupClientSelectBudgetEventListener();
 
     const urlParams = new URLSearchParams(window.location.search);
     const initialTab = urlParams.get('tab') || urlParams.get('menu') || 'dashboard';
@@ -843,74 +863,10 @@ function showPendingPopup() {
 }
 
 // ============================================================================
-// 🌟 5. 클라이언트 드롭다운 동적 로드 및 실시간 예산 연동
-// ============================================================================
-async function populateClientSelectDropdown() {
-    const clientSelect = document.getElementById('inputClient');
-    if (!clientSelect) return;
-
-    try {
-        const querySnapshot = await getDocs(collection(db, "clients"));
-        clientSelect.innerHTML = '<option value="">클라이언트를 선택하세요</option>';
-        
-        querySnapshot.forEach((docSnap) => {
-            const data = docSnap.data();
-            clientsMap[docSnap.id] = { id: docSnap.id, ...data };
-
-            const option = document.createElement('option');
-            option.value = data.name;
-            option.setAttribute('data-id', docSnap.id);
-            option.textContent = data.name;
-            clientSelect.appendChild(option);
-        });
-    } catch (err) {
-        console.error("클라이언트 목록 로드 실패:", err);
-    }
-}
-
-function setupClientSelectBudgetEventListener() {
-    const clientSelect = document.getElementById('inputClient');
-    const badge = document.getElementById('clientBudgetBadge');
-    if (!clientSelect || !badge) return;
-
-    clientSelect.addEventListener('change', (e) => {
-        const selectedName = e.target.value;
-        const selectedClient = Object.values(clientsMap).find(c => c.name === selectedName);
-
-        if (selectedClient) {
-            const total = Number(selectedClient.totalBudget) || Number(selectedClient.budget) || 0;
-            const recharged = Number(selectedClient.rechargedBudget) || 0;
-            const spent = Number(selectedClient.spentBudget) || 0;
-            const remaining = (total + recharged) - spent;
-
-            document.getElementById('badgeTotalBudget').textContent = formatKW(total);
-            document.getElementById('badgeRechargedBudget').textContent = formatKW(recharged);
-            document.getElementById('badgeSpentBudget').textContent = formatKW(spent);
-            
-            const remElem = document.getElementById('badgeRemainingBudget');
-            remElem.textContent = formatKW(remaining);
-
-            if (remaining <= 0) {
-                remElem.className = "text-red-600 font-black text-sm";
-            } else if (remaining < total * 0.1) {
-                remElem.className = "text-amber-600 font-black text-sm";
-            } else {
-                remElem.className = "text-hermes font-black text-sm";
-            }
-
-            badge.classList.remove('hidden');
-        } else {
-            badge.classList.add('hidden');
-        }
-    });
-}
-
-// ============================================================================
-// 6. 업무 이슈/요청 게시판
+// 5. 업무 이슈/요청 게시판
 // ============================================================================
 safeAddListener('openModalBtn', 'click', () => {
     if (createModal) {
-        populateClientSelectDropdown();
         createModal.classList.remove('hidden');
         createModal.style.zIndex = "99999";
     }
@@ -950,9 +906,10 @@ safeAddListener('taskForm', 'submit', async (e) => {
     }
 
     const authorStaffName = document.getElementById('inputStaff').value || currentUserName || '담당자';
+    const selectedClient = document.getElementById('inputClient').value; 
 
     const newTask = {
-        client: document.getElementById('inputClient').value,
+        client: selectedClient,
         type: document.getElementById('inputType').value,
         agency: document.getElementById('inputAgency').value,
         title: tTitle,
@@ -974,9 +931,6 @@ safeAddListener('taskForm', 'submit', async (e) => {
         await addDoc(collection(db, "crm_tasks"), newTask);
         createModal.classList.add('hidden');
         document.getElementById('taskForm').reset();
-        const badge = document.getElementById('clientBudgetBadge');
-        if (badge) badge.classList.add('hidden');
-
         await logActivity("이슈 등록", `[${newTask.client}] 신규 이슈 작성: ${tTitle}`);
         fetchTasks();
         alert("이슈가 성공적으로 등록되었습니다.");
@@ -1010,13 +964,20 @@ function openEditTaskModal(taskId) {
     if (!task) return;
     currentDetailTaskId = taskId;
 
-    const clientIn = document.getElementById('editTaskClient');
+    const clientSelect = document.getElementById('editTaskClient');
     const titleIn = document.getElementById('editTaskTitle');
     const typeIn = document.getElementById('editTaskType');
     const agencyIn = document.getElementById('editTaskAgency');
     const contentIn = document.getElementById('editTaskContent');
 
-    if (clientIn) clientIn.value = task.client || '';
+    if (clientSelect) {
+        clientSelect.innerHTML = '<option value="">클라이언트를 선택하세요</option>';
+        allClientsData.forEach(c => {
+            const isSelected = (task.client === c.name) ? 'selected' : '';
+            clientSelect.innerHTML += `<option value="${c.name}" ${isSelected}>${c.name}</option>`;
+        });
+    }
+
     if (titleIn) titleIn.value = task.title || '';
     if (typeIn) typeIn.value = task.type || '보고서';
     if (agencyIn) agencyIn.value = task.agency || 'noah';
@@ -1235,7 +1196,6 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
     }
 });
 
-// 업무 Q&A 전체 게시글 로딩 및 복구 보장 렌더링
 async function fetchTasks() {
     const tbody = document.getElementById('boardTable');
     const emptyState = document.getElementById('emptyState');
@@ -1254,6 +1214,7 @@ async function fetchTasks() {
             tasksMap[docSnap.id] = tItem;
         });
 
+        // 정밀 정렬
         fetchedData.sort((a, b) => {
             const timeA = a.createdAt ? new Date(a.createdAt).getTime() : new Date((a.date || '').replace(/\./g, '-')).getTime();
             const timeB = b.createdAt ? new Date(b.createdAt).getTime() : new Date((b.date || '').replace(/\./g, '-')).getTime();
@@ -1553,6 +1514,52 @@ async function openDetailModal(taskId) {
     detailModal.classList.remove('hidden');
     logActivity("상세 조회", `[${task.title}] 상세 내용을 조회했습니다.`);
 }
+
+function bindInlineEditMode(taskId) {
+    const task = tasksMap[taskId];
+    const titleEl = document.getElementById('detailTitle');
+    const contentEl = document.getElementById('detailContent');
+    const actionArea = document.getElementById('detailTaskActions');
+
+    if (!titleEl || !contentEl) return;
+
+    titleEl.innerHTML = `<input type="text" id="inlineEditTitle" value="${task.title.replace(/"/g, '&quot;')}" class="w-full text-base sm:text-lg font-black border border-orange-400 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-hermes box-border" />`;
+    contentEl.innerHTML = `<textarea id="inlineEditContent" rows="6" class="w-full text-xs sm:text-sm font-medium border border-orange-400 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-hermes box-border">${task.content}</textarea>`;
+
+    if (actionArea) {
+        actionArea.innerHTML = `
+            <button type="button" id="btnInlineSave" class="px-3 py-1.5 bg-hermes hover:bg-orange-600 text-white text-xs font-bold rounded-lg shadow-sm transition whitespace-nowrap">저장</button>
+            <button type="button" id="btnInlineCancel" class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-bold rounded-lg transition whitespace-nowrap">취소</button>
+        `;
+
+        document.getElementById('btnInlineCancel').onclick = () => openDetailModal(taskId);
+        document.getElementById('btnInlineSave').onclick = async () => {
+            const newTitle = document.getElementById('inlineEditTitle').value.trim();
+            const newContent = document.getElementById('inlineEditContent').value.trim();
+            if(!newTitle) { alert("제목을 입력해주세요."); return; }
+
+            document.getElementById('btnInlineSave').innerText = "저장중...";
+            try {
+                await updateDoc(doc(db, "crm_tasks", taskId), { 
+                    title: newTitle, 
+                    content: newContent, 
+                    updatedAt: new Date().toISOString() 
+                });
+                tasksMap[taskId].title = newTitle; 
+                tasksMap[taskId].content = newContent;
+                alert("수정이 반영되었습니다."); 
+                fetchTasks(); 
+                openDetailModal(taskId);
+            } catch(err) { 
+                alert(err.message); 
+            }
+        };
+    }
+}
+
+// ============================================================================
+// 7. 소통 댓글 모듈
+// ============================================================================
 
 function renderNewCommentFilePreviews() {
     let prevArea = document.getElementById('commentNewFilesPreviewArea');
@@ -1957,7 +1964,7 @@ safeAddListener('submitNewCommentBtn', 'click', async () => {
 });
 
 // ============================================================================
-// 7. 클라이언트 관리 (예산 필드 파싱 및 연동)
+// 🌟 8. 클라이언트 관리 (예산 관리 및 모달 정밀 바인딩 복구 완료)
 // ============================================================================
 safeAddListener('clientForm', 'submit', async (e) => {
     e.preventDefault();
@@ -1970,7 +1977,7 @@ safeAddListener('clientForm', 'submit', async (e) => {
     const metaPwIn = document.getElementById('c_metaPw');
     const totalBudgetIn = document.getElementById('c_totalBudget');
     const rechargedBudgetIn = document.getElementById('c_rechargedBudget');
-    const spentBudgetIn = document.getElementById('c_spentBudget');
+    const usedBudgetIn = document.getElementById('c_usedBudget');
     const instaDateIn = document.getElementById('c_instaDate');
     const metaDateIn = document.getElementById('c_metaDate');
 
@@ -1982,24 +1989,19 @@ safeAddListener('clientForm', 'submit', async (e) => {
     }
 
     try {
-        const totalNum = Number(totalBudgetIn ? totalBudgetIn.value : 0) || 0;
-        const rechargedNum = Number(rechargedBudgetIn ? rechargedBudgetIn.value : 0) || 0;
-        const spentNum = Number(spentBudgetIn ? spentBudgetIn.value : 0) || 0;
-
         const newClient = {
             name: nameIn ? nameIn.value : '',
             homeUrl: homeIn ? homeIn.value : '',
             instaUrl: instaIn ? instaIn.value : '',
             metaId: metaIdIn ? metaIdIn.value : '',
             metaPw: metaPwIn ? metaPwIn.value : '',
-            budget: formatKW(totalNum),
-            totalBudget: totalNum,
-            rechargedBudget: rechargedNum,
-            spentBudget: spentNum,
+            totalBudget: totalBudgetIn ? Number(totalBudgetIn.value) : 0,
+            rechargedBudget: rechargedBudgetIn ? Number(rechargedBudgetIn.value) : 0,
+            usedBudget: usedBudgetIn ? Number(usedBudgetIn.value) : 0,
             instaDate: instaDateIn ? instaDateIn.value : '',
             metaDate: metaDateIn ? metaDateIn.value : '',
             registeredBy: currentUserName,
-            managers: [currentUserName],
+            managers: [currentUserName], // 신규 등록 시 로그인한 사용자를 담당자로 자동 배정
             createdAt: new Date().toISOString()
         };
 
@@ -2037,6 +2039,7 @@ async function deleteClient(clientId) {
     }
 }
 
+// 🌟 클라이언트 수정 모달 오픈 (ID/PW 및 담당자 바인딩 정밀 연동)
 function openEditClientModal(clientId) {
     const client = clientsMap[clientId];
     if (!client) return;
@@ -2050,7 +2053,7 @@ function openEditClientModal(clientId) {
         const metaPwIn = document.getElementById('edit_c_metaPw');
         const totalBudgetIn = document.getElementById('edit_c_totalBudget');
         const rechargedBudgetIn = document.getElementById('edit_c_rechargedBudget');
-        const spentBudgetIn = document.getElementById('edit_c_spentBudget');
+        const usedBudgetIn = document.getElementById('edit_c_usedBudget');
         const instaDateIn = document.getElementById('edit_c_instaDate');
         const metaDateIn = document.getElementById('edit_c_metaDate');
 
@@ -2061,10 +2064,11 @@ function openEditClientModal(clientId) {
         if (metaPwIn) metaPwIn.value = client.metaPw || '';
         if (totalBudgetIn) totalBudgetIn.value = client.totalBudget || 0;
         if (rechargedBudgetIn) rechargedBudgetIn.value = client.rechargedBudget || 0;
-        if (spentBudgetIn) spentBudgetIn.value = client.spentBudget || 0;
+        if (usedBudgetIn) usedBudgetIn.value = client.usedBudget || 0;
         if (instaDateIn) instaDateIn.value = client.instaDate || '';
         if (metaDateIn) metaDateIn.value = client.metaDate || '';
 
+        // 담당자 연결 체크박스 영역
         const editManagerList = document.getElementById('editClientManagerList');
         if (editManagerList) {
             editManagerList.innerHTML = '<div class="text-xs text-gray-400 p-2 text-center font-bold"><i class="fa-solid fa-spinner animate-spin mr-1"></i> 멤버 목록 불러오는 중...</div>';
@@ -2090,6 +2094,7 @@ function openEditClientModal(clientId) {
     }
 }
 
+// 🌟 클라이언트 수정폼 제출 바인딩
 safeAddListener('editClientForm', 'submit', async (e) => {
     e.preventDefault();
     if (!currentEditClientId) return;
@@ -2101,7 +2106,7 @@ safeAddListener('editClientForm', 'submit', async (e) => {
     const metaPwIn = document.getElementById('edit_c_metaPw');
     const totalBudgetIn = document.getElementById('edit_c_totalBudget');
     const rechargedBudgetIn = document.getElementById('edit_c_rechargedBudget');
-    const spentBudgetIn = document.getElementById('edit_c_spentBudget');
+    const usedBudgetIn = document.getElementById('edit_c_usedBudget');
     const instaDateIn = document.getElementById('edit_c_instaDate');
     const metaDateIn = document.getElementById('edit_c_metaDate');
 
@@ -2111,10 +2116,6 @@ safeAddListener('editClientForm', 'submit', async (e) => {
         updatedManagers = Array.from(editClientModal.querySelectorAll('.edit-client-manager-checkbox:checked')).map(cb => cb.value);
     }
 
-    const totalNum = Number(totalBudgetIn ? totalBudgetIn.value : 0) || 0;
-    const rechargedNum = Number(rechargedBudgetIn ? rechargedBudgetIn.value : 0) || 0;
-    const spentNum = Number(spentBudgetIn ? spentBudgetIn.value : 0) || 0;
-
     try {
         await updateDoc(doc(db, "clients", currentEditClientId), {
             name: nameIn ? nameIn.value : clientsMap[currentEditClientId].name,
@@ -2122,24 +2123,23 @@ safeAddListener('editClientForm', 'submit', async (e) => {
             instaUrl: instaIn ? instaIn.value : clientsMap[currentEditClientId].instaUrl,
             metaId: metaIdIn ? metaIdIn.value : clientsMap[currentEditClientId].metaId,
             metaPw: metaPwIn ? metaPwIn.value : clientsMap[currentEditClientId].metaPw,
-            budget: formatKW(totalNum),
-            totalBudget: totalNum,
-            rechargedBudget: rechargedNum,
-            spentBudget: spentNum,
+            totalBudget: totalBudgetIn ? Number(totalBudgetIn.value) : (clientsMap[currentEditClientId].totalBudget || 0),
+            rechargedBudget: rechargedBudgetIn ? Number(rechargedBudgetIn.value) : (clientsMap[currentEditClientId].rechargedBudget || 0),
+            usedBudget: usedBudgetIn ? Number(usedBudgetIn.value) : (clientsMap[currentEditClientId].usedBudget || 0),
             instaDate: instaDateIn ? instaDateIn.value : (clientsMap[currentEditClientId].instaDate || ''),
             metaDate: metaDateIn ? metaDateIn.value : (clientsMap[currentEditClientId].metaDate || ''),
             managers: updatedManagers,
             updatedAt: new Date().toISOString()
         });
         editClientModal.classList.add('hidden');
-        alert("클라이언트 정보 및 예산이 수정되었습니다.");
+        alert("클라이언트 정보가 수정되었습니다.");
         fetchClients();
     } catch (err) {
         alert("수정 실패: " + err.message);
     }
 });
 
-// 전체 클라이언트 수집 및 렌더링
+// 전체 클라이언트 수집
 async function fetchClients() {
     const tbody = document.getElementById('clientsTable');
     const emptyState = document.getElementById('emptyClients');
@@ -2148,7 +2148,7 @@ async function fetchClients() {
     if (tbody.parentElement) {
         tbody.parentElement.classList.add('overflow-x-auto', 'block', 'w-full');
         if (tbody.parentElement.tagName === 'TABLE') {
-            tbody.parentElement.classList.add('min-w-[650px]', 'w-full');
+            tbody.parentElement.classList.add('min-w-[1000px]', 'w-full');
         }
     }
 
@@ -2188,6 +2188,7 @@ async function fetchClients() {
     } catch (e) { console.error("Client fetch error:", e); }
 }
 
+// 🌟 예산 시각화 바 및 페이지네이션 렌더링
 function renderClientsPage(page) {
     currentClientPage = page;
     const tbody = document.getElementById('clientsTable');
@@ -2254,7 +2255,31 @@ function renderClientsPage(page) {
             </button>
         ` : '';
 
-        const displayBudgetString = data.totalBudget ? formatKW(data.totalBudget) : (data.budget || '-');
+        // 🌟 예산 정보 시각화 로직
+        const total = Number(data.totalBudget) || 0;
+        const recharged = Number(data.rechargedBudget) || 0;
+        const used = Number(data.usedBudget) || 0;
+        const maxBudget = total + recharged;
+        const remaining = maxBudget - used;
+        const percent = maxBudget > 0 ? Math.min(100, (used / maxBudget) * 100) : 0;
+        
+        const formatWon = (val) => val.toLocaleString() + '원';
+
+        let budgetHtml = `
+            <div class="flex flex-col gap-1 w-full min-w-[150px]">
+                <div class="flex justify-between text-[10px] font-bold items-end">
+                    <span class="text-gray-500">잔여: <span class="text-hermes text-[11px]">${formatWon(remaining)}</span></span>
+                    <span class="text-gray-400">소진률: ${percent.toFixed(1)}%</span>
+                </div>
+                <div class="w-full bg-gray-100 rounded-full h-1.5 shadow-inner">
+                    <div class="bg-hermes h-1.5 rounded-full" style="width: ${percent}%"></div>
+                </div>
+                <div class="text-[9px] text-gray-400 flex justify-between mt-0.5">
+                    <span>총+충전: ${formatWon(maxBudget)}</span>
+                    <span>사용: ${formatWon(used)}</span>
+                </div>
+            </div>
+        `;
 
         const tr = `
             <tr class="hover:bg-orange-50/30 transition border-b border-gray-100 break-keep">
@@ -2273,7 +2298,7 @@ function renderClientsPage(page) {
                         ${copyPwBtn}
                     </div>
                 </td>
-                <td class="p-3 md:p-4 font-bold text-hermes text-xs align-middle whitespace-nowrap">${displayBudgetString}</td>
+                <td class="p-3 md:p-4 align-middle whitespace-nowrap">${budgetHtml}</td>
                 <td class="p-3 md:p-4 text-xs text-gray-600 align-middle whitespace-nowrap"><div>인스타: ${data.instaDate || '-'}</div><div>메타: ${data.metaDate || '-'}</div></td>
                 <td class="p-3 md:p-4 text-xs font-bold text-gray-500 align-middle whitespace-nowrap">${data.registeredBy || '-'}</td>
                 <td class="p-3 md:p-4 max-w-[130px] overflow-hidden align-middle">${managersHtml}</td>
@@ -2302,147 +2327,6 @@ function renderClientsPage(page) {
 
     checkAllNavBadges();
 }
-
-// ============================================================================
-// 🌟 8. 클라이언트 예산 대시보드 및 Quick 충전 로직 (Admin Only)
-// ============================================================================
-async function fetchBudgetDashboard() {
-    const tbody = document.getElementById('budgetTable');
-    if (!tbody) return;
-
-    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin text-hermes mr-2"></i> 예산 데이터 계산 중...</td></tr>';
-
-    try {
-        const querySnapshot = await getDocs(collection(db, "clients"));
-        let sumTotal = 0;
-        let sumRecharged = 0;
-        let sumSpent = 0;
-        let sumRemaining = 0;
-
-        tbody.innerHTML = '';
-
-        if (querySnapshot.empty) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-400">등록된 클라이언트 예산 정보가 없습니다.</td></tr>';
-            return;
-        }
-
-        querySnapshot.forEach((docSnap) => {
-            const client = { id: docSnap.id, ...docSnap.data() };
-            clientsMap[docSnap.id] = client;
-
-            const total = Number(client.totalBudget) || Number(client.budget) || 0;
-            const recharged = Number(client.rechargedBudget) || 0;
-            const spent = Number(client.spentBudget) || 0;
-            const totalOperating = total + recharged;
-            const remaining = totalOperating - spent;
-            const burnRate = totalOperating > 0 ? Math.min(100, Math.round((spent / totalOperating) * 100)) : 0;
-
-            sumTotal += total;
-            sumRecharged += recharged;
-            sumSpent += spent;
-            sumRemaining += remaining;
-
-            let statusBadge = `<span class="bg-blue-50 text-blue-600 text-[10px] font-bold px-2 py-0.5 rounded border border-blue-100">정상</span>`;
-            if (remaining <= 0) {
-                statusBadge = `<span class="bg-red-50 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded border border-red-100">소진 완료</span>`;
-            } else if (burnRate >= 90) {
-                statusBadge = `<span class="bg-amber-50 text-amber-600 text-[10px] font-bold px-2 py-0.5 rounded border border-amber-100">소진 임박</span>`;
-            }
-
-            const tr = `
-                <tr class="hover:bg-orange-50/20 transition border-b border-gray-100 break-keep">
-                    <td class="p-3 md:p-4 font-black text-gray-900 align-middle whitespace-nowrap">
-                        ${client.name}
-                        <div class="mt-0.5">${statusBadge}</div>
-                    </td>
-                    <td class="p-3 md:p-4 font-bold text-gray-800 align-middle whitespace-nowrap">${formatKW(total)}</td>
-                    <td class="p-3 md:p-4 font-bold text-blue-600 align-middle whitespace-nowrap">${formatKW(recharged)}</td>
-                    <td class="p-3 md:p-4 font-bold text-amber-600 align-middle whitespace-nowrap">${formatKW(spent)}</td>
-                    <td class="p-3 md:p-4 font-black text-hermes text-base align-middle whitespace-nowrap">${formatKW(remaining)}</td>
-                    <td class="p-3 md:p-4 align-middle whitespace-nowrap">
-                        <div class="flex items-center gap-2">
-                            <div class="w-24 bg-gray-200 rounded-full h-2 overflow-hidden">
-                                <div class="bg-hermes h-2 rounded-full" style="width: ${burnRate}%"></div>
-                            </div>
-                            <span class="text-xs font-bold text-gray-600">${burnRate}%</span>
-                        </div>
-                    </td>
-                    <td class="p-3 md:p-4 text-center align-middle whitespace-nowrap">
-                        <button type="button" class="recharge-budget-btn bg-hermes hover:bg-hermes-hover text-white text-xs font-bold px-3 py-1.5 rounded-lg transition shadow-xs cursor-pointer" data-id="${client.id}">
-                            <i class="fa-solid fa-plus text-[10px] mr-1"></i> 예산 충전
-                        </button>
-                    </td>
-                </tr>
-            `;
-            tbody.innerHTML += tr;
-        });
-
-        document.getElementById('kpiTotalBudget').textContent = formatKW(sumTotal);
-        document.getElementById('kpiRechargedBudget').textContent = formatKW(sumRecharged);
-        document.getElementById('kpiSpentBudget').textContent = formatKW(sumSpent);
-        document.getElementById('kpiRemainingBudget').textContent = formatKW(sumRemaining);
-
-    } catch (e) {
-        console.error("예산 대시보드 로드 에러:", e);
-    }
-}
-
-function openRechargeModal(clientId) {
-    const client = clientsMap[clientId];
-    if (!client) return;
-    currentRechargeClientId = clientId;
-
-    const titleEl = document.getElementById('rechargeClientTitle');
-    if (titleEl) titleEl.textContent = client.name;
-
-    const amountIn = document.getElementById('rechargeAmountInput');
-    if (amountIn) amountIn.value = '';
-
-    if (rechargeModal) {
-        rechargeModal.classList.remove('hidden');
-        rechargeModal.style.zIndex = "99999";
-    }
-}
-
-safeAddListener('rechargeForm', 'submit', async (e) => {
-    e.preventDefault();
-    if (!currentRechargeClientId) return;
-
-    const amountIn = document.getElementById('rechargeAmountInput');
-    const rechargeVal = Number(amountIn ? amountIn.value : 0);
-
-    if (rechargeVal <= 0) {
-        alert("올바른 충전 금액을 입력하세요.");
-        return;
-    }
-
-    const submitBtn = rechargeModal.querySelector('button[type="submit"]');
-    const origText = submitBtn ? submitBtn.innerText : '충전 완료';
-    if (submitBtn) {
-        submitBtn.innerText = "충전 처리 중...";
-        submitBtn.disabled = true;
-    }
-
-    try {
-        const clientRef = doc(db, "clients", currentRechargeClientId);
-        await updateDoc(clientRef, {
-            rechargedBudget: increment(rechargeVal),
-            updatedAt: new Date().toISOString()
-        });
-
-        alert(`[${clientsMap[currentRechargeClientId].name}] 예산 ${formatKW(rechargeVal)} 충전이 완료되었습니다.`);
-        rechargeModal.classList.add('hidden');
-        await logActivity("예산 충전", `[${clientsMap[currentRechargeClientId].name}] ${formatKW(rechargeVal)} 예산 충전 완료`);
-        fetchBudgetDashboard();
-    } catch (err) {
-        alert("예산 충전 실패: " + err.message);
-    } finally {
-        if (submitBtn) {
-            submitBtn.innerText = origText;
-            submitBtn.disabled = false;
-        }
-    }
-});
 
 // ============================================================================
 // 9. 인사이트 라이브러리 모듈

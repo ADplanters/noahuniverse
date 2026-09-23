@@ -31,7 +31,7 @@ const provider = new GoogleAuthProvider();
 const ADMIN_EMAILS = ["hhjhhj422@gmail.com", "adp@adplanters.com", "dlghgus9997@gmail.com"];
 let currentUserRole = ''; 
 let currentUserName = ''; 
-let currentUserEmail = ''; // 사용자 이메일 보존용
+let currentUserEmail = ''; 
 let currentAssignClientId = null; 
 let currentEditClientId = null;
 let currentDetailTaskId = null; 
@@ -404,7 +404,6 @@ safeAddListener('libViewCountBadgeBtn', 'click', (e) => toggleViewerTooltip('lib
 // 🌟 알림 팝업 및 전역 문서 클릭 이벤트 연동
 // ============================================================================
 
-// 알림창 토글 이벤트
 safeAddListener('notifBellBtn', 'click', (e) => {
     e.stopPropagation();
     const dropdown = document.getElementById('notifDropdown');
@@ -423,20 +422,16 @@ safeAddListener('closeNotifBtn', 'click', (e) => {
     if (dropdown) dropdown.classList.add('hidden');
 });
 
-// 문서 전역 클릭 핸들링
 document.addEventListener('click', async (e) => {
-    // 툴팁 외부 클릭 시 닫기
     if (!e.target.closest('#viewCountBadgeWrapper') && !e.target.closest('#libViewCountBadgeWrapper')) {
         hideAllViewersTooltips();
     }
 
-    // 알림창 외부 클릭 시 닫기
     if (!e.target.closest('#notifBellBtn') && !e.target.closest('#mobileNotifBellBtn') && !e.target.closest('#notifDropdown')) {
         const dropdown = document.getElementById('notifDropdown');
         if (dropdown) dropdown.classList.add('hidden');
     }
 
-    // 1. 클라이언트 수정 버튼
     const editClientBtn = e.target.closest('.edit-client-btn');
     if (editClientBtn) {
         e.preventDefault();
@@ -446,7 +441,6 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
-    // 2. 클라이언트 삭제 버튼
     const delClientBtn = e.target.closest('.delete-client-btn');
     if (delClientBtn) {
         e.preventDefault();
@@ -456,7 +450,6 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
-    // 3. 예산 수정 전용 버튼 이벤트
     const editBudgetBtn = e.target.closest('.edit-budget-btn');
     if (editBudgetBtn) {
         e.preventDefault();
@@ -466,7 +459,6 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
-    // 4. ID / PW 원클릭 복사 버튼 처리
     const copyTextBtn = e.target.closest('.copy-text-btn');
     if (copyTextBtn) {
         e.preventDefault();
@@ -479,7 +471,6 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
-    // 5. 업무 게시글: 수정 (Edit Task)
     const editBtn = e.target.closest('.edit-task-btn');
     if (editBtn) {
         e.preventDefault();
@@ -489,7 +480,6 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
-    // 6. 업무 게시글: 담당자 배정 (Assign Task)
     const assignBtn = e.target.closest('.assign-task-btn');
     if (assignBtn) {
         e.preventDefault();
@@ -499,7 +489,6 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
-    // 7. 업무 게시글: 삭제 (Delete Task)
     const delBtn = e.target.closest('.delete-task-btn');
     if (delBtn) {
         e.preventDefault();
@@ -509,7 +498,6 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
-    // 8. 게시글 행 및 롤링 항목 클릭 시 자동 상세 창 오픈
     const taskRow = e.target.closest('.task-detail-trigger');
     if (taskRow && !e.target.closest('a') && !e.target.closest('button')) {
         const taskId = taskRow.getAttribute('data-id');
@@ -517,7 +505,6 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
-    // 9. 로고 클릭
     const logoTrigger = e.target.closest('#mobileLogoBtn') || e.target.closest('#sidebarLogoBtn') || e.target.closest('.logo-home-btn');
     if (logoTrigger) {
         e.preventDefault();
@@ -527,7 +514,6 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
-    // 10. 사이드바 제어
     const closeSidebarTrigger = e.target.closest('#closeSidebarBtn') || 
                                 e.target.closest('#closeSidebar') || 
                                 (e.target.closest('button') && e.target.closest('button').querySelector('#closeSidebarBtn'));
@@ -556,7 +542,6 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
-    // 11. 신규 클라이언트 등록 모달 오픈
     const addClientBtn = e.target.closest('#openClientModalBtn');
     if (addClientBtn && clientModal) {
         e.preventDefault();
@@ -572,7 +557,6 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
-    // 12. 신규 이슈 등록 모달 오픈 (비동기 클라이언트 연동 보장)
     const openTaskModalBtn = e.target.closest('#openModalBtn');
     if (openTaskModalBtn && createModal) {
         e.preventDefault();
@@ -601,7 +585,6 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
-    // 13. 이미지 프리뷰
     const imgTrigger = e.target.closest('.img-preview-btn');
     if (imgTrigger) {
         e.preventDefault();
@@ -610,7 +593,6 @@ document.addEventListener('click', async (e) => {
         if (url) openImageModal(url);
     }
 
-    // 14. 공유 링크 복사
     const shareTrigger = e.target.closest('#shareLinkBtn') || (e.target.closest('button') && e.target.closest('button').textContent.includes('링크 복사'));
     if (shareTrigger) {
         e.preventDefault();
@@ -625,7 +607,6 @@ document.addEventListener('click', async (e) => {
     }
 });
 
-// 업무 등록 시 클라이언트 드롭다운 선택 이벤트 연동 (📢 [전체 공지] 바인딩)
 safeAddListener('inputClient', 'change', (e) => {
     const clientName = e.target.value;
     const infoDiv = document.getElementById('createClientBudgetInfo');
@@ -650,7 +631,6 @@ safeAddListener('inputClient', 'change', (e) => {
     }
 });
 
-// 전역 윈도우 스코프 함수 바인딩
 window.openEditTaskModal = openEditTaskModal;
 window.openAssignModal = openAssignModal;
 window.deleteTask = deleteTask;
@@ -829,7 +809,6 @@ onAuthStateChanged(auth, async (user) => {
         const staffInput = document.getElementById('inputStaff');
         if(staffInput) staffInput.value = currentUserName;
 
-        // 🌟 이메일 정보 사이드바 노출 연동
         const userEmailEl = document.getElementById('currentUserEmail');
         if (userEmailEl) userEmailEl.innerText = currentUserEmail;
 
@@ -920,7 +899,6 @@ function showDashboard(user) {
     setupDragAndDrop('inputContent', 'inputFile');
     initNewCommentDragAndDrop();
 
-    // 로그인 시 백그라운드로 클라이언트 선탑재 보장
     fetchClients();
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -1031,7 +1009,6 @@ async function deleteTask(taskId) {
     }
 }
 
-// 업무 게시물 전체 정보 수정
 async function openEditTaskModal(taskId) {
     const task = tasksMap[taskId];
     if (!task) return;
@@ -1276,46 +1253,70 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
     }
 });
 
-// 🌟 수집된 게시글로 롤링 Ticker 박스 데이터 갱신 및 애니메이션 실행
+// 🌟 수집된 게시글로 롤링 Ticker 박스 데이터 갱신 및 애니메이션 실행 (Top 10 항목씩)
 function renderRollingTickers(tasksList) {
     const latestListEl = document.getElementById('tickerLatestList');
     const progressListEl = document.getElementById('tickerProgressList');
 
     if (!latestListEl || !progressListEl) return;
 
-    // 1. 최신 이슈 Top 5
-    const latestTasks = [...tasksList].slice(0, 5);
-    // 2. 진행중 업무 Top 5 ('진행중' 또는 '답변대기')
-    const progressTasks = tasksList.filter(t => t.status === '진행중' || t.status === '답변대기').slice(0, 5);
+    // 1. 최신 등록순 (모든 항목 대상 최신 Top 10)
+    const latestTasks = [...tasksList].slice(0, 10);
+    // 2. 진행중 업무순 (상태 필터링 후 최신 Top 10)
+    const progressTasks = tasksList.filter(t => t.status === '진행중' || t.status === '답변대기').slice(0, 10);
 
     const buildTickerItemsHtml = (items) => {
         if (items.length === 0) {
-            return `<li class="h-[40px] flex items-center text-gray-400 font-normal">등록된 항목이 없습니다.</li>`;
+            return `<li class="h-[40px] flex items-center text-gray-400 font-normal px-2">등록된 항목이 없습니다.</li>`;
         }
-        return items.map(item => `
-            <li class="h-[40px] flex items-center justify-between group cursor-pointer task-detail-trigger" data-id="${item.id}">
+        return items.map(item => {
+            const managerStr = (item.assignedManagers && item.assignedManagers.length > 0) ? item.assignedManagers.join(', ') : '미지정';
+            return `
+            <li class="h-[40px] flex items-center justify-between group cursor-pointer task-detail-trigger border-b border-gray-50 last:border-0 hover:bg-orange-50/50 px-2 transition-colors shrink-0" data-id="${item.id}">
                 <div class="flex items-center gap-2 truncate pr-2">
                     <span class="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-bold shrink-0">${item.client || '공지'}</span>
                     <span class="truncate font-bold text-gray-800 group-hover:text-hermes transition">${item.title}</span>
                 </div>
-                <span class="text-[10px] text-gray-400 font-normal shrink-0 whitespace-nowrap">${item.date || ''}</span>
+                <div class="flex items-center gap-2 shrink-0">
+                    <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 hidden sm:inline-flex"><i class="fa-solid fa-user text-[9px] mr-0.5"></i>${managerStr}</span>
+                    <span class="text-[10px] text-gray-400 font-normal whitespace-nowrap">${item.date || ''}</span>
+                </div>
             </li>
-        `).join('');
+        `}).join('');
     };
 
-    latestListEl.innerHTML = buildTickerItemsHtml(latestTasks);
-    progressListEl.innerHTML = buildTickerItemsHtml(progressTasks);
+    // 자연스러운 무한 롤링을 위해 노출 리스트 뒤에 처음 3개를 한 번 더 이어붙임
+    let latestHtml = buildTickerItemsHtml(latestTasks);
+    if (latestTasks.length > 3) {
+        latestHtml += buildTickerItemsHtml(latestTasks.slice(0, 3)); 
+    }
+    latestListEl.innerHTML = latestHtml;
 
-    // 롤링 애니메이션 타이머 재설정
+    let progressHtml = buildTickerItemsHtml(progressTasks);
+    if (progressTasks.length > 3) {
+        progressHtml += buildTickerItemsHtml(progressTasks.slice(0, 3));
+    }
+    progressListEl.innerHTML = progressHtml;
+
     if (latestRollingInterval) clearInterval(latestRollingInterval);
     if (progressRollingInterval) clearInterval(progressRollingInterval);
 
     const startVerticalRoll = (listEl, itemCount) => {
-        if (itemCount <= 1) return null;
+        if (itemCount <= 3) return null; // 3개 이하면 롤링하지 않음
         let currentIndex = 0;
         return setInterval(() => {
-            currentIndex = (currentIndex + 1) % itemCount;
+            currentIndex++;
+            listEl.style.transition = 'transform 0.5s ease-in-out';
             listEl.style.transform = `translateY(-${currentIndex * 40}px)`;
+
+            // 복제된 마지막 3개 영역에 닿으면 즉시 0으로 복귀
+            if (currentIndex === itemCount) { 
+                setTimeout(() => {
+                    listEl.style.transition = 'none';
+                    currentIndex = 0;
+                    listEl.style.transform = `translateY(0)`;
+                }, 500); // CSS 트랜지션 시간 후 초기화
+            }
         }, 3000);
     };
 
@@ -1323,12 +1324,11 @@ function renderRollingTickers(tasksList) {
     progressRollingInterval = startVerticalRoll(progressListEl, progressTasks.length);
 }
 
-// 🌟 사용자 맞춤 알림 체크 (담당자 배정 & @태그 연동)
+// 🌟 사용자 맞춤 알림 업데이트 
 function updateNotifications(tasksList) {
     const notifBadge = document.getElementById('notifBadge');
-    const mobileNotifBadge = document.getElementById('mobileNotifBadge'); 
+    const mobileNotifBadge = document.getElementById('mobileNotifBadge');
     const notifList = document.getElementById('notifList');
-    if (!notifList) return;
 
     if (!currentUserName) return;
 
@@ -1341,7 +1341,7 @@ function updateNotifications(tasksList) {
                          (task.comments && task.comments.some(c => c.text && c.text.includes(`@${currentUserName}`)));
 
         if (isAssigned || isTagged) {
-            const reason = isTagged ? '💬 댓글/본문 태그됨' : '📌 담당자로 지정됨';
+            const reason = isTagged ? '💬 멘션 태그됨' : '📌 담당자 지정됨';
             myNotifs.push({
                 id: task.id,
                 title: task.title,
@@ -1352,16 +1352,9 @@ function updateNotifications(tasksList) {
         }
     });
 
-    if (myNotifs.length > 0) {
-        if (notifBadge) {
-            notifBadge.innerText = myNotifs.length;
-            notifBadge.classList.remove('hidden');
-        }
-        if (mobileNotifBadge) {
-            mobileNotifBadge.innerText = myNotifs.length;
-            mobileNotifBadge.classList.remove('hidden');
-        }
-        notifList.innerHTML = myNotifs.map(n => `
+    const buildNotifHtml = (notifs) => {
+        if (notifs.length === 0) return `<div class="p-5 text-center text-gray-400 text-xs">새로운 알림이 없습니다.</div>`;
+        return notifs.map(n => `
             <div class="p-3 hover:bg-orange-50/50 transition cursor-pointer task-detail-trigger border-b border-gray-50 last:border-0" data-id="${n.id}">
                 <div class="flex items-center justify-between text-[10px] text-gray-400 mb-1">
                     <span class="font-bold text-hermes">${n.reason}</span>
@@ -1371,11 +1364,17 @@ function updateNotifications(tasksList) {
                 <div class="text-[10px] text-gray-500 truncate mt-1"><i class="fa-solid fa-building text-[9px] mr-1"></i>${n.client || '공지'}</div>
             </div>
         `).join('');
+    };
+
+    if (myNotifs.length > 0) {
+        if (notifBadge) { notifBadge.innerText = myNotifs.length; notifBadge.classList.remove('hidden'); }
+        if (mobileNotifBadge) { mobileNotifBadge.innerText = myNotifs.length; mobileNotifBadge.classList.remove('hidden'); }
     } else {
         if (notifBadge) notifBadge.classList.add('hidden');
         if (mobileNotifBadge) mobileNotifBadge.classList.add('hidden');
-        notifList.innerHTML = `<div class="p-5 text-center text-gray-400 text-xs">나와 관련된 새로운 알림이 없습니다.</div>`;
     }
+
+    if (notifList) notifList.innerHTML = buildNotifHtml(myNotifs);
 }
 
 async function fetchTasks() {
@@ -1403,7 +1402,7 @@ async function fetchTasks() {
             return timeB - timeA;
         });
 
-        // 🌟 상단 Ticker 박스 및 알림 업데이트 실행
+        // 상단 Ticker 박스 및 사용자 맞춤 알림 업데이트 
         renderRollingTickers(fetchedData);
         updateNotifications(fetchedData);
 
@@ -1462,7 +1461,6 @@ async function fetchTasks() {
             else if (item.status === '처리완료') statusBadgeClass = 'bg-green-50 text-green-600 border-green-200';
             else if (item.status === '보류') statusBadgeClass = 'bg-gray-100 text-gray-600 border-gray-200';
 
-            // 📢 전체 공지 배지 스타일 하이라이트
             let clientBadgeHtml = item.client || '-';
             if (item.client === '📢 전체 공지') {
                 clientBadgeHtml = `<span class="bg-blue-600 text-white font-black text-[11px] px-2 py-0.5 rounded-full shadow-2xs">📢 전체 공지</span>`;
@@ -2410,7 +2408,7 @@ async function fetchClients() {
     } catch (e) { console.error("Client fetch error:", e); }
 }
 
-// 일반 클라이언트 리스트 페이지네이션 렌더링 (메모/이메일 추가 정보 렌더링 포함)
+// 일반 클라이언트 리스트 페이지네이션 렌더링
 function renderClientsPage(page) {
     currentClientPage = page;
     const tbody = document.getElementById('clientsTable');

@@ -42,7 +42,7 @@ let tasksMap = {};
 let clientsMap = {};
 let libraryMap = {}; 
 
-// 🌟 예산 관리 및 페이지네이션을 위한 전역 변수
+// 예산 관리 및 페이지네이션 전역 변수
 let currentEditBudgetId = null;
 let allClientsData = [];
 let currentClientPage = 1;
@@ -80,7 +80,7 @@ const pendingModal = document.getElementById('pendingModal');
 const statsContainer = document.getElementById('statsContainer');
 const tasksContainer = document.getElementById('tasksContainer');
 const clientsContainer = document.getElementById('clientsContainer');
-const budgetContainer = document.getElementById('budgetContainer'); // 🌟 추가된 예산탭 컨테이너
+const budgetContainer = document.getElementById('budgetContainer'); 
 const membersContainer = document.getElementById('membersContainer');
 const approvalsContainer = document.getElementById('approvalsContainer');
 const logsContainer = document.getElementById('logsContainer');
@@ -96,7 +96,7 @@ const clientModal = document.getElementById('clientModal');
 const editClientModal = document.getElementById('editClientModal');
 const assignModal = document.getElementById('assignModal');
 const detailModal = document.getElementById('detailModal');
-const budgetEditModal = document.getElementById('budgetEditModal'); // 🌟 추가된 예산수정 모달
+const budgetEditModal = document.getElementById('budgetEditModal'); 
 
 const libraryViewModal = document.getElementById('libraryViewModal');
 const libraryEditModal = document.getElementById('libraryEditModal');
@@ -398,8 +398,7 @@ safeAddListener('libViewCountBadgeBtn', 'click', (e) => toggleViewerTooltip('lib
 // ============================================================================
 // 🌟 전역 문서 클릭 이벤트 (수정, 삭제, 예산수정, 모달 오픈 통합 이벤트 위임)
 // ============================================================================
-document.addEventListener('click', (e) => {
-    // 툴팁 외부 클릭 시 닫기
+document.addEventListener('click', async (e) => {
     if (!e.target.closest('#viewCountBadgeWrapper') && !e.target.closest('#libViewCountBadgeWrapper')) {
         hideAllViewersTooltips();
     }
@@ -424,7 +423,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 🌟 3. 예산 수정 전용 버튼 이벤트
+    // 3. 예산 수정 전용 버튼 이벤트
     const editBudgetBtn = e.target.closest('.edit-budget-btn');
     if (editBudgetBtn) {
         e.preventDefault();
@@ -524,7 +523,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 11. 신규 클라이언트 등록 모달 오픈 
+    // 11. 신규 클라이언트 등록 모달 오픈
     const addClientBtn = e.target.closest('#openClientModalBtn');
     if (addClientBtn && clientModal) {
         e.preventDefault();
@@ -540,15 +539,23 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 12. 신규 이슈 등록 모달 오픈
+    // 🌟 12. 신규 이슈 등록 모달 오픈 (비동기 클라이언트 연동 보장)
     const openTaskModalBtn = e.target.closest('#openModalBtn');
     if (openTaskModalBtn && createModal) {
         e.preventDefault();
         e.stopPropagation();
         
+        // 데이터가 아직 안 불려왔을 경우 비동기로 즉시 수집
+        if (allClientsData.length === 0) {
+            await fetchClients();
+        }
+
         const clientSelect = document.getElementById('inputClient');
         if (clientSelect) {
-            clientSelect.innerHTML = '<option value="">클라이언트를 선택하세요</option>';
+            clientSelect.innerHTML = `
+                <option value="">클라이언트를 선택하세요</option>
+                <option value="📢 전체 공지">📢 [전체 공지]</option>
+            `;
             allClientsData.forEach(c => {
                 clientSelect.innerHTML += `<option value="${c.name}">${c.name}</option>`;
             });
@@ -586,11 +593,17 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// 업무 등록 시 클라이언트 드롭다운 선택 이벤트 연동 (예산 요약 표시)
+// 업무 등록 시 클라이언트 드롭다운 선택 이벤트 연동 (📢 [전체 공지] 바인딩)
 safeAddListener('inputClient', 'change', (e) => {
     const clientName = e.target.value;
     const infoDiv = document.getElementById('createClientBudgetInfo');
     if(!infoDiv) return;
+    
+    if (clientName === "📢 전체 공지") {
+        infoDiv.innerHTML = `<span class="font-bold text-blue-600"><i class="fa-solid fa-bullhorn mr-1"></i> 모든 파트너 및 멤버에게 공개되는 전체 공지사항입니다.</span>`;
+        infoDiv.classList.remove('hidden');
+        return;
+    }
     
     const client = allClientsData.find(c => c.name === clientName);
     if (client) {
@@ -869,6 +882,9 @@ function showDashboard(user) {
     setupDragAndDrop('inputContent', 'inputFile');
     initNewCommentDragAndDrop();
 
+    // 🌟 대시보드 진입 시 클라이언트 데이터 백그라운드 선 수집
+    fetchClients();
+
     const urlParams = new URLSearchParams(window.location.search);
     const initialTab = urlParams.get('tab') || urlParams.get('menu') || 'dashboard';
     switchTab(initialTab, false);
@@ -977,10 +993,15 @@ async function deleteTask(taskId) {
     }
 }
 
-function openEditTaskModal(taskId) {
+// 업무 수정 모달 열기
+async function openEditTaskModal(taskId) {
     const task = tasksMap[taskId];
     if (!task) return;
     currentDetailTaskId = taskId;
+
+    if (allClientsData.length === 0) {
+        await fetchClients();
+    }
 
     const clientSelect = document.getElementById('editTaskClient');
     const titleIn = document.getElementById('editTaskTitle');
@@ -989,7 +1010,10 @@ function openEditTaskModal(taskId) {
     const contentIn = document.getElementById('editTaskContent');
 
     if (clientSelect) {
-        clientSelect.innerHTML = '<option value="">클라이언트를 선택하세요</option>';
+        clientSelect.innerHTML = `
+            <option value="">클라이언트를 선택하세요</option>
+            <option value="📢 전체 공지" ${task.client === '📢 전체 공지' ? 'selected' : ''}>📢 [전체 공지]</option>
+        `;
         allClientsData.forEach(c => {
             const isSelected = (task.client === c.name) ? 'selected' : '';
             clientSelect.innerHTML += `<option value="${c.name}" ${isSelected}>${c.name}</option>`;
@@ -1294,6 +1318,12 @@ async function fetchTasks() {
             else if (item.status === '처리완료') statusBadgeClass = 'bg-green-50 text-green-600 border-green-200';
             else if (item.status === '보류') statusBadgeClass = 'bg-gray-100 text-gray-600 border-gray-200';
 
+            // 📢 전체 공지 배지 스타일 하이라이트
+            let clientBadgeHtml = item.client || '-';
+            if (item.client === '📢 전체 공지') {
+                clientBadgeHtml = `<span class="bg-blue-600 text-white font-black text-[11px] px-2 py-0.5 rounded-full shadow-2xs">📢 전체 공지</span>`;
+            }
+
             rowsHtml += `
                 <tr class="hover:bg-hermes-light/30 transition group border-b border-gray-100 cursor-pointer task-detail-trigger break-keep" data-id="${item.id}">
                     <td class="p-3.5 md:p-4 align-middle text-gray-900 text-[11px] font-bold whitespace-nowrap">
@@ -1303,7 +1333,7 @@ async function fetchTasks() {
                         </div>
                     </td>
                     <td class="p-3.5 md:p-4 align-middle text-center whitespace-nowrap"><span class="${statusBadgeClass} px-2 py-0.5 rounded text-[10px] font-bold border whitespace-nowrap">${item.status || '답변대기'}</span></td>
-                    <td class="p-3.5 md:p-4 font-bold text-gray-900 align-middle text-xs whitespace-nowrap min-w-[80px]">${item.client || '-'}</td>
+                    <td class="p-3.5 md:p-4 font-bold text-gray-900 align-middle text-xs whitespace-nowrap min-w-[80px]">${clientBadgeHtml}</td>
                     <td class="p-3.5 md:p-4 align-middle whitespace-nowrap"><span class="bg-gray-100 text-gray-600 text-[10px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap">${item.type || '-'}</span></td>
                     <td class="p-3.5 md:p-4 align-middle min-w-[200px]">
                         <div class="font-bold text-gray-900 group-hover:text-hermes transition flex items-center gap-1 break-keep">
@@ -1469,7 +1499,7 @@ async function openDetailModal(taskId) {
         detailAgencyEl.innerText = agencyNameMap[task.agency] || task.agency || '노아유니버스';
     }
 
-    // 🌟 실시간 DB 예산 연동 영역 반영 (이슈 상세 모달)
+    // 🌟 실시간 DB 예산 연동 영역 반영 (📢 [전체 공지]일 때는 예산 영역 깔끔히 숨김)
     const budgetTotalEl = document.getElementById('detailBudgetTotal');
     const budgetRechargedEl = document.getElementById('detailBudgetRecharged');
     const budgetSpentEl = document.getElementById('detailBudgetSpent');
@@ -2016,7 +2046,7 @@ safeAddListener('submitNewCommentBtn', 'click', async () => {
 });
 
 // ============================================================================
-// 🌟 8. 클라이언트 관리 (메타정보 연동 및 예산 수정 별도 관리)
+// 8. 클라이언트 관리 (메타정보 연동 및 예산 수정 별도 관리)
 // ============================================================================
 safeAddListener('clientForm', 'submit', async (e) => {
     e.preventDefault();
@@ -2232,12 +2262,12 @@ async function fetchClients() {
         allClientsData.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
         renderClientsPage(currentClientPage || 1);
-        renderBudgetTable(); // 어드민 예산 테이블 렌더링
+        renderBudgetTable(); 
 
     } catch (e) { console.error("Client fetch error:", e); }
 }
 
-// 🌟 일반 클라이언트 리스트 페이지네이션 렌더링 (메모/이메일 추가 정보 렌더링 포함)
+// 일반 클라이언트 리스트 페이지네이션 렌더링
 function renderClientsPage(page) {
     currentClientPage = page;
     const tbody = document.getElementById('clientsTable');
@@ -2295,7 +2325,6 @@ function renderClientsPage(page) {
         let copyIdBtn = data.metaId ? `<button type="button" class="copy-text-btn text-gray-400 hover:text-hermes transition p-0.5 rounded cursor-pointer" data-copy="${data.metaId}" title="ID 복사"><i class="fa-regular fa-copy text-[11px]"></i></button>` : '';
         let copyPwBtn = data.metaPw ? `<button type="button" class="copy-text-btn text-gray-400 hover:text-hermes transition p-0.5 rounded cursor-pointer" data-copy="${data.metaPw}" title="PW 복사"><i class="fa-regular fa-copy text-[11px]"></i></button>` : '';
 
-        // 🌟 메모/기타 정보 표시를 위한 인라인 박스 구성
         let metaExtraHtml = '';
         if(data.metaEmail || data.metaPhone || data.memo) {
             metaExtraHtml = `
@@ -2354,7 +2383,7 @@ function renderClientsPage(page) {
     checkAllNavBadges();
 }
 
-// 🌟 예산 전용 대시보드 및 테이블 렌더링 (어드민 뷰)
+// 예산 전용 대시보드 및 테이블 렌더링 (어드민 뷰)
 function renderBudgetTable() {
     const budgetTbody = document.getElementById('budgetTable');
     if (!budgetTbody) return;
@@ -2415,7 +2444,7 @@ function renderBudgetTable() {
     if(elRemaining) elRemaining.innerText = ((sumTotal + sumRecharged) - sumSpent).toLocaleString() + '원';
 }
 
-// 🌟 예산 수정 모달 열기 로직
+// 예산 수정 모달 열기 로직
 function openBudgetEditModal(clientId) {
     const client = clientsMap[clientId];
     if (!client) return;
@@ -2437,7 +2466,7 @@ function openBudgetEditModal(clientId) {
     }
 }
 
-// 🌟 예산 폼 제출 이벤트 바인딩
+// 예산 폼 제출 이벤트 바인딩
 safeAddListener('budgetEditForm', 'submit', async (e) => {
     e.preventDefault();
     if (!currentEditBudgetId) return;
@@ -2460,7 +2489,7 @@ safeAddListener('budgetEditForm', 'submit', async (e) => {
         
         budgetEditModal.classList.add('hidden');
         alert("해당 클라이언트의 예산 정보가 업데이트되었습니다.");
-        fetchClients(); 
+        fetchClients();
 
     } catch (err) {
         alert("예산 수정 실패: " + err.message);
@@ -2468,7 +2497,6 @@ safeAddListener('budgetEditForm', 'submit', async (e) => {
         if(submitBtn) { submitBtn.innerText = origText; submitBtn.disabled = false; }
     }
 });
-
 
 // ============================================================================
 // 9. 인사이트 라이브러리 모듈

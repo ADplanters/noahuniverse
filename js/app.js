@@ -49,7 +49,7 @@ let allClientsData = [];
 let currentClientPage = 1;
 const CLIENTS_PER_PAGE = 10;
 
-// 🌟 대시보드 롤링 Ticker 타이머 보존 객체
+// 대시보드 롤링 Ticker 타이머 보존 객체
 let latestRollingInterval = null;
 let progressRollingInterval = null;
 
@@ -401,16 +401,55 @@ safeAddListener('libViewCountBadgeBtn', 'click', (e) => toggleViewerTooltip('lib
 });
 
 // ============================================================================
-// 🌟 알림 팝업 및 전역 문서 클릭 이벤트 연동
+// 🌟 4. 주/부 담당자 선택 UI 생성 헬퍼 함수 (모달 내 재사용)
 // ============================================================================
+async function buildManagerSelectionUI(containerEl, currentManagersArr, checkboxClassName, primarySelectId) {
+    containerEl.innerHTML = '<div class="text-xs text-gray-400 p-2 text-center font-bold"><i class="fa-solid fa-spinner animate-spin mr-1"></i> 멤버 목록 불러오는 중...</div>';
+    try {
+        const usersSnap = await getDocs(query(collection(db, "users"), where("status", "==", "approved")));
+        
+        const primary = (currentManagersArr && currentManagersArr.length > 0) ? currentManagersArr[0] : '';
+        const subs = (currentManagersArr && currentManagersArr.length > 1) ? currentManagersArr.slice(1) : [];
+        
+        let selectHtml = `
+            <div class="mb-3">
+                <label class="block text-[10px] font-black text-red-500 mb-1">주 담당자 (1명 필수 지정)</label>
+                <select id="${primarySelectId}" class="w-full text-xs border border-red-200 rounded-lg p-2 focus:border-red-500 outline-none font-bold text-gray-800 bg-red-50/30">
+                    <option value="">선택 안함</option>
+        `;
+        let checkHtml = `
+            <div>
+                <label class="block text-[10px] font-bold text-gray-600 mb-1">부 담당자 (다중 선택)</label>
+                <div class="flex flex-col gap-1 max-h-32 overflow-y-auto p-1.5 bg-white border border-gray-200 rounded-lg shadow-inner">
+        `;
+        
+        usersSnap.forEach(uDoc => {
+            const u = uDoc.data();
+            const isPrimary = u.name === primary ? 'selected' : '';
+            selectHtml += `<option value="${u.name}" ${isPrimary}>${u.name}</option>`;
+            
+            const isSub = subs.includes(u.name) ? 'checked' : '';
+            checkHtml += `
+                <label class="flex items-center gap-2 p-1.5 hover:bg-gray-50 rounded cursor-pointer text-[11px] font-bold text-gray-700 transition">
+                    <input type="checkbox" value="${u.name}" class="${checkboxClassName} rounded text-hermes" ${isSub} />
+                    <span>${u.name} <span class="text-[9px] text-gray-400 font-normal">(${u.email})</span></span>
+                </label>
+            `;
+        });
+        selectHtml += `</select></div>`;
+        checkHtml += `</div></div>`;
+        
+        containerEl.innerHTML = selectHtml + checkHtml;
+    } catch (e) {
+        containerEl.innerHTML = '<div class="text-xs text-red-500 p-2 text-center">멤버 목록 로드 실패</div>';
+    }
+}
 
+
+// ============================================================================
+// 🌟 5. 전역 문서 클릭 및 알림 이벤트 
+// ============================================================================
 safeAddListener('notifBellBtn', 'click', (e) => {
-    e.stopPropagation();
-    const dropdown = document.getElementById('notifDropdown');
-    if (dropdown) dropdown.classList.toggle('hidden');
-});
-
-safeAddListener('mobileNotifBellBtn', 'click', (e) => {
     e.stopPropagation();
     const dropdown = document.getElementById('notifDropdown');
     if (dropdown) dropdown.classList.toggle('hidden');
@@ -427,7 +466,7 @@ document.addEventListener('click', async (e) => {
         hideAllViewersTooltips();
     }
 
-    if (!e.target.closest('#notifBellBtn') && !e.target.closest('#mobileNotifBellBtn') && !e.target.closest('#notifDropdown')) {
+    if (!e.target.closest('#notifBellBtn') && !e.target.closest('#notifDropdown')) {
         const dropdown = document.getElementById('notifDropdown');
         if (dropdown) dropdown.classList.add('hidden');
     }
@@ -542,6 +581,7 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
+    // 신규 클라이언트 등록
     const addClientBtn = e.target.closest('#openClientModalBtn');
     if (addClientBtn && clientModal) {
         e.preventDefault();
@@ -557,6 +597,7 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
+    // 신규 이슈 등록 (📢 전체 공지 포함, 담당자 지정 분리 UI 적용)
     const openTaskModalBtn = e.target.closest('#openModalBtn');
     if (openTaskModalBtn && createModal) {
         e.preventDefault();
@@ -575,6 +616,13 @@ document.addEventListener('click', async (e) => {
             allClientsData.forEach(c => {
                 clientSelect.innerHTML += `<option value="${c.name}">${c.name}</option>`;
             });
+        }
+
+        const assignList = document.getElementById('createAssignManagerList');
+        if (assignList && checkIsAdmin()) {
+            await buildManagerSelectionUI(assignList, [], 'create-assign-manager-checkbox', 'createPrimarySelect');
+            const assignArea = document.getElementById('assignManagerArea');
+            if(assignArea) assignArea.classList.remove('hidden');
         }
         
         const budgetInfo = document.getElementById('createClientBudgetInfo');
@@ -607,6 +655,7 @@ document.addEventListener('click', async (e) => {
     }
 });
 
+// 업무 등록 시 클라이언트 드롭다운 선택 이벤트 연동 (📢 [전체 공지] 바인딩)
 safeAddListener('inputClient', 'change', (e) => {
     const clientName = e.target.value;
     const infoDiv = document.getElementById('createClientBudgetInfo');
@@ -631,6 +680,7 @@ safeAddListener('inputClient', 'change', (e) => {
     }
 });
 
+// 전역 윈도우 스코프 함수 바인딩
 window.openEditTaskModal = openEditTaskModal;
 window.openAssignModal = openAssignModal;
 window.deleteTask = deleteTask;
@@ -791,7 +841,7 @@ function fallbackCopyToClipboard(text, label = "링크") {
 }
 
 // ============================================================================
-// 4. 인증 및 사용자 권한 제어
+// 6. 인증 및 사용자 권한 제어
 // ============================================================================
 getRedirectResult(auth).catch((error) => {
     if (error && error.code !== 'auth/popup-closed-by-user') {
@@ -913,7 +963,7 @@ function showPendingPopup() {
 }
 
 // ============================================================================
-// 5. 업무 이슈/요청 게시판
+// 7. 업무 이슈/요청 게시판
 // ============================================================================
 safeAddListener('openModalBtn', 'click', () => {
     if (createModal) {
@@ -949,10 +999,17 @@ safeAddListener('taskForm', 'submit', async (e) => {
     const tTitle = document.getElementById('inputTitle').value;
     const isAdmin = checkIsAdmin();
     
+    // 🌟 폼 전송 시 주 담당자/부 담당자 통합 추출
     let assignedManagersArr = [];
     if (isAdmin) {
-        const checkboxes = document.querySelectorAll('.createAssignManagerList-checkbox:checked');
-        assignedManagersArr = Array.from(checkboxes).map(cb => cb.value);
+        const pSel = document.getElementById('createPrimarySelect');
+        const pVal = pSel ? pSel.value : '';
+        if(pVal) assignedManagersArr.push(pVal);
+
+        const checkboxes = document.querySelectorAll('.create-assign-manager-checkbox:checked');
+        checkboxes.forEach(cb => {
+            if(cb.value !== pVal) assignedManagersArr.push(cb.value);
+        });
     }
 
     const authorStaffName = document.getElementById('inputStaff').value || currentUserName || '담당자';
@@ -1044,22 +1101,7 @@ async function openEditTaskModal(taskId) {
     const editAssignList = document.getElementById('editAssignManagerList');
     if (editAssignArea && editAssignList && checkIsAdmin()) {
         editAssignArea.classList.remove('hidden');
-        editAssignList.innerHTML = '<div class="text-xs text-gray-400 p-2 text-center font-bold"><i class="fa-solid fa-spinner animate-spin mr-1"></i> 멤버 목록 불러오는 중...</div>';
-        getDocs(query(collection(db, "users"), where("status", "==", "approved"))).then(usersSnap => {
-            let html = '';
-            const currentAssigned = task.assignedManagers || [];
-            usersSnap.forEach(uDoc => {
-                const u = uDoc.data();
-                const isChecked = currentAssigned.includes(u.name) ? 'checked' : '';
-                html += `
-                    <label class="flex items-center gap-2 p-1.5 hover:bg-white rounded cursor-pointer text-xs font-bold text-gray-700 transition border border-transparent hover:border-gray-200">
-                        <input type="checkbox" value="${u.name}" class="edit-assign-manager-checkbox rounded text-hermes" ${isChecked} />
-                        <span>${u.name} <span class="text-[10px] text-gray-400 font-normal">(${u.email})</span></span>
-                    </label>
-                `;
-            });
-            editAssignList.innerHTML = html;
-        });
+        await buildManagerSelectionUI(editAssignList, task.assignedManagers || [], 'edit-assign-manager-checkbox', 'editTaskPrimarySelect');
     }
 
     if (editTaskModal) {
@@ -1081,7 +1123,7 @@ async function openAssignModal(taskId) {
             const formContainer = modalCard.querySelector('form') || modalCard;
             listContainer = document.createElement('div');
             listContainer.id = 'assignManagerList';
-            listContainer.className = 'my-4 bg-gray-50 border border-gray-200 rounded-xl p-3 max-h-52 overflow-y-auto shadow-inner';
+            listContainer.className = 'my-4 bg-gray-50 border border-gray-200 rounded-xl p-3 max-h-[300px] overflow-y-auto shadow-inner';
             
             const pDesc = modalCard.querySelector('p');
             if (pDesc) {
@@ -1092,28 +1134,7 @@ async function openAssignModal(taskId) {
         }
 
         if (listContainer) {
-            listContainer.innerHTML = '<div class="text-xs text-gray-400 p-3 text-center font-bold"><i class="fa-solid fa-spinner animate-spin mr-1"></i> 멤버 목록 불러오는 중...</div>';
-            try {
-                const usersSnap = await getDocs(query(collection(db, "users"), where("status", "==", "approved")));
-                let html = '<div class="flex flex-col gap-1.5">';
-                const currentAssigned = task.assignedManagers || [];
-
-                usersSnap.forEach(uDoc => {
-                    const u = uDoc.data();
-                    const isChecked = currentAssigned.includes(u.name) ? 'checked' : '';
-                    html += `
-                        <label class="flex items-center gap-2 p-2 hover:bg-white rounded-lg cursor-pointer text-xs font-bold text-gray-700 transition border border-transparent hover:border-gray-200 shadow-2xs">
-                            <input type="checkbox" value="${u.name}" class="assign-manager-checkbox rounded text-hermes focus:ring-hermes" ${isChecked} />
-                            <span>${u.name} <span class="text-[10px] text-gray-400 font-normal">(${u.email})</span></span>
-                        </label>
-                    `;
-                });
-                html += '</div>';
-                listContainer.innerHTML = html;
-            } catch(err) {
-                console.error(err);
-                listContainer.innerHTML = '<div class="text-xs text-red-500 p-2 text-center">멤버 로드 실패</div>';
-            }
+            await buildManagerSelectionUI(listContainer, task.assignedManagers || [], 'assign-manager-checkbox', 'assignPrimarySelect');
         }
 
         assignModal.classList.remove('hidden');
@@ -1139,8 +1160,15 @@ async function executeAssignManagers() {
     }
 
     try {
+        const pSel = document.getElementById('assignPrimarySelect');
+        const pVal = pSel ? pSel.value : '';
+        let selectedManagers = [];
+        if (pVal) selectedManagers.push(pVal);
+
         const checkboxes = assignModal.querySelectorAll('.assign-manager-checkbox:checked');
-        const selectedManagers = Array.from(checkboxes).map(cb => cb.value);
+        checkboxes.forEach(cb => {
+            if(cb.value !== pVal) selectedManagers.push(cb.value);
+        });
 
         await updateDoc(doc(db, "crm_tasks", targetId), {
             assignedManagers: selectedManagers
@@ -1225,10 +1253,16 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
         }
 
         if (checkIsAdmin()) {
+            const pSel = document.getElementById('editTaskPrimarySelect');
+            const pVal = pSel ? pSel.value : '';
+            let mgrs = [];
+            if(pVal) mgrs.push(pVal);
+
             const checkboxes = editTaskModal.querySelectorAll('.edit-assign-manager-checkbox:checked');
-            if (checkboxes.length > 0 || editTaskModal.querySelector('.edit-assign-manager-checkbox')) {
-                updatedData.assignedManagers = Array.from(checkboxes).map(cb => cb.value);
-            }
+            checkboxes.forEach(cb => {
+                if(cb.value !== pVal) mgrs.push(cb.value);
+            });
+            updatedData.assignedManagers = mgrs;
         }
 
         await updateDoc(doc(db, "crm_tasks", currentDetailTaskId), updatedData);
@@ -1253,16 +1287,16 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
     }
 });
 
-// 🌟 수집된 게시글로 롤링 Ticker 박스 데이터 갱신 및 애니메이션 실행 (Top 10 항목씩)
+// 🌟 수집된 게시글로 롤링 Ticker 박스 데이터 갱신 및 애니메이션 실행
 function renderRollingTickers(tasksList) {
     const latestListEl = document.getElementById('tickerLatestList');
     const progressListEl = document.getElementById('tickerProgressList');
 
     if (!latestListEl || !progressListEl) return;
 
-    // 1. 최신 등록순 (모든 항목 대상 최신 Top 10)
+    // 1. 최신 이슈 (순수 최신순)
     const latestTasks = [...tasksList].slice(0, 10);
-    // 2. 진행중 업무순 (상태 필터링 후 최신 Top 10)
+    // 2. 진행중 업무 (상태 필터)
     const progressTasks = tasksList.filter(t => t.status === '진행중' || t.status === '답변대기').slice(0, 10);
 
     const buildTickerItemsHtml = (items) => {
@@ -1270,7 +1304,9 @@ function renderRollingTickers(tasksList) {
             return `<li class="h-[40px] flex items-center text-gray-400 font-normal px-2">등록된 항목이 없습니다.</li>`;
         }
         return items.map(item => {
-            const managerStr = (item.assignedManagers && item.assignedManagers.length > 0) ? item.assignedManagers.join(', ') : '미지정';
+            const primaryMgr = (item.assignedManagers && item.assignedManagers.length > 0) ? item.assignedManagers[0] : '미지정';
+            const extraCnt = (item.assignedManagers && item.assignedManagers.length > 1) ? ` <span class="text-gray-500 font-medium ml-0.5">+${item.assignedManagers.length - 1}</span>` : '';
+            
             return `
             <li class="h-[40px] flex items-center justify-between group cursor-pointer task-detail-trigger border-b border-gray-50 last:border-0 hover:bg-orange-50/50 px-2 transition-colors shrink-0" data-id="${item.id}">
                 <div class="flex items-center gap-2 truncate pr-2">
@@ -1278,14 +1314,13 @@ function renderRollingTickers(tasksList) {
                     <span class="truncate font-bold text-gray-800 group-hover:text-hermes transition">${item.title}</span>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
-                    <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 hidden sm:inline-flex"><i class="fa-solid fa-user text-[9px] mr-0.5"></i>${managerStr}</span>
+                    <span class="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded border border-red-100 hidden sm:inline-block whitespace-nowrap"><i class="fa-solid fa-user text-[9px] mr-0.5"></i>${primaryMgr}${extraCnt}</span>
                     <span class="text-[10px] text-gray-400 font-normal whitespace-nowrap">${item.date || ''}</span>
                 </div>
             </li>
         `}).join('');
     };
 
-    // 자연스러운 무한 롤링을 위해 노출 리스트 뒤에 처음 3개를 한 번 더 이어붙임
     let latestHtml = buildTickerItemsHtml(latestTasks);
     if (latestTasks.length > 3) {
         latestHtml += buildTickerItemsHtml(latestTasks.slice(0, 3)); 
@@ -1302,20 +1337,19 @@ function renderRollingTickers(tasksList) {
     if (progressRollingInterval) clearInterval(progressRollingInterval);
 
     const startVerticalRoll = (listEl, itemCount) => {
-        if (itemCount <= 3) return null; // 3개 이하면 롤링하지 않음
+        if (itemCount <= 3) return null; 
         let currentIndex = 0;
         return setInterval(() => {
             currentIndex++;
             listEl.style.transition = 'transform 0.5s ease-in-out';
             listEl.style.transform = `translateY(-${currentIndex * 40}px)`;
 
-            // 복제된 마지막 3개 영역에 닿으면 즉시 0으로 복귀
             if (currentIndex === itemCount) { 
                 setTimeout(() => {
                     listEl.style.transition = 'none';
                     currentIndex = 0;
                     listEl.style.transform = `translateY(0)`;
-                }, 500); // CSS 트랜지션 시간 후 초기화
+                }, 500); 
             }
         }, 3000);
     };
@@ -1324,10 +1358,8 @@ function renderRollingTickers(tasksList) {
     progressRollingInterval = startVerticalRoll(progressListEl, progressTasks.length);
 }
 
-// 🌟 사용자 맞춤 알림 업데이트 
 function updateNotifications(tasksList) {
     const notifBadge = document.getElementById('notifBadge');
-    const mobileNotifBadge = document.getElementById('mobileNotifBadge');
     const notifList = document.getElementById('notifList');
 
     if (!currentUserName) return;
@@ -1368,10 +1400,8 @@ function updateNotifications(tasksList) {
 
     if (myNotifs.length > 0) {
         if (notifBadge) { notifBadge.innerText = myNotifs.length; notifBadge.classList.remove('hidden'); }
-        if (mobileNotifBadge) { mobileNotifBadge.innerText = myNotifs.length; mobileNotifBadge.classList.remove('hidden'); }
     } else {
         if (notifBadge) notifBadge.classList.add('hidden');
-        if (mobileNotifBadge) mobileNotifBadge.classList.add('hidden');
     }
 
     if (notifList) notifList.innerHTML = buildNotifHtml(myNotifs);
@@ -1395,14 +1425,12 @@ async function fetchTasks() {
             tasksMap[docSnap.id] = tItem;
         });
 
-        // 정밀 정렬
         fetchedData.sort((a, b) => {
             const timeA = a.createdAt ? new Date(a.createdAt).getTime() : new Date((a.date || '').replace(/\./g, '-')).getTime();
             const timeB = b.createdAt ? new Date(b.createdAt).getTime() : new Date((b.date || '').replace(/\./g, '-')).getTime();
             return timeB - timeA;
         });
 
-        // 상단 Ticker 박스 및 사용자 맞춤 알림 업데이트 
         renderRollingTickers(fetchedData);
         updateNotifications(fetchedData);
 
@@ -1444,15 +1472,22 @@ async function fetchTasks() {
 
             const fileButton = renderFileButtons(item, true);
             const commentCount = item.comments ? item.comments.length : 0;
-            
             const authorName = item.staff || item.name || '미상';
-            const managerList = (item.assignedManagers && item.assignedManagers.length > 0) ? item.assignedManagers.join(', ') : '미배정';
             
+            // 🌟 게시판 테이블 리스트 주/부 담당자 UI
+            let managerDisplay = '<span class="text-gray-400 font-normal">미배정</span>';
+            if (item.assignedManagers && item.assignedManagers.length > 0) {
+                const primary = item.assignedManagers[0];
+                const extraCount = item.assignedManagers.length - 1;
+                managerDisplay = `<span class="text-red-500 font-bold" title="주 담당자">${primary}</span>`;
+                if (extraCount > 0) managerDisplay += `<span class="text-gray-500 font-medium ml-1 text-[10px]">+${extraCount}</span>`;
+            }
+
             const displayStaffHtml = `
                 <div class="inline-flex items-center gap-1.5 break-keep whitespace-nowrap text-xs">
-                    <span class="text-red-500 font-extrabold" title="작성자">${authorName}</span>
+                    <span class="text-gray-800 font-extrabold" title="작성자">${authorName}</span>
                     <span class="text-gray-300 font-normal">/</span>
-                    <span class="text-blue-600 font-bold" title="담당자">${managerList}</span>
+                    ${managerDisplay}
                 </div>
             `;
 
@@ -1620,17 +1655,21 @@ async function openDetailModal(taskId) {
     const detailStaffEl = document.getElementById('detailStaff');
     if (detailStaffEl) {
         detailStaffEl.innerText = authorName;
-        detailStaffEl.className = "font-bold text-red-500";
+        detailStaffEl.className = "font-bold text-gray-800";
     }
 
-    const assignedStr = (task.assignedManagers && task.assignedManagers.length > 0) 
-        ? task.assignedManagers.join(', ') 
-        : '미지정';
-
+    // 🌟 상세 모달 내 주/부 담당자 구분 렌더링
     const detailAssignEl = document.getElementById('detailAssignManager') || document.getElementById('detailAssign') || document.getElementById('detailAssignedManagers');
     if (detailAssignEl) {
-        detailAssignEl.innerText = assignedStr;
-        detailAssignEl.className = "text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 inline-block break-all max-w-full";
+        let assignedStr = '미지정';
+        if (task.assignedManagers && task.assignedManagers.length > 0) {
+            const primary = task.assignedManagers[0];
+            const subs = task.assignedManagers.slice(1).join(', ');
+            assignedStr = `<span class="text-red-500 font-bold">${primary}</span>`;
+            if (subs) assignedStr += ` <span class="text-gray-500 font-normal ml-1">(${subs})</span>`;
+        }
+        detailAssignEl.innerHTML = assignedStr;
+        detailAssignEl.className = "text-xs bg-blue-50 px-2 py-0.5 rounded border border-blue-100 inline-block break-all max-w-full";
     }
 
     document.getElementById('detailDate').innerText = task.date || '-';
@@ -2265,8 +2304,7 @@ async function deleteClient(clientId) {
     }
 }
 
-// 일반 클라이언트 정보 수정 모달 오픈
-function openEditClientModal(clientId) {
+async function openEditClientModal(clientId) {
     const client = clientsMap[clientId];
     if (!client) return;
     currentEditClientId = clientId;
@@ -2296,22 +2334,7 @@ function openEditClientModal(clientId) {
 
         const editManagerList = document.getElementById('editClientManagerList');
         if (editManagerList) {
-            editManagerList.innerHTML = '<div class="text-xs text-gray-400 p-2 text-center font-bold"><i class="fa-solid fa-spinner animate-spin mr-1"></i> 멤버 목록 불러오는 중...</div>';
-            getDocs(query(collection(db, "users"), where("status", "==", "approved"))).then(usersSnap => {
-                let html = '';
-                const currentAssigned = client.managers || [];
-                usersSnap.forEach(uDoc => {
-                    const u = uDoc.data();
-                    const isChecked = currentAssigned.includes(u.name) ? 'checked' : '';
-                    html += `
-                        <label class="flex items-center gap-2 p-1.5 hover:bg-white rounded cursor-pointer text-xs font-bold text-gray-700 transition border border-transparent hover:border-gray-200">
-                            <input type="checkbox" value="${u.name}" class="edit-client-manager-checkbox rounded text-hermes" ${isChecked} />
-                            <span>${u.name} <span class="text-[10px] text-gray-400 font-normal">(${u.email})</span></span>
-                        </label>
-                    `;
-                });
-                editManagerList.innerHTML = html;
-            });
+            await buildManagerSelectionUI(editManagerList, client.managers || [], 'edit-client-manager-checkbox', 'editClientPrimarySelect');
         }
 
         editClientModal.classList.remove('hidden');
@@ -2335,9 +2358,17 @@ safeAddListener('editClientForm', 'submit', async (e) => {
     const metaDateIn = document.getElementById('edit_c_metaDate');
 
     let updatedManagers = clientsMap[currentEditClientId].managers || [];
-    const checkboxes = editClientModal.querySelectorAll('.edit-client-manager-checkbox');
-    if (checkboxes.length > 0) {
-        updatedManagers = Array.from(editClientModal.querySelectorAll('.edit-client-manager-checkbox:checked')).map(cb => cb.value);
+    
+    // 🌟 주/부 담당자 통합 추출
+    const pSel = document.getElementById('editClientPrimarySelect');
+    if (pSel) {
+        updatedManagers = [];
+        const pVal = pSel.value;
+        if(pVal) updatedManagers.push(pVal);
+        const checkboxes = editClientModal.querySelectorAll('.edit-client-manager-checkbox:checked');
+        checkboxes.forEach(cb => {
+            if(cb.value !== pVal) updatedManagers.push(cb.value);
+        });
     }
 
     try {
@@ -2408,7 +2439,7 @@ async function fetchClients() {
     } catch (e) { console.error("Client fetch error:", e); }
 }
 
-// 일반 클라이언트 리스트 페이지네이션 렌더링
+// 🌟 일반 클라이언트 리스트 페이지네이션 렌더링 (주/부 담당자 표시 분리)
 function renderClientsPage(page) {
     currentClientPage = page;
     const tbody = document.getElementById('clientsTable');
@@ -2425,22 +2456,20 @@ function renderClientsPage(page) {
     pageData.forEach(data => {
         let managersHtml = '<span class="text-gray-400 text-xs whitespace-nowrap">미배정</span>';
         if (data.managers && data.managers.length > 0) {
-            const maxVisible = 1; 
-            const visibleManagers = data.managers.slice(0, maxVisible);
-            const hiddenCount = data.managers.length - maxVisible;
-
-            let badges = visibleManagers.map(m => `
-                <span class="inline-flex items-center bg-blue-50 text-noah text-[10px] px-1.5 py-0.5 rounded border border-blue-100 font-bold truncate max-w-[75px]" title="${m}">
-                    ${m}
-                </span>
-            `).join('');
+            const primary = data.managers[0];
+            const extraCount = data.managers.length - 1;
             
-            if (hiddenCount > 0) {
-                const allList = data.managers.map(m => `<div class="py-0.5 flex items-center gap-1"><i class="fa-solid fa-user text-orange-400 text-[9px]"></i> ${m}</div>`).join('');
+            let badges = `<span class="inline-flex items-center text-red-500 text-[11px] font-bold truncate max-w-[75px]" title="주 담당자">${primary}</span>`;
+            
+            if (extraCount > 0) {
+                const allList = data.managers.map((m, idx) => {
+                    const iconColor = idx === 0 ? 'text-red-500' : 'text-orange-400';
+                    return `<div class="py-0.5 flex items-center gap-1"><i class="fa-solid fa-user ${iconColor} text-[9px]"></i> ${m}</div>`;
+                }).join('');
                 badges += `
-                    <div class="inline-block relative group align-middle">
+                    <div class="inline-block relative group align-middle ml-1">
                         <span class="inline-flex items-center bg-gray-100 hover:bg-orange-100 text-gray-600 hover:text-hermes text-[10px] px-1.5 py-0.5 rounded border border-gray-200 cursor-pointer font-bold transition shadow-2xs whitespace-nowrap">
-                            +${hiddenCount}명
+                            +${extraCount}명
                         </span>
                         <div class="hidden group-hover:block absolute bottom-full right-0 mb-2 p-3 bg-gray-900/95 text-white text-[11px] rounded-xl shadow-2xl z-50 whitespace-nowrap min-w-[120px] border border-gray-700/80 backdrop-blur-xs">
                             <div class="font-bold border-b border-gray-700 pb-1.5 mb-1.5 text-orange-400 text-[10px] flex items-center gap-1">
@@ -2451,7 +2480,7 @@ function renderClientsPage(page) {
                     </div>
                 `;
             }
-            managersHtml = `<div class="flex items-center gap-1 w-full max-w-[130px] overflow-hidden">${badges}</div>`;
+            managersHtml = `<div class="flex items-center w-full max-w-[130px] overflow-visible">${badges}</div>`;
         }
 
         const isAdmin = checkIsAdmin();
@@ -2497,7 +2526,7 @@ function renderClientsPage(page) {
                 <td class="p-3 md:p-4 text-xs align-middle">${metaExtraHtml}</td>
                 <td class="p-3 md:p-4 text-xs text-gray-600 align-middle whitespace-nowrap"><div>인스타: ${data.instaDate || '-'}</div><div>메타: ${data.metaDate || '-'}</div></td>
                 <td class="p-3 md:p-4 text-xs font-bold text-gray-500 align-middle whitespace-nowrap">${data.registeredBy || '-'}</td>
-                <td class="p-3 md:p-4 max-w-[130px] overflow-hidden align-middle">${managersHtml}</td>
+                <td class="p-3 md:p-4 max-w-[130px] overflow-visible align-middle">${managersHtml}</td>
                 ${adminActions}
             </tr>
         `;

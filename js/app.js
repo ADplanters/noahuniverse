@@ -42,7 +42,8 @@ let tasksMap = {};
 let clientsMap = {};
 let libraryMap = {}; 
 
-// 클라이언트 리스트 페이지네이션 전역 변수
+// 🌟 예산 관리 및 페이지네이션을 위한 전역 변수
+let currentEditBudgetId = null;
 let allClientsData = [];
 let currentClientPage = 1;
 const CLIENTS_PER_PAGE = 10;
@@ -79,6 +80,7 @@ const pendingModal = document.getElementById('pendingModal');
 const statsContainer = document.getElementById('statsContainer');
 const tasksContainer = document.getElementById('tasksContainer');
 const clientsContainer = document.getElementById('clientsContainer');
+const budgetContainer = document.getElementById('budgetContainer'); // 🌟 추가된 예산탭 컨테이너
 const membersContainer = document.getElementById('membersContainer');
 const approvalsContainer = document.getElementById('approvalsContainer');
 const logsContainer = document.getElementById('logsContainer');
@@ -94,6 +96,7 @@ const clientModal = document.getElementById('clientModal');
 const editClientModal = document.getElementById('editClientModal');
 const assignModal = document.getElementById('assignModal');
 const detailModal = document.getElementById('detailModal');
+const budgetEditModal = document.getElementById('budgetEditModal'); // 🌟 추가된 예산수정 모달
 
 const libraryViewModal = document.getElementById('libraryViewModal');
 const libraryEditModal = document.getElementById('libraryEditModal');
@@ -141,7 +144,7 @@ function checkIsAuthor(task) {
 }
 
 function switchTab(tabName, pushHistory = true) {
-    const adminOnlyTabs = ['members', 'approvals', 'logs'];
+    const adminOnlyTabs = ['budget', 'members', 'approvals', 'logs'];
     const isAdmin = checkIsAdmin();
 
     if (adminOnlyTabs.includes(tabName) && !isAdmin) {
@@ -168,6 +171,7 @@ function switchTab(tabName, pushHistory = true) {
     if (statsContainer) statsContainer.classList.add('hidden');
     if (tasksContainer) tasksContainer.classList.add('hidden');
     if (clientsContainer) clientsContainer.classList.add('hidden');
+    if (budgetContainer) budgetContainer.classList.add('hidden'); 
     if (membersContainer) membersContainer.classList.add('hidden');
     if (approvalsContainer) approvalsContainer.classList.add('hidden');
     if (logsContainer) logsContainer.classList.add('hidden');
@@ -183,6 +187,9 @@ function switchTab(tabName, pushHistory = true) {
     } else if (tabName === 'clients') {
         if (clientsContainer) clientsContainer.classList.remove('hidden');
         fetchClients();
+    } else if (tabName === 'budget') {
+        if (budgetContainer) budgetContainer.classList.remove('hidden');
+        fetchClients(); 
     } else if (tabName === 'members') {
         if (membersContainer) membersContainer.classList.remove('hidden');
         fetchMembers();
@@ -299,8 +306,8 @@ function closeAllModals() {
     const modals = [
         createModal, editTaskModal, clientModal, 
         editClientModal, assignModal, detailModal, 
-        libraryViewModal, libraryEditModal, pendingModal
-    ];
+        libraryViewModal, libraryEditModal, pendingModal, budgetEditModal
+    ]; 
     
     modals.forEach(m => { 
         if(m) {
@@ -321,7 +328,7 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-[createModal, editTaskModal, clientModal, editClientModal, assignModal, detailModal, libraryViewModal, libraryEditModal, pendingModal].forEach(modalEl => {
+[createModal, editTaskModal, clientModal, editClientModal, assignModal, detailModal, libraryViewModal, libraryEditModal, pendingModal, budgetEditModal].forEach(modalEl => {
     if (modalEl) {
         modalEl.addEventListener('click', (e) => {
             if (e.target === modalEl) closeAllModals();
@@ -389,7 +396,7 @@ safeAddListener('libViewCountBadgeBtn', 'click', (e) => toggleViewerTooltip('lib
 });
 
 // ============================================================================
-// 🌟 전역 문서 클릭 이벤트 (수정, 삭제, 모달 오픈 통합 이벤트 위임)
+// 🌟 전역 문서 클릭 이벤트 (수정, 삭제, 예산수정, 모달 오픈 통합 이벤트 위임)
 // ============================================================================
 document.addEventListener('click', (e) => {
     // 툴팁 외부 클릭 시 닫기
@@ -397,7 +404,7 @@ document.addEventListener('click', (e) => {
         hideAllViewersTooltips();
     }
 
-    // 🌟 1. 클라이언트 수정 버튼 (완벽 바인딩)
+    // 1. 클라이언트 수정 버튼
     const editClientBtn = e.target.closest('.edit-client-btn');
     if (editClientBtn) {
         e.preventDefault();
@@ -407,7 +414,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 🌟 2. 클라이언트 삭제 버튼 (완벽 바인딩)
+    // 2. 클라이언트 삭제 버튼
     const delClientBtn = e.target.closest('.delete-client-btn');
     if (delClientBtn) {
         e.preventDefault();
@@ -417,7 +424,17 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 3. ID / PW 원클릭 복사 버튼 처리
+    // 🌟 3. 예산 수정 전용 버튼 이벤트
+    const editBudgetBtn = e.target.closest('.edit-budget-btn');
+    if (editBudgetBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const clientId = editBudgetBtn.getAttribute('data-id');
+        if (clientId) openBudgetEditModal(clientId);
+        return;
+    }
+
+    // 4. ID / PW 원클릭 복사 버튼 처리
     const copyTextBtn = e.target.closest('.copy-text-btn');
     if (copyTextBtn) {
         e.preventDefault();
@@ -430,7 +447,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 4. 업무 게시글: 수정 (Edit Task)
+    // 5. 업무 게시글: 수정 (Edit Task)
     const editBtn = e.target.closest('.edit-task-btn');
     if (editBtn) {
         e.preventDefault();
@@ -440,7 +457,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 5. 업무 게시글: 담당자 배정 (Assign Task)
+    // 6. 업무 게시글: 담당자 배정 (Assign Task)
     const assignBtn = e.target.closest('.assign-task-btn');
     if (assignBtn) {
         e.preventDefault();
@@ -450,7 +467,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 6. 업무 게시글: 삭제 (Delete Task)
+    // 7. 업무 게시글: 삭제 (Delete Task)
     const delBtn = e.target.closest('.delete-task-btn');
     if (delBtn) {
         e.preventDefault();
@@ -460,7 +477,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 7. 게시글 행 클릭 시 자동 상세 창 오픈
+    // 8. 게시글 행 클릭 시 자동 상세 창 오픈
     const taskRow = e.target.closest('.task-detail-trigger');
     if (taskRow && !e.target.closest('a') && !e.target.closest('button')) {
         const taskId = taskRow.getAttribute('data-id');
@@ -468,7 +485,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 8. 로고 클릭
+    // 9. 로고 클릭
     const logoTrigger = e.target.closest('#mobileLogoBtn') || e.target.closest('#sidebarLogoBtn') || e.target.closest('.logo-home-btn');
     if (logoTrigger) {
         e.preventDefault();
@@ -478,7 +495,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 9. 사이드바 제어
+    // 10. 사이드바 제어
     const closeSidebarTrigger = e.target.closest('#closeSidebarBtn') || 
                                 e.target.closest('#closeSidebar') || 
                                 (e.target.closest('button') && e.target.closest('button').querySelector('#closeSidebarBtn'));
@@ -507,13 +524,13 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 10. 신규 클라이언트 등록 모달 오픈
+    // 11. 신규 클라이언트 등록 모달 오픈 
     const addClientBtn = e.target.closest('#openClientModalBtn');
     if (addClientBtn && clientModal) {
         e.preventDefault();
         e.stopPropagation();
         const regIn = document.getElementById('c_registerName');
-        if (regIn) regIn.value = currentUserName; // 로그인 계정 자동입력
+        if (regIn) regIn.value = currentUserName; 
         
         const form = document.getElementById('clientForm');
         if (form) form.reset();
@@ -523,7 +540,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 11. 신규 이슈 등록 모달 오픈
+    // 12. 신규 이슈 등록 모달 오픈
     const openTaskModalBtn = e.target.closest('#openModalBtn');
     if (openTaskModalBtn && createModal) {
         e.preventDefault();
@@ -545,7 +562,7 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 12. 이미지 프리뷰
+    // 13. 이미지 프리뷰
     const imgTrigger = e.target.closest('.img-preview-btn');
     if (imgTrigger) {
         e.preventDefault();
@@ -554,7 +571,7 @@ document.addEventListener('click', (e) => {
         if (url) openImageModal(url);
     }
 
-    // 13. 공유 링크 복사
+    // 14. 공유 링크 복사
     const shareTrigger = e.target.closest('#shareLinkBtn') || (e.target.closest('button') && e.target.closest('button').textContent.includes('링크 복사'));
     if (shareTrigger) {
         e.preventDefault();
@@ -588,13 +605,14 @@ safeAddListener('inputClient', 'change', (e) => {
     }
 });
 
-// 🌟 전역 윈도우 스코프 함수 바인딩
+// 전역 윈도우 스코프 함수 바인딩
 window.openEditTaskModal = openEditTaskModal;
 window.openAssignModal = openAssignModal;
 window.deleteTask = deleteTask;
 window.openDetailModal = openDetailModal;
 window.openEditClientModal = openEditClientModal;
 window.deleteClient = deleteClient;
+window.openBudgetEditModal = openBudgetEditModal;
 
 async function uploadFilesToStorage(fileList, folderName) {
     const uploadedFiles = [];
@@ -1450,6 +1468,40 @@ async function openDetailModal(taskId) {
     if (detailAgencyEl) {
         detailAgencyEl.innerText = agencyNameMap[task.agency] || task.agency || '노아유니버스';
     }
+
+    // 🌟 실시간 DB 예산 연동 영역 반영 (이슈 상세 모달)
+    const budgetTotalEl = document.getElementById('detailBudgetTotal');
+    const budgetRechargedEl = document.getElementById('detailBudgetRecharged');
+    const budgetSpentEl = document.getElementById('detailBudgetSpent');
+    const budgetRemainingEl = document.getElementById('detailBudgetRemaining');
+    const budgetStatusEl = document.getElementById('detailClientBudgetStatus');
+
+    const mappedClient = allClientsData.find(c => c.name === task.client);
+    if (mappedClient && budgetTotalEl) {
+        const tB = Number(mappedClient.totalBudget) || 0;
+        const rB = Number(mappedClient.rechargedBudget) || 0;
+        const sB = Number(mappedClient.usedBudget) || 0;
+        const remB = (tB + rB) - sB;
+
+        budgetTotalEl.innerText = tB.toLocaleString() + '원';
+        budgetRechargedEl.innerText = rB.toLocaleString() + '원';
+        budgetSpentEl.innerText = sB.toLocaleString() + '원';
+        budgetRemainingEl.innerText = remB.toLocaleString() + '원';
+
+        if (remB < 0) {
+            budgetStatusEl.innerText = '예산 초과';
+            budgetStatusEl.className = 'text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-bold';
+        } else if (remB === 0 && (tB + rB) > 0) {
+            budgetStatusEl.innerText = '예산 소진';
+            budgetStatusEl.className = 'text-[10px] bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded font-bold';
+        } else {
+            budgetStatusEl.innerText = '정상 운영중';
+            budgetStatusEl.className = 'text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold';
+        }
+        budgetTotalEl.closest('.col-span-2').classList.remove('hidden');
+    } else if (budgetTotalEl) {
+        budgetTotalEl.closest('.col-span-2').classList.add('hidden');
+    }
     
     const contentEl = document.getElementById('detailContent');
     if (contentEl) {
@@ -1964,7 +2016,7 @@ safeAddListener('submitNewCommentBtn', 'click', async () => {
 });
 
 // ============================================================================
-// 🌟 8. 클라이언트 관리 (예산 관리 및 모달 정밀 바인딩 복구 완료)
+// 🌟 8. 클라이언트 관리 (메타정보 연동 및 예산 수정 별도 관리)
 // ============================================================================
 safeAddListener('clientForm', 'submit', async (e) => {
     e.preventDefault();
@@ -1975,9 +2027,9 @@ safeAddListener('clientForm', 'submit', async (e) => {
     const instaIn = document.getElementById('c_instaUrl');
     const metaIdIn = document.getElementById('c_metaId');
     const metaPwIn = document.getElementById('c_metaPw');
-    const totalBudgetIn = document.getElementById('c_totalBudget');
-    const rechargedBudgetIn = document.getElementById('c_rechargedBudget');
-    const usedBudgetIn = document.getElementById('c_usedBudget');
+    const metaEmailIn = document.getElementById('c_metaEmail');
+    const metaPhoneIn = document.getElementById('c_metaPhone');
+    const memoIn = document.getElementById('c_memo');
     const instaDateIn = document.getElementById('c_instaDate');
     const metaDateIn = document.getElementById('c_metaDate');
 
@@ -1995,13 +2047,16 @@ safeAddListener('clientForm', 'submit', async (e) => {
             instaUrl: instaIn ? instaIn.value : '',
             metaId: metaIdIn ? metaIdIn.value : '',
             metaPw: metaPwIn ? metaPwIn.value : '',
-            totalBudget: totalBudgetIn ? Number(totalBudgetIn.value) : 0,
-            rechargedBudget: rechargedBudgetIn ? Number(rechargedBudgetIn.value) : 0,
-            usedBudget: usedBudgetIn ? Number(usedBudgetIn.value) : 0,
+            metaEmail: metaEmailIn ? metaEmailIn.value : '', 
+            metaPhone: metaPhoneIn ? metaPhoneIn.value : '', 
+            memo: memoIn ? memoIn.value : '',               
+            totalBudget: 0,       
+            rechargedBudget: 0,
+            usedBudget: 0,
             instaDate: instaDateIn ? instaDateIn.value : '',
             metaDate: metaDateIn ? metaDateIn.value : '',
             registeredBy: currentUserName,
-            managers: [currentUserName], // 신규 등록 시 로그인한 사용자를 담당자로 자동 배정
+            managers: [currentUserName], 
             createdAt: new Date().toISOString()
         };
 
@@ -2039,7 +2094,7 @@ async function deleteClient(clientId) {
     }
 }
 
-// 🌟 클라이언트 수정 모달 오픈 (ID/PW 및 담당자 바인딩 정밀 연동)
+// 일반 클라이언트 정보 수정 모달 오픈
 function openEditClientModal(clientId) {
     const client = clientsMap[clientId];
     if (!client) return;
@@ -2051,9 +2106,9 @@ function openEditClientModal(clientId) {
         const instaIn = document.getElementById('edit_c_instaUrl');
         const metaIdIn = document.getElementById('edit_c_metaId');
         const metaPwIn = document.getElementById('edit_c_metaPw');
-        const totalBudgetIn = document.getElementById('edit_c_totalBudget');
-        const rechargedBudgetIn = document.getElementById('edit_c_rechargedBudget');
-        const usedBudgetIn = document.getElementById('edit_c_usedBudget');
+        const metaEmailIn = document.getElementById('edit_c_metaEmail');
+        const metaPhoneIn = document.getElementById('edit_c_metaPhone');
+        const memoIn = document.getElementById('edit_c_memo');
         const instaDateIn = document.getElementById('edit_c_instaDate');
         const metaDateIn = document.getElementById('edit_c_metaDate');
 
@@ -2062,13 +2117,12 @@ function openEditClientModal(clientId) {
         if (instaIn) instaIn.value = client.instaUrl || '';
         if (metaIdIn) metaIdIn.value = client.metaId || '';
         if (metaPwIn) metaPwIn.value = client.metaPw || '';
-        if (totalBudgetIn) totalBudgetIn.value = client.totalBudget || 0;
-        if (rechargedBudgetIn) rechargedBudgetIn.value = client.rechargedBudget || 0;
-        if (usedBudgetIn) usedBudgetIn.value = client.usedBudget || 0;
+        if (metaEmailIn) metaEmailIn.value = client.metaEmail || '';
+        if (metaPhoneIn) metaPhoneIn.value = client.metaPhone || '';
+        if (memoIn) memoIn.value = client.memo || '';
         if (instaDateIn) instaDateIn.value = client.instaDate || '';
         if (metaDateIn) metaDateIn.value = client.metaDate || '';
 
-        // 담당자 연결 체크박스 영역
         const editManagerList = document.getElementById('editClientManagerList');
         if (editManagerList) {
             editManagerList.innerHTML = '<div class="text-xs text-gray-400 p-2 text-center font-bold"><i class="fa-solid fa-spinner animate-spin mr-1"></i> 멤버 목록 불러오는 중...</div>';
@@ -2094,7 +2148,6 @@ function openEditClientModal(clientId) {
     }
 }
 
-// 🌟 클라이언트 수정폼 제출 바인딩
 safeAddListener('editClientForm', 'submit', async (e) => {
     e.preventDefault();
     if (!currentEditClientId) return;
@@ -2104,9 +2157,9 @@ safeAddListener('editClientForm', 'submit', async (e) => {
     const instaIn = document.getElementById('edit_c_instaUrl');
     const metaIdIn = document.getElementById('edit_c_metaId');
     const metaPwIn = document.getElementById('edit_c_metaPw');
-    const totalBudgetIn = document.getElementById('edit_c_totalBudget');
-    const rechargedBudgetIn = document.getElementById('edit_c_rechargedBudget');
-    const usedBudgetIn = document.getElementById('edit_c_usedBudget');
+    const metaEmailIn = document.getElementById('edit_c_metaEmail');
+    const metaPhoneIn = document.getElementById('edit_c_metaPhone');
+    const memoIn = document.getElementById('edit_c_memo');
     const instaDateIn = document.getElementById('edit_c_instaDate');
     const metaDateIn = document.getElementById('edit_c_metaDate');
 
@@ -2123,9 +2176,9 @@ safeAddListener('editClientForm', 'submit', async (e) => {
             instaUrl: instaIn ? instaIn.value : clientsMap[currentEditClientId].instaUrl,
             metaId: metaIdIn ? metaIdIn.value : clientsMap[currentEditClientId].metaId,
             metaPw: metaPwIn ? metaPwIn.value : clientsMap[currentEditClientId].metaPw,
-            totalBudget: totalBudgetIn ? Number(totalBudgetIn.value) : (clientsMap[currentEditClientId].totalBudget || 0),
-            rechargedBudget: rechargedBudgetIn ? Number(rechargedBudgetIn.value) : (clientsMap[currentEditClientId].rechargedBudget || 0),
-            usedBudget: usedBudgetIn ? Number(usedBudgetIn.value) : (clientsMap[currentEditClientId].usedBudget || 0),
+            metaEmail: metaEmailIn ? metaEmailIn.value : (clientsMap[currentEditClientId].metaEmail || ''),
+            metaPhone: metaPhoneIn ? metaPhoneIn.value : (clientsMap[currentEditClientId].metaPhone || ''),
+            memo: memoIn ? memoIn.value : (clientsMap[currentEditClientId].memo || ''),
             instaDate: instaDateIn ? instaDateIn.value : (clientsMap[currentEditClientId].instaDate || ''),
             metaDate: metaDateIn ? metaDateIn.value : (clientsMap[currentEditClientId].metaDate || ''),
             managers: updatedManagers,
@@ -2139,20 +2192,14 @@ safeAddListener('editClientForm', 'submit', async (e) => {
     }
 });
 
-// 전체 클라이언트 수집
+// 전체 클라이언트 수집 및 렌더링
 async function fetchClients() {
-    const tbody = document.getElementById('clientsTable');
-    const emptyState = document.getElementById('emptyClients');
-    if(!tbody) return;
-
-    if (tbody.parentElement) {
-        tbody.parentElement.classList.add('overflow-x-auto', 'block', 'w-full');
-        if (tbody.parentElement.tagName === 'TABLE') {
-            tbody.parentElement.classList.add('min-w-[1000px]', 'w-full');
-        }
+    const tbodyClients = document.getElementById('clientsTable');
+    const emptyClients = document.getElementById('emptyClients');
+    
+    if (tbodyClients) {
+        tbodyClients.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 로딩 중...</td></tr>';
     }
-
-    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 로딩 중...</td></tr>';
 
     try {
         let q = collection(db, "clients");
@@ -2165,14 +2212,15 @@ async function fetchClients() {
         clientsMap = {};
 
         if (querySnapshot.empty) {
-            tbody.innerHTML = '';
-            if(emptyState) emptyState.style.display = 'flex';
+            if(tbodyClients) tbodyClients.innerHTML = '';
+            if(emptyClients) emptyClients.style.display = 'flex';
             checkAllNavBadges();
             const pagination = document.getElementById('clientPagination');
             if(pagination) pagination.classList.add('hidden');
+            renderBudgetTable(); 
             return;
         }
-        if(emptyState) emptyState.style.display = 'none';
+        if(emptyClients) emptyClients.style.display = 'none';
 
         querySnapshot.forEach((docSnap) => {
             const data = docSnap.data();
@@ -2184,11 +2232,12 @@ async function fetchClients() {
         allClientsData.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
         renderClientsPage(currentClientPage || 1);
+        renderBudgetTable(); // 어드민 예산 테이블 렌더링
 
     } catch (e) { console.error("Client fetch error:", e); }
 }
 
-// 🌟 예산 시각화 바 및 페이지네이션 렌더링
+// 🌟 일반 클라이언트 리스트 페이지네이션 렌더링 (메모/이메일 추가 정보 렌더링 포함)
 function renderClientsPage(page) {
     currentClientPage = page;
     const tbody = document.getElementById('clientsTable');
@@ -2243,43 +2292,22 @@ function renderClientsPage(page) {
                 </div>
             </td>` : `<td class="admin-only-col hidden"></td>`;
 
-        const copyIdBtn = data.metaId ? `
-            <button type="button" class="copy-text-btn text-gray-400 hover:text-hermes transition p-0.5 rounded cursor-pointer" data-copy="${data.metaId}" title="ID 복사">
-                <i class="fa-regular fa-copy text-[11px]"></i>
-            </button>
-        ` : '';
+        let copyIdBtn = data.metaId ? `<button type="button" class="copy-text-btn text-gray-400 hover:text-hermes transition p-0.5 rounded cursor-pointer" data-copy="${data.metaId}" title="ID 복사"><i class="fa-regular fa-copy text-[11px]"></i></button>` : '';
+        let copyPwBtn = data.metaPw ? `<button type="button" class="copy-text-btn text-gray-400 hover:text-hermes transition p-0.5 rounded cursor-pointer" data-copy="${data.metaPw}" title="PW 복사"><i class="fa-regular fa-copy text-[11px]"></i></button>` : '';
 
-        const copyPwBtn = data.metaPw ? `
-            <button type="button" class="copy-text-btn text-gray-400 hover:text-hermes transition p-0.5 rounded cursor-pointer" data-copy="${data.metaPw}" title="PW 복사">
-                <i class="fa-regular fa-copy text-[11px]"></i>
-            </button>
-        ` : '';
-
-        // 🌟 예산 정보 시각화 로직
-        const total = Number(data.totalBudget) || 0;
-        const recharged = Number(data.rechargedBudget) || 0;
-        const used = Number(data.usedBudget) || 0;
-        const maxBudget = total + recharged;
-        const remaining = maxBudget - used;
-        const percent = maxBudget > 0 ? Math.min(100, (used / maxBudget) * 100) : 0;
-        
-        const formatWon = (val) => val.toLocaleString() + '원';
-
-        let budgetHtml = `
-            <div class="flex flex-col gap-1 w-full min-w-[150px]">
-                <div class="flex justify-between text-[10px] font-bold items-end">
-                    <span class="text-gray-500">잔여: <span class="text-hermes text-[11px]">${formatWon(remaining)}</span></span>
-                    <span class="text-gray-400">소진률: ${percent.toFixed(1)}%</span>
+        // 🌟 메모/기타 정보 표시를 위한 인라인 박스 구성
+        let metaExtraHtml = '';
+        if(data.metaEmail || data.metaPhone || data.memo) {
+            metaExtraHtml = `
+                <div class="mt-2 text-[10px] text-gray-500 bg-gray-50 p-2 rounded-lg border border-gray-200 min-w-[160px]">
+                    ${data.metaEmail ? `<div class="mb-0.5 flex items-start gap-1"><span class="font-bold text-gray-400 mt-0.5">E:</span> <span class="break-all">${data.metaEmail}</span></div>` : ''}
+                    ${data.metaPhone ? `<div class="mb-0.5 flex items-start gap-1"><span class="font-bold text-gray-400 mt-0.5">P:</span> <span class="break-all">${data.metaPhone}</span></div>` : ''}
+                    ${data.memo ? `<div class="pt-1 mt-1 border-t border-gray-200 text-gray-600 line-clamp-2" title="${data.memo}">${data.memo}</div>` : ''}
                 </div>
-                <div class="w-full bg-gray-100 rounded-full h-1.5 shadow-inner">
-                    <div class="bg-hermes h-1.5 rounded-full" style="width: ${percent}%"></div>
-                </div>
-                <div class="text-[9px] text-gray-400 flex justify-between mt-0.5">
-                    <span>총+충전: ${formatWon(maxBudget)}</span>
-                    <span>사용: ${formatWon(used)}</span>
-                </div>
-            </div>
-        `;
+            `;
+        } else {
+            metaExtraHtml = `<div class="mt-2 text-[10px] text-gray-400 italic">추가 정보 없음</div>`;
+        }
 
         const tr = `
             <tr class="hover:bg-orange-50/30 transition border-b border-gray-100 break-keep">
@@ -2288,17 +2316,15 @@ function renderClientsPage(page) {
                     ${data.homeUrl ? `<a href="${data.homeUrl}" target="_blank" class="text-blue-500 hover:underline"><i class="fa-solid fa-link"></i> 웹</a> ` : ''}
                     ${data.instaUrl ? `<a href="${data.instaUrl}" target="_blank" class="text-pink-500 hover:underline"><i class="fa-brands fa-instagram"></i> 인스타</a>` : ''}
                 </td>
-                <td class="p-3 md:p-4 text-xs align-middle whitespace-nowrap">
-                    <div class="text-gray-700 font-medium flex items-center gap-1.5">
-                        <span>ID: ${data.metaId || '-'}</span>
-                        ${copyIdBtn}
+                <td class="p-3 md:p-4 text-xs align-middle">
+                    <div class="flex items-center gap-1.5 whitespace-nowrap">
+                        <span class="font-medium text-gray-700">ID: ${data.metaId || '-'}</span>${copyIdBtn}
                     </div>
-                    <div class="text-gray-900 font-bold flex items-center gap-1.5 mt-0.5">
-                        <span>PW: ${data.metaPw || '-'}</span>
-                        ${copyPwBtn}
+                    <div class="flex items-center gap-1.5 mt-0.5 whitespace-nowrap">
+                        <span class="font-bold text-gray-900">PW: ${data.metaPw || '-'}</span>${copyPwBtn}
                     </div>
                 </td>
-                <td class="p-3 md:p-4 align-middle whitespace-nowrap">${budgetHtml}</td>
+                <td class="p-3 md:p-4 text-xs align-middle">${metaExtraHtml}</td>
                 <td class="p-3 md:p-4 text-xs text-gray-600 align-middle whitespace-nowrap"><div>인스타: ${data.instaDate || '-'}</div><div>메타: ${data.metaDate || '-'}</div></td>
                 <td class="p-3 md:p-4 text-xs font-bold text-gray-500 align-middle whitespace-nowrap">${data.registeredBy || '-'}</td>
                 <td class="p-3 md:p-4 max-w-[130px] overflow-hidden align-middle">${managersHtml}</td>
@@ -2327,6 +2353,122 @@ function renderClientsPage(page) {
 
     checkAllNavBadges();
 }
+
+// 🌟 예산 전용 대시보드 및 테이블 렌더링 (어드민 뷰)
+function renderBudgetTable() {
+    const budgetTbody = document.getElementById('budgetTable');
+    if (!budgetTbody) return;
+    budgetTbody.innerHTML = '';
+
+    let sumTotal = 0, sumRecharged = 0, sumSpent = 0;
+
+    allClientsData.forEach(data => {
+        const total = Number(data.totalBudget) || 0;
+        const recharged = Number(data.rechargedBudget) || 0;
+        const used = Number(data.usedBudget) || 0;
+        
+        sumTotal += total;
+        sumRecharged += recharged;
+        sumSpent += used;
+
+        const maxBudget = total + recharged;
+        const remaining = maxBudget - used;
+        const percent = maxBudget > 0 ? Math.min(100, (used / maxBudget) * 100) : 0;
+        
+        const formatWon = (val) => val.toLocaleString() + '원';
+
+        let budgetProgressHtml = `
+            <div class="flex flex-col gap-1 w-full min-w-[150px]">
+                <div class="w-full bg-gray-100 rounded-full h-2 shadow-inner overflow-hidden">
+                    <div class="${percent > 90 ? 'bg-red-500' : 'bg-hermes'} h-2 rounded-full transition-all" style="width: ${percent}%"></div>
+                </div>
+            </div>
+        `;
+
+        const tr = `
+            <tr class="hover:bg-blue-50/30 transition border-b border-gray-100 break-keep">
+                <td class="p-3 md:p-4 font-black text-gray-900 align-middle whitespace-nowrap">${data.name}</td>
+                <td class="p-3 md:p-4 font-bold text-gray-700 align-middle whitespace-nowrap">${formatWon(total)}</td>
+                <td class="p-3 md:p-4 font-bold text-blue-600 align-middle whitespace-nowrap">${formatWon(recharged)}</td>
+                <td class="p-3 md:p-4 font-bold text-amber-600 align-middle whitespace-nowrap">${formatWon(used)}</td>
+                <td class="p-3 md:p-4 font-black text-hermes align-middle whitespace-nowrap">${formatWon(remaining)}</td>
+                <td class="p-3 md:p-4 align-middle whitespace-nowrap">
+                    <div class="text-xs font-bold text-gray-600 mb-1">${percent.toFixed(1)}%</div>
+                    ${budgetProgressHtml}
+                </td>
+                <td class="p-3 md:p-4 text-center align-middle whitespace-nowrap">
+                    <button type="button" class="edit-budget-btn bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-3 py-1.5 rounded transition shadow-sm whitespace-nowrap cursor-pointer" data-id="${data.id}"><i class="fa-solid fa-pen-to-square"></i> 예산 수정</button>
+                </td>
+            </tr>
+        `;
+        budgetTbody.innerHTML += tr;
+    });
+
+    const elTotal = document.getElementById('kpiTotalBudget');
+    const elRecharged = document.getElementById('kpiRechargedBudget');
+    const elSpent = document.getElementById('kpiSpentBudget');
+    const elRemaining = document.getElementById('kpiRemainingBudget');
+
+    if(elTotal) elTotal.innerText = sumTotal.toLocaleString() + '원';
+    if(elRecharged) elRecharged.innerText = sumRecharged.toLocaleString() + '원';
+    if(elSpent) elSpent.innerText = sumSpent.toLocaleString() + '원';
+    if(elRemaining) elRemaining.innerText = ((sumTotal + sumRecharged) - sumSpent).toLocaleString() + '원';
+}
+
+// 🌟 예산 수정 모달 열기 로직
+function openBudgetEditModal(clientId) {
+    const client = clientsMap[clientId];
+    if (!client) return;
+    currentEditBudgetId = clientId;
+
+    const titleEl = document.getElementById('budgetEditClientTitle');
+    const totalIn = document.getElementById('edit_b_total');
+    const rechargeIn = document.getElementById('edit_b_recharge');
+    const usedIn = document.getElementById('edit_b_used');
+
+    if (titleEl) titleEl.innerText = client.name;
+    if (totalIn) totalIn.value = client.totalBudget || 0;
+    if (rechargeIn) rechargeIn.value = client.rechargedBudget || 0;
+    if (usedIn) usedIn.value = client.usedBudget || 0;
+
+    if (budgetEditModal) {
+        budgetEditModal.classList.remove('hidden');
+        budgetEditModal.style.zIndex = "99999";
+    }
+}
+
+// 🌟 예산 폼 제출 이벤트 바인딩
+safeAddListener('budgetEditForm', 'submit', async (e) => {
+    e.preventDefault();
+    if (!currentEditBudgetId) return;
+
+    const totalIn = document.getElementById('edit_b_total');
+    const rechargeIn = document.getElementById('edit_b_recharge');
+    const usedIn = document.getElementById('edit_b_used');
+
+    const submitBtn = budgetEditModal.querySelector('button[type="submit"]');
+    const origText = submitBtn ? submitBtn.innerText : '저장';
+    if(submitBtn) { submitBtn.innerText = '저장 중...'; submitBtn.disabled = true; }
+
+    try {
+        await updateDoc(doc(db, "clients", currentEditBudgetId), {
+            totalBudget: totalIn ? Number(totalIn.value) : 0,
+            rechargedBudget: rechargeIn ? Number(rechargeIn.value) : 0,
+            usedBudget: usedIn ? Number(usedIn.value) : 0,
+            updatedAt: new Date().toISOString()
+        });
+        
+        budgetEditModal.classList.add('hidden');
+        alert("해당 클라이언트의 예산 정보가 업데이트되었습니다.");
+        fetchClients(); 
+
+    } catch (err) {
+        alert("예산 수정 실패: " + err.message);
+    } finally {
+        if(submitBtn) { submitBtn.innerText = origText; submitBtn.disabled = false; }
+    }
+});
+
 
 // ============================================================================
 // 9. 인사이트 라이브러리 모듈

@@ -44,7 +44,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- 외부 CSS 연결 -->
-    <link rel="stylesheet" href="style.css?v=1.2.2">
+    <link rel="stylesheet" href="style.css?v=1.2.3">
 </head>
 <body class="bg-grid-pattern text-gray-800 font-sans min-h-screen relative flex flex-col justify-between overflow-x-hidden">
 
@@ -228,7 +228,7 @@
                 <div id="libraryGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 w-full"></div>
             </div>
 
-            <!-- 🌟 뷰 5. 예산 통합 관리 대시보드 (어드민 전용 뷰) -->
+            <!-- 뷰 5. 예산 통합 관리 대시보드 (어드민 전용 뷰) -->
             <div id="budgetContainer" class="hidden flex-1 mb-6 md:mb-8 w-full min-w-0">
                 <div class="flex justify-between items-center mb-6">
                     <div>
@@ -351,7 +351,6 @@
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">5. 메타광고계정 PW</label><input type="text" id="c_metaPw" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                 </div>
                 
-                <!-- 🌟 6. 예산 대신 담당자 추가 정보 렌더링 -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 p-3 bg-gray-50 rounded-xl border border-gray-200 mt-2">
                     <div class="col-span-1 sm:col-span-2 text-[11px] font-black text-gray-600 border-b border-gray-200 pb-1 mb-1">6. 담당자 추가 정보 및 메모</div>
                     <div><label class="block text-[10px] font-bold text-gray-600 mb-1">메타 연결 이메일</label><input type="email" id="c_metaEmail" placeholder="example@email.com" class="w-full text-xs border border-gray-300 rounded-md p-2 focus:border-hermes outline-none"></div>
@@ -393,7 +392,6 @@
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">5. 메타광고계정 PW</label><input type="text" id="edit_c_metaPw" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                 </div>
                 
-                <!-- 🌟 6. 추가 메타 정보 수정 -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 p-3 bg-gray-50 rounded-xl border border-gray-200 mt-2">
                     <div class="col-span-1 sm:col-span-2 text-[11px] font-black text-gray-600 border-b border-gray-200 pb-1 mb-1">6. 담당자 추가 정보 및 메모</div>
                     <div><label class="block text-[10px] font-bold text-gray-600 mb-1">메타 연결 이메일</label><input type="email" id="edit_c_metaEmail" class="w-full text-xs border border-gray-300 rounded-md p-2 focus:border-hermes outline-none"></div>
@@ -410,7 +408,7 @@
         </div>
     </div>
 
-    <!-- 🌟 어드민 전용 예산 직접 수정 모달 -->
+    <!-- 어드민 전용 예산 직접 수정 모달 -->
     <div id="budgetEditModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-sm p-5 md:p-6 shadow-2xl border border-blue-200">
             <div class="flex justify-between items-center mb-4 border-b pb-3">
@@ -452,7 +450,7 @@
         </div>
     </div>
 
-    <!-- 🌟 신규 이슈 등록 모달 (드롭다운 + 예산 라이브 배지 연동) -->
+    <!-- 🌟 신규 이슈 등록 모달 -->
     <div id="createModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-lg p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-5 border-b pb-3">
@@ -460,13 +458,11 @@
                 <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
             <form id="taskForm" class="space-y-4">
-                <!-- 클라이언트 드롭다운 및 실시간 예산 연동 배지 -->
                 <div>
                     <label class="block text-xs font-bold text-gray-700 mb-1">클라이언트명 (등록된 클라이언트 자동 연동)</label>
-                    <select id="inputClient" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none bg-white font-bold">
+                    <select id="inputClient" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none bg-white font-bold cursor-pointer">
                         <option value="">클라이언트를 선택하세요</option>
                     </select>
-
                     <div id="createClientBudgetInfo" class="mt-1.5 p-2 bg-gray-50 border border-gray-100 rounded-lg text-[11px] text-gray-500 hidden"></div>
                 </div>
 
@@ -531,7 +527,7 @@
         </div>
     </div>
 
-    <!-- 등록된 게시글 전체 항목 수정 모달 -->
+    <!-- 🌟 업무 게시글 수정 모달 -->
     <div id="editTaskModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-lg p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-5 border-b pb-3">

@@ -31,6 +31,7 @@ const provider = new GoogleAuthProvider();
 const ADMIN_EMAILS = ["hhjhhj422@gmail.com", "adp@adplanters.com", "dlghgus9997@gmail.com"];
 let currentUserRole = ''; 
 let currentUserName = ''; 
+let currentUserEmail = ''; // 사용자 이메일 보존용
 let currentAssignClientId = null; 
 let currentEditClientId = null;
 let currentDetailTaskId = null; 
@@ -47,6 +48,10 @@ let currentEditBudgetId = null;
 let allClientsData = [];
 let currentClientPage = 1;
 const CLIENTS_PER_PAGE = 10;
+
+// 🌟 대시보드 롤링 Ticker 타이머 보존 객체
+let latestRollingInterval = null;
+let progressRollingInterval = null;
 
 // 접속자 IP 전역 보존 변수
 let currentClientIP = '127.0.0.1';
@@ -396,11 +401,39 @@ safeAddListener('libViewCountBadgeBtn', 'click', (e) => toggleViewerTooltip('lib
 });
 
 // ============================================================================
-// 🌟 전역 문서 클릭 이벤트 (수정, 삭제, 예산수정, 모달 오픈 통합 이벤트 위임)
+// 🌟 알림 팝업 및 전역 문서 클릭 이벤트 연동
 // ============================================================================
+
+// 알림창 토글 이벤트
+safeAddListener('notifBellBtn', 'click', (e) => {
+    e.stopPropagation();
+    const dropdown = document.getElementById('notifDropdown');
+    if (dropdown) dropdown.classList.toggle('hidden');
+});
+
+safeAddListener('mobileNotifBellBtn', 'click', (e) => {
+    e.stopPropagation();
+    const dropdown = document.getElementById('notifDropdown');
+    if (dropdown) dropdown.classList.toggle('hidden');
+});
+
+safeAddListener('closeNotifBtn', 'click', (e) => {
+    e.stopPropagation();
+    const dropdown = document.getElementById('notifDropdown');
+    if (dropdown) dropdown.classList.add('hidden');
+});
+
+// 문서 전역 클릭 핸들링
 document.addEventListener('click', async (e) => {
+    // 툴팁 외부 클릭 시 닫기
     if (!e.target.closest('#viewCountBadgeWrapper') && !e.target.closest('#libViewCountBadgeWrapper')) {
         hideAllViewersTooltips();
+    }
+
+    // 알림창 외부 클릭 시 닫기
+    if (!e.target.closest('#notifBellBtn') && !e.target.closest('#mobileNotifBellBtn') && !e.target.closest('#notifDropdown')) {
+        const dropdown = document.getElementById('notifDropdown');
+        if (dropdown) dropdown.classList.add('hidden');
     }
 
     // 1. 클라이언트 수정 버튼
@@ -476,7 +509,7 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
-    // 8. 게시글 행 클릭 시 자동 상세 창 오픈
+    // 8. 게시글 행 및 롤링 항목 클릭 시 자동 상세 창 오픈
     const taskRow = e.target.closest('.task-detail-trigger');
     if (taskRow && !e.target.closest('a') && !e.target.closest('button')) {
         const taskId = taskRow.getAttribute('data-id');
@@ -539,13 +572,12 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
-    // 🌟 12. 신규 이슈 등록 모달 오픈 (비동기 클라이언트 연동 보장)
+    // 12. 신규 이슈 등록 모달 오픈 (비동기 클라이언트 연동 보장)
     const openTaskModalBtn = e.target.closest('#openModalBtn');
     if (openTaskModalBtn && createModal) {
         e.preventDefault();
         e.stopPropagation();
         
-        // 데이터가 아직 안 불려왔을 경우 비동기로 즉시 수집
         if (allClientsData.length === 0) {
             await fetchClients();
         }
@@ -792,8 +824,14 @@ onAuthStateChanged(auth, async (user) => {
 
     if (user) {
         currentUserName = user.displayName || (user.email ? user.email.split('@')[0] : "담당자");
+        currentUserEmail = user.email || '';
+
         const staffInput = document.getElementById('inputStaff');
         if(staffInput) staffInput.value = currentUserName;
+
+        // 🌟 이메일 정보 사이드바 노출 연동
+        const userEmailEl = document.getElementById('currentUserEmail');
+        if (userEmailEl) userEmailEl.innerText = currentUserEmail;
 
         if(!isInitialLoginLogged) {
             logActivity("로그인", "시스템에 성공적으로 접속했습니다.");
@@ -882,7 +920,7 @@ function showDashboard(user) {
     setupDragAndDrop('inputContent', 'inputFile');
     initNewCommentDragAndDrop();
 
-    // 🌟 대시보드 진입 시 클라이언트 데이터 백그라운드 선 수집
+    // 로그인 시 백그라운드로 클라이언트 선탑재 보장
     fetchClients();
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -993,7 +1031,7 @@ async function deleteTask(taskId) {
     }
 }
 
-// 업무 수정 모달 열기
+// 업무 게시물 전체 정보 수정
 async function openEditTaskModal(taskId) {
     const task = tasksMap[taskId];
     if (!task) return;
@@ -1238,6 +1276,108 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
     }
 });
 
+// 🌟 수집된 게시글로 롤링 Ticker 박스 데이터 갱신 및 애니메이션 실행
+function renderRollingTickers(tasksList) {
+    const latestListEl = document.getElementById('tickerLatestList');
+    const progressListEl = document.getElementById('tickerProgressList');
+
+    if (!latestListEl || !progressListEl) return;
+
+    // 1. 최신 이슈 Top 5
+    const latestTasks = [...tasksList].slice(0, 5);
+    // 2. 진행중 업무 Top 5 ('진행중' 또는 '답변대기')
+    const progressTasks = tasksList.filter(t => t.status === '진행중' || t.status === '답변대기').slice(0, 5);
+
+    const buildTickerItemsHtml = (items) => {
+        if (items.length === 0) {
+            return `<li class="h-[40px] flex items-center text-gray-400 font-normal">등록된 항목이 없습니다.</li>`;
+        }
+        return items.map(item => `
+            <li class="h-[40px] flex items-center justify-between group cursor-pointer task-detail-trigger" data-id="${item.id}">
+                <div class="flex items-center gap-2 truncate pr-2">
+                    <span class="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-bold shrink-0">${item.client || '공지'}</span>
+                    <span class="truncate font-bold text-gray-800 group-hover:text-hermes transition">${item.title}</span>
+                </div>
+                <span class="text-[10px] text-gray-400 font-normal shrink-0 whitespace-nowrap">${item.date || ''}</span>
+            </li>
+        `).join('');
+    };
+
+    latestListEl.innerHTML = buildTickerItemsHtml(latestTasks);
+    progressListEl.innerHTML = buildTickerItemsHtml(progressTasks);
+
+    // 롤링 애니메이션 타이머 재설정
+    if (latestRollingInterval) clearInterval(latestRollingInterval);
+    if (progressRollingInterval) clearInterval(progressRollingInterval);
+
+    const startVerticalRoll = (listEl, itemCount) => {
+        if (itemCount <= 1) return null;
+        let currentIndex = 0;
+        return setInterval(() => {
+            currentIndex = (currentIndex + 1) % itemCount;
+            listEl.style.transform = `translateY(-${currentIndex * 40}px)`;
+        }, 3000);
+    };
+
+    latestRollingInterval = startVerticalRoll(latestListEl, latestTasks.length);
+    progressRollingInterval = startVerticalRoll(progressListEl, progressTasks.length);
+}
+
+// 🌟 사용자 맞춤 알림 체크 (담당자 배정 & @태그 연동)
+function updateNotifications(tasksList) {
+    const notifBadge = document.getElementById('notifBadge');
+    const mobileNotifBadge = document.getElementById('mobileNotifBadge'); 
+    const notifList = document.getElementById('notifList');
+    if (!notifList) return;
+
+    if (!currentUserName) return;
+
+    const myNotifs = [];
+
+    tasksList.forEach(task => {
+        const isAssigned = task.assignedManagers && task.assignedManagers.includes(currentUserName);
+        const isTagged = (task.title && task.title.includes(`@${currentUserName}`)) ||
+                         (task.content && task.content.includes(`@${currentUserName}`)) ||
+                         (task.comments && task.comments.some(c => c.text && c.text.includes(`@${currentUserName}`)));
+
+        if (isAssigned || isTagged) {
+            const reason = isTagged ? '💬 댓글/본문 태그됨' : '📌 담당자로 지정됨';
+            myNotifs.push({
+                id: task.id,
+                title: task.title,
+                client: task.client,
+                reason: reason,
+                date: task.date || '최신'
+            });
+        }
+    });
+
+    if (myNotifs.length > 0) {
+        if (notifBadge) {
+            notifBadge.innerText = myNotifs.length;
+            notifBadge.classList.remove('hidden');
+        }
+        if (mobileNotifBadge) {
+            mobileNotifBadge.innerText = myNotifs.length;
+            mobileNotifBadge.classList.remove('hidden');
+        }
+        notifList.innerHTML = myNotifs.map(n => `
+            <div class="p-3 hover:bg-orange-50/50 transition cursor-pointer task-detail-trigger border-b border-gray-50 last:border-0" data-id="${n.id}">
+                <div class="flex items-center justify-between text-[10px] text-gray-400 mb-1">
+                    <span class="font-bold text-hermes">${n.reason}</span>
+                    <span>${n.date}</span>
+                </div>
+                <div class="font-bold text-gray-800 text-xs truncate leading-snug">${n.title}</div>
+                <div class="text-[10px] text-gray-500 truncate mt-1"><i class="fa-solid fa-building text-[9px] mr-1"></i>${n.client || '공지'}</div>
+            </div>
+        `).join('');
+    } else {
+        if (notifBadge) notifBadge.classList.add('hidden');
+        if (mobileNotifBadge) mobileNotifBadge.classList.add('hidden');
+        notifList.innerHTML = `<div class="p-5 text-center text-gray-400 text-xs">나와 관련된 새로운 알림이 없습니다.</div>`;
+    }
+}
+
 async function fetchTasks() {
     const tbody = document.getElementById('boardTable');
     const emptyState = document.getElementById('emptyState');
@@ -1262,6 +1402,10 @@ async function fetchTasks() {
             const timeB = b.createdAt ? new Date(b.createdAt).getTime() : new Date((b.date || '').replace(/\./g, '-')).getTime();
             return timeB - timeA;
         });
+
+        // 🌟 상단 Ticker 박스 및 알림 업데이트 실행
+        renderRollingTickers(fetchedData);
+        updateNotifications(fetchedData);
 
         tbody.innerHTML = '';
         if (fetchedData.length === 0) {
@@ -1499,7 +1643,6 @@ async function openDetailModal(taskId) {
         detailAgencyEl.innerText = agencyNameMap[task.agency] || task.agency || '노아유니버스';
     }
 
-    // 🌟 실시간 DB 예산 연동 영역 반영 (📢 [전체 공지]일 때는 예산 영역 깔끔히 숨김)
     const budgetTotalEl = document.getElementById('detailBudgetTotal');
     const budgetRechargedEl = document.getElementById('detailBudgetRecharged');
     const budgetSpentEl = document.getElementById('detailBudgetSpent');
@@ -2267,7 +2410,7 @@ async function fetchClients() {
     } catch (e) { console.error("Client fetch error:", e); }
 }
 
-// 일반 클라이언트 리스트 페이지네이션 렌더링
+// 일반 클라이언트 리스트 페이지네이션 렌더링 (메모/이메일 추가 정보 렌더링 포함)
 function renderClientsPage(page) {
     currentClientPage = page;
     const tbody = document.getElementById('clientsTable');

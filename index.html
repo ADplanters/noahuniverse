@@ -43,8 +43,8 @@
     <!-- 폰트어썸 아이콘 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- 외부 CSS 연결 (캐시 무력화 파라미터 v=1.1.9 적용) -->
-    <link rel="stylesheet" href="style.css?v=1.1.9">
+    <!-- 외부 CSS 연결 (캐시 무력화 파라미터 v=1.2.0 적용) -->
+    <link rel="stylesheet" href="style.css?v=1.2.0">
 </head>
 <body class="bg-grid-pattern text-gray-800 font-sans min-h-screen relative flex flex-col justify-between overflow-x-hidden">
 
@@ -125,6 +125,7 @@
                 
                 <div id="adminMenuSection" class="hidden mt-4 pt-4 border-t border-gray-100">
                     <div class="text-[10px] font-black text-gray-400 mb-2 px-4 uppercase tracking-wider">Admin Only</div>
+                    <a href="#" data-menu="budget" id="menuBudget" data-title="예산 통합 관리" class="nav-item flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition"><i class="fa-solid fa-wallet w-5"></i> 예산 통합 관리 (ADMIN)</a>
                     <a href="#" data-menu="members" id="menuMembers" data-title="멤버 관리" class="nav-item flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition"><i class="fa-solid fa-users-gear w-5"></i> 멤버 관리 (권한/탈퇴)</a>
                     <a href="#" data-menu="approvals" id="menuApprovals" data-title="권한 승인 관리" class="nav-item flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition"><i class="fa-solid fa-user-shield w-5"></i> 신규 가입 승인</a>
                     <a href="#" data-menu="logs" id="menuLogs" data-title="접속 및 작업 이력" class="nav-item flex items-center gap-3 text-gray-600 hover:bg-hermes-light hover:text-hermes px-4 py-3 rounded-lg font-medium transition"><i class="fa-solid fa-clock-rotate-left w-5"></i> 접속 및 작업 이력</a>
@@ -160,7 +161,7 @@
                 <div class="bg-white p-4 md:p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between"><div><p class="text-xs font-bold text-gray-500 mb-1">완료 항목</p><p class="text-xl md:text-2xl font-black text-gray-900" id="statDone">0<span class="text-xs font-medium text-gray-500 ml-1">건</span></p></div><div class="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gray-100 text-gray-600 flex items-center justify-center text-lg md:text-xl"><i class="fa-solid fa-check-double"></i></div></div>
             </div>
 
-            <!-- 뷰 2. 클라이언트 관리 리스트 (최대 10개 및 하단 페이지네이션 적용) -->
+            <!-- 뷰 2. 클라이언트 관리 리스트 -->
             <div id="clientsContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8 w-full min-w-0 flex flex-col">
                 <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-white flex-wrap gap-2 shrink-0">
                     <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-address-book text-hermes mr-2"></i> 클라이언트 리스트</h2>
@@ -184,7 +185,6 @@
                     </table>
                 </div>
                 <div id="emptyClients" class="hidden py-12 md:py-16 text-center flex-col items-center justify-center"><i class="fa-solid fa-folder-open text-3xl md:text-4xl text-gray-300 mb-3"></i><p class="text-gray-500 font-medium text-xs md:text-sm">조회 가능한 클라이언트 데이터가 없습니다.</p></div>
-                <!-- 페이지네이션 버튼 영역 -->
                 <div id="clientPagination" class="flex justify-center items-center gap-2 p-4 border-t border-gray-100 hidden mt-auto shrink-0"></div>
             </div>
 
@@ -228,7 +228,60 @@
                 <div id="libraryGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 w-full"></div>
             </div>
 
-            <!-- 뷰 5. 멤버 및 권한 관리 (어드민 전용) -->
+            <!-- 🌟 뷰 5. 예산 통합 관리 대시보드 (어드민 전용 신규 뷰) -->
+            <div id="budgetContainer" class="hidden flex-1 mb-6 md:mb-8 w-full min-w-0">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="text-xl md:text-2xl font-black text-gray-900"><i class="fa-solid fa-wallet text-hermes mr-2"></i> 클라이언트 예산 통합 관리</h2>
+                        <p class="text-xs text-gray-500 mt-1 font-medium">전체 클라이언트의 기본 계약 예산, 추가 충전액 및 집행 잔액을 실시간으로 추적합니다.</p>
+                    </div>
+                </div>
+
+                <!-- KPI 요약 카드 4종 -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
+                        <span class="text-xs font-bold text-gray-400 uppercase">전체 기본 계약 예산</span>
+                        <div id="kpiTotalBudget" class="text-xl md:text-2xl font-black text-gray-900 mt-1">0원</div>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
+                        <span class="text-xs font-bold text-gray-400 uppercase">전체 누적 충전 예산</span>
+                        <div id="kpiRechargedBudget" class="text-xl md:text-2xl font-black text-blue-600 mt-1">0원</div>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
+                        <span class="text-xs font-bold text-gray-400 uppercase">전체 총 집행/소진액</span>
+                        <div id="kpiSpentBudget" class="text-xl md:text-2xl font-black text-amber-600 mt-1">0원</div>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
+                        <span class="text-xs font-bold text-gray-400 uppercase">전체 총 남은 예산</span>
+                        <div id="kpiRemainingBudget" class="text-xl md:text-2xl font-black text-hermes mt-1">0원</div>
+                    </div>
+                </div>
+
+                <!-- 예산 관리 리스트 테이블 -->
+                <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+                    <div class="p-4 md:p-5 border-b border-gray-100 bg-white">
+                        <h3 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-list text-hermes mr-2"></i> 클라이언트별 예산 현황 리스트</h3>
+                    </div>
+                    <div class="w-full overflow-x-auto">
+                        <table class="w-full text-left border-collapse min-w-[850px]">
+                            <thead>
+                                <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
+                                    <th class="p-3 md:p-4 font-bold">클라이언트명</th>
+                                    <th class="p-3 md:p-4 font-bold">기본 계약 예산</th>
+                                    <th class="p-3 md:p-4 font-bold">누적 충전액</th>
+                                    <th class="p-3 md:p-4 font-bold">집행 소진액</th>
+                                    <th class="p-3 md:p-4 font-bold">현재 남은 예산</th>
+                                    <th class="p-3 md:p-4 font-bold">소진율(%)</th>
+                                    <th class="p-3 md:p-4 font-bold text-center">Quick 충전</th>
+                                </tr>
+                            </thead>
+                            <tbody id="budgetTable" class="text-sm divide-y divide-gray-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 뷰 6. 멤버 및 권한 관리 (어드민 전용) -->
             <div id="membersContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8 w-full min-w-0">
                 <div class="p-4 md:p-5 border-b border-gray-100 bg-white">
                     <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-users-gear text-hermes mr-2"></i> 전체 멤버 및 권한 관리</h2>
@@ -250,7 +303,7 @@
                 </div>
             </div>
 
-            <!-- 뷰 6. 신규 가입 승인 대기 목록 (어드민 전용) -->
+            <!-- 뷰 7. 신규 가입 승인 대기 목록 (어드민 전용) -->
             <div id="approvalsContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8 w-full min-w-0">
                 <div class="p-4 md:p-5 border-b border-gray-100 bg-white">
                     <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-user-shield text-hermes mr-2"></i> 신규 가입 승인 대기 목록</h2>
@@ -271,7 +324,7 @@
                 <div id="emptyApprovals" class="hidden py-12 md:py-16 text-center flex-col items-center justify-center"><i class="fa-solid fa-user-check text-3xl md:text-4xl text-gray-300 mb-3"></i><p class="text-gray-500 font-medium text-xs md:text-sm">가입 대기 중인 유저가 없습니다.</p></div>
             </div>
 
-            <!-- 뷰 7. 접속 및 작업 이력 로그 (어드민 전용) -->
+            <!-- 뷰 8. 접속 및 작업 이력 로그 (어드민 전용) -->
             <div id="logsContainer" class="hidden bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 mb-6 md:mb-8 w-full min-w-0">
                 <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-white flex-wrap gap-3">
                     <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-clock-rotate-left text-hermes mr-2"></i> 시스템 접속 및 작업 이력</h2>
@@ -301,7 +354,7 @@
         </main>
     </div>
 
-    <!-- 클라이언트 등록 모달 -->
+    <!-- 클라이언트 등록 모달 (예산 세부 필드 추가) -->
     <div id="clientModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-xl p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-5 border-b pb-3"><h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-address-card text-hermes mr-2"></i> 신규 클라이언트 DB 등록</h3><button id="closeClientModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button></div>
@@ -315,7 +368,14 @@
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">4. 메타광고계정 ID</label><input type="text" id="c_metaId" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">5. 메타광고계정 PW</label><input type="text" id="c_metaPw" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                 </div>
-                <div><label class="block text-xs font-bold text-gray-700 mb-1">6. 월 광고 예산</label><input type="text" id="c_budget" placeholder="예: 300만원" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
+                
+                <!-- 예산 관리 세부 필드 3종 -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div><label class="block text-xs font-bold text-gray-700 mb-1">6-1. 기본 계약 총 예산 (원)</label><input type="number" id="c_totalBudget" placeholder="예: 3000000" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
+                    <div><label class="block text-xs font-bold text-gray-700 mb-1">6-2. 초기 충전 예산 (원)</label><input type="number" id="c_rechargedBudget" placeholder="0" value="0" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
+                    <div><label class="block text-xs font-bold text-gray-700 mb-1">6-3. 초기 집행/소진액 (원)</label><input type="number" id="c_spentBudget" placeholder="0" value="0" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
+                </div>
+
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">7. 인스타 기술작업 시작일</label><input type="date" id="c_instaDate" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">8. 메타 광고 시작 예정일</label><input type="date" id="c_metaDate" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
@@ -326,14 +386,13 @@
         </div>
     </div>
 
-    <!-- 클라이언트 수정 모달 (+ 담당자 지정 영역 포함) -->
+    <!-- 클라이언트 수정 모달 (예산 세부 필드 포함) -->
     <div id="editClientModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-xl p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-5 border-b pb-3"><h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-pen-to-square text-blue-600 mr-2"></i> 클라이언트 정보 수정</h3><button id="closeEditClientModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button></div>
             <form id="editClientForm" class="space-y-4">
                 <div><label class="block text-xs font-bold text-gray-700 mb-1">1. 상호명 (필수)</label><input type="text" id="edit_c_name" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                 
-                <!-- 담당자 연결 영역 -->
                 <div id="editClientManagerArea" class="col-span-1 sm:col-span-2">
                     <label class="block text-xs font-bold text-gray-700 mb-1">
                         <i class="fa-solid fa-user-gear text-blue-600 mr-1"></i> 담당자 연결 (다중 선택 가능)
@@ -350,12 +409,43 @@
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">4. 메타광고계정 ID</label><input type="text" id="edit_c_metaId" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">5. 메타광고계정 PW</label><input type="text" id="edit_c_metaPw" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                 </div>
-                <div><label class="block text-xs font-bold text-gray-700 mb-1">6. 월 광고 예산</label><input type="text" id="edit_c_budget" placeholder="예: 300만원" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
+
+                <!-- 예산 수정 세부 필드 3종 -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div><label class="block text-xs font-bold text-gray-700 mb-1">6-1. 기본 계약 총 예산 (원)</label><input type="number" id="edit_c_totalBudget" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
+                    <div><label class="block text-xs font-bold text-gray-700 mb-1">6-2. 누적 충전 예산 (원)</label><input type="number" id="edit_c_rechargedBudget" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
+                    <div><label class="block text-xs font-bold text-gray-700 mb-1">6-3. 집행/소진액 (원)</label><input type="number" id="edit_c_spentBudget" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
+                </div>
+
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">7. 인스타 기술작업 시작일</label><input type="date" id="edit_c_instaDate" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">8. 메타 광고 시작 예정일</label><input type="date" id="edit_c_metaDate" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                 </div>
                 <div class="flex justify-end gap-2 pt-4 border-t mt-5"><button type="button" id="cancelEditClientBtn" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-xs font-bold">취소</button><button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md">수정사항 저장</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 🌟 Quick 예산 충전 전용 모달 (어드민 전용) -->
+    <div id="rechargeModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-sm p-5 md:p-6 shadow-2xl border border-gray-100">
+            <div class="flex justify-between items-center mb-4 border-b pb-3">
+                <h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-plus-circle text-hermes mr-2"></i> 클라이언트 예산 충전</h3>
+                <button id="closeRechargeModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <form id="rechargeForm" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">대상 클라이언트</label>
+                    <div id="rechargeClientTitle" class="text-sm font-black text-gray-900 bg-gray-50 p-2.5 rounded-lg border border-gray-200">클라이언트명</div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">추가 충전 금액 (원)</label>
+                    <input type="number" id="rechargeAmountInput" required placeholder="예: 1000000" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none font-bold">
+                </div>
+                <div class="flex justify-end gap-2 border-t pt-4">
+                    <button type="button" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-xs font-bold">취소</button>
+                    <button type="submit" class="px-5 py-2 bg-hermes hover:bg-hermes-hover text-white rounded-xl text-xs font-bold shadow-md">충전 완료</button>
+                </div>
             </form>
         </div>
     </div>
@@ -370,7 +460,7 @@
         </div>
     </div>
 
-    <!-- 신규 이슈 등록 모달 -->
+    <!-- 🌟 신규 이슈 등록 모달 (드롭다운 + 예산 라이브 배지 연동) -->
     <div id="createModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-lg p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-5 border-b pb-3">
@@ -378,9 +468,24 @@
                 <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
             <form id="taskForm" class="space-y-4">
+                <!-- 클라이언트 드롭다운 및 실시간 예산 연동 배지 -->
                 <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1">클라이언트명</label>
-                    <input type="text" id="inputClient" required placeholder="예: 노아피부과" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none">
+                    <label class="block text-xs font-bold text-gray-700 mb-1">클라이언트명 (등록된 클라이언트 자동 연동)</label>
+                    <select id="inputClient" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none bg-white font-bold">
+                        <option value="">클라이언트를 선택하세요</option>
+                    </select>
+
+                    <div id="clientBudgetBadge" class="hidden mt-2 p-3 bg-orange-50/80 border border-orange-200 rounded-xl text-xs space-y-1.5 shadow-2xs">
+                        <div class="flex justify-between items-center text-gray-600 font-medium">
+                            <span>계약 예산: <strong id="badgeTotalBudget" class="text-gray-900">0원</strong></span>
+                            <span>누적 충전: <strong id="badgeRechargedBudget" class="text-blue-600">0원</strong></span>
+                            <span>집행 소진: <strong id="badgeSpentBudget" class="text-amber-600">0원</strong></span>
+                        </div>
+                        <div class="flex justify-between items-center pt-1.5 border-t border-orange-200/80">
+                            <span class="font-bold text-gray-700">현재 남은 예산</span>
+                            <span id="badgeRemainingBudget" class="font-black text-sm text-hermes">0원</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div id="assignManagerArea" class="hidden">

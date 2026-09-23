@@ -36,6 +36,7 @@ let currentEditClientId = null;
 let currentDetailTaskId = null; 
 let currentEditLibId = null; 
 let currentViewLibId = null; 
+let currentRechargeClientId = null;
 let isInitialLoginLogged = false;
 let isInitialDeepLinkChecked = false; 
 let tasksMap = {}; 
@@ -53,6 +54,11 @@ let currentClientIP = '127.0.0.1';
 
 // 신규 댓글 작성용 드래그앤드롭 누적 파일 배열
 let newCommentSelectedFiles = [];
+
+// 화폐 포맷 유틸리티 (원화 표시)
+function formatKW(amount) {
+    return new Intl.NumberFormat('ko-KR').format(Number(amount) || 0) + '원';
+}
 
 // ============================================================================
 // 클라이언트 IP 주소 자동 수집 헬퍼
@@ -84,6 +90,7 @@ const membersContainer = document.getElementById('membersContainer');
 const approvalsContainer = document.getElementById('approvalsContainer');
 const logsContainer = document.getElementById('logsContainer');
 const libraryContainer = document.getElementById('libraryContainer'); 
+const budgetContainer = document.getElementById('budgetContainer');
 
 const navItems = document.querySelectorAll('.nav-item');
 const sidebar = document.getElementById('sidebar');
@@ -95,6 +102,7 @@ const clientModal = document.getElementById('clientModal');
 const editClientModal = document.getElementById('editClientModal');
 const assignModal = document.getElementById('assignModal');
 const detailModal = document.getElementById('detailModal');
+const rechargeModal = document.getElementById('rechargeModal');
 
 const libraryViewModal = document.getElementById('libraryViewModal');
 const libraryEditModal = document.getElementById('libraryEditModal');
@@ -142,7 +150,7 @@ function checkIsAuthor(task) {
 }
 
 function switchTab(tabName, pushHistory = true) {
-    const adminOnlyTabs = ['members', 'approvals', 'logs'];
+    const adminOnlyTabs = ['members', 'approvals', 'logs', 'budget'];
     const isAdmin = checkIsAdmin();
 
     if (adminOnlyTabs.includes(tabName) && !isAdmin) {
@@ -173,6 +181,7 @@ function switchTab(tabName, pushHistory = true) {
     if (approvalsContainer) approvalsContainer.classList.add('hidden');
     if (logsContainer) logsContainer.classList.add('hidden');
     if (libraryContainer) libraryContainer.classList.add('hidden');
+    if (budgetContainer) budgetContainer.classList.add('hidden');
 
     if (tabName === 'dashboard') {
         if (statsContainer) statsContainer.classList.remove('hidden');
@@ -196,6 +205,9 @@ function switchTab(tabName, pushHistory = true) {
     } else if (tabName === 'library') {
         if (libraryContainer) libraryContainer.classList.remove('hidden');
         fetchLibraryItems();
+    } else if (tabName === 'budget') {
+        if (budgetContainer) budgetContainer.classList.remove('hidden');
+        fetchBudgetDashboard();
     }
 }
 
@@ -302,7 +314,7 @@ function closeAllModals() {
     const modals = [
         createModal, editTaskModal, clientModal, 
         editClientModal, assignModal, detailModal, 
-        libraryViewModal, libraryEditModal, pendingModal
+        libraryViewModal, libraryEditModal, pendingModal, rechargeModal
     ];
     
     modals.forEach(m => { 
@@ -325,13 +337,13 @@ document.addEventListener('keydown', (e) => {
 });
 
 // 모달 바깥 배경 클릭 및 내부 X/취소 버튼 강제 바인딩
-[createModal, editTaskModal, clientModal, editClientModal, assignModal, detailModal, libraryViewModal, libraryEditModal, pendingModal].forEach(modalEl => {
+[createModal, editTaskModal, clientModal, editClientModal, assignModal, detailModal, libraryViewModal, libraryEditModal, pendingModal, rechargeModal].forEach(modalEl => {
     if (modalEl) {
         modalEl.addEventListener('click', (e) => {
             if (e.target === modalEl) closeAllModals();
         });
 
-        const closeBtns = modalEl.querySelectorAll('.fa-xmark, button[title="닫기"], #closeLibViewModalBtn, #closeLibViewBtn');
+        const closeBtns = modalEl.querySelectorAll('.fa-xmark, button[title="닫기"], #closeLibViewModalBtn, #closeLibViewBtn, #closeRechargeModalBtn');
         closeBtns.forEach(icon => {
             const btn = icon.closest('button') || icon;
             btn.addEventListener('click', (e) => {
@@ -395,14 +407,12 @@ safeAddListener('libViewCountBadgeBtn', 'click', (e) => toggleViewerTooltip('lib
     }
 });
 
-// 🌟 전역 문서 클릭 이벤트 위임 핸들러 (수정, 삭제, 복사, 모달 오픈 등 통합 관리)
+// 🌟 전역 문서 클릭 이벤트 위임 핸들러
 document.addEventListener('click', (e) => {
-    // 툴팁 외부 클릭 시 자동 닫기
     if (!e.target.closest('#viewCountBadgeWrapper') && !e.target.closest('#libViewCountBadgeWrapper')) {
         hideAllViewersTooltips();
     }
 
-    // 🌟 0. 클라이언트 수정 버튼 클릭 이벤트를 전역 위임으로 확실히 수집 및 모달 오픈
     const editClientBtn = e.target.closest('.edit-client-btn');
     if (editClientBtn) {
         e.preventDefault();
@@ -412,7 +422,6 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 🌟 0-1. 클라이언트 삭제 버튼 전역 위임
     const delClientBtn = e.target.closest('.delete-client-btn');
     if (delClientBtn) {
         e.preventDefault();
@@ -422,7 +431,6 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 0-2. ID / PW 원클릭 복사 버튼 처리
     const copyTextBtn = e.target.closest('.copy-text-btn');
     if (copyTextBtn) {
         e.preventDefault();
@@ -435,7 +443,15 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 1. 관리 버튼: 게시글 수정 (Edit Task)
+    const rechargeBtn = e.target.closest('.recharge-budget-btn');
+    if (rechargeBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const clientId = rechargeBtn.getAttribute('data-id');
+        if (clientId) openRechargeModal(clientId);
+        return;
+    }
+
     const editBtn = e.target.closest('.edit-task-btn');
     if (editBtn) {
         e.preventDefault();
@@ -445,7 +461,6 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 2. 관리 버튼: 게시글 담당자 배정 (Assign Task)
     const assignBtn = e.target.closest('.assign-task-btn');
     if (assignBtn) {
         e.preventDefault();
@@ -455,7 +470,6 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 3. 관리 버튼: 게시글 삭제 (Delete Task)
     const delBtn = e.target.closest('.delete-task-btn');
     if (delBtn) {
         e.preventDefault();
@@ -465,7 +479,6 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 4. 게시글 행 클릭 시 자동 상세 창 오픈
     const taskRow = e.target.closest('.task-detail-trigger');
     if (taskRow && !e.target.closest('a') && !e.target.closest('button')) {
         const taskId = taskRow.getAttribute('data-id');
@@ -473,7 +486,6 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 5. 로고 클릭
     const logoTrigger = e.target.closest('#mobileLogoBtn') || e.target.closest('#sidebarLogoBtn') || e.target.closest('.logo-home-btn');
     if (logoTrigger) {
         e.preventDefault();
@@ -483,7 +495,6 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 6. 사이드바 제어
     const closeSidebarTrigger = e.target.closest('#closeSidebarBtn') || 
                                 e.target.closest('#closeSidebar') || 
                                 (e.target.closest('button') && e.target.closest('button').querySelector('#closeSidebarBtn'));
@@ -512,7 +523,6 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 7. 신규 클라이언트 등록 모달 오픈 (등록자 자동입력 처리 반영)
     const addClientBtn = e.target.closest('#openClientModalBtn');
     if (addClientBtn && clientModal) {
         e.preventDefault();
@@ -524,17 +534,16 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // 8. 신규 이슈 모달 오픈 버튼
     const openTaskModalBtn = e.target.closest('#openModalBtn');
     if (openTaskModalBtn && createModal) {
         e.preventDefault();
         e.stopPropagation();
+        populateClientSelectDropdown();
         createModal.classList.remove('hidden');
         createModal.style.zIndex = "99999";
         return;
     }
 
-    // 9. 이미지 프리뷰
     const imgTrigger = e.target.closest('.img-preview-btn');
     if (imgTrigger) {
         e.preventDefault();
@@ -543,7 +552,6 @@ document.addEventListener('click', (e) => {
         if (url) openImageModal(url);
     }
 
-    // 10. 공유 링크 복사
     const shareTrigger = e.target.closest('#shareLinkBtn') || (e.target.closest('button') && e.target.closest('button').textContent.includes('링크 복사'));
     if (shareTrigger) {
         e.preventDefault();
@@ -565,6 +573,7 @@ window.deleteTask = deleteTask;
 window.openDetailModal = openDetailModal;
 window.openEditClientModal = openEditClientModal;
 window.deleteClient = deleteClient;
+window.openRechargeModal = openRechargeModal;
 
 async function uploadFilesToStorage(fileList, folderName) {
     const uploadedFiles = [];
@@ -820,6 +829,7 @@ function showDashboard(user) {
     setupDragAndDrop('commentInputBox', 'commentFileInputBox');
     setupDragAndDrop('inputContent', 'inputFile');
     initNewCommentDragAndDrop();
+    setupClientSelectBudgetEventListener();
 
     const urlParams = new URLSearchParams(window.location.search);
     const initialTab = urlParams.get('tab') || urlParams.get('menu') || 'dashboard';
@@ -833,10 +843,74 @@ function showPendingPopup() {
 }
 
 // ============================================================================
-// 5. 업무 이슈/요청 게시판
+// 🌟 5. 클라이언트 드롭다운 동적 로드 및 실시간 예산 연동
+// ============================================================================
+async function populateClientSelectDropdown() {
+    const clientSelect = document.getElementById('inputClient');
+    if (!clientSelect) return;
+
+    try {
+        const querySnapshot = await getDocs(collection(db, "clients"));
+        clientSelect.innerHTML = '<option value="">클라이언트를 선택하세요</option>';
+        
+        querySnapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            clientsMap[docSnap.id] = { id: docSnap.id, ...data };
+
+            const option = document.createElement('option');
+            option.value = data.name;
+            option.setAttribute('data-id', docSnap.id);
+            option.textContent = data.name;
+            clientSelect.appendChild(option);
+        });
+    } catch (err) {
+        console.error("클라이언트 목록 로드 실패:", err);
+    }
+}
+
+function setupClientSelectBudgetEventListener() {
+    const clientSelect = document.getElementById('inputClient');
+    const badge = document.getElementById('clientBudgetBadge');
+    if (!clientSelect || !badge) return;
+
+    clientSelect.addEventListener('change', (e) => {
+        const selectedName = e.target.value;
+        const selectedClient = Object.values(clientsMap).find(c => c.name === selectedName);
+
+        if (selectedClient) {
+            const total = Number(selectedClient.totalBudget) || Number(selectedClient.budget) || 0;
+            const recharged = Number(selectedClient.rechargedBudget) || 0;
+            const spent = Number(selectedClient.spentBudget) || 0;
+            const remaining = (total + recharged) - spent;
+
+            document.getElementById('badgeTotalBudget').textContent = formatKW(total);
+            document.getElementById('badgeRechargedBudget').textContent = formatKW(recharged);
+            document.getElementById('badgeSpentBudget').textContent = formatKW(spent);
+            
+            const remElem = document.getElementById('badgeRemainingBudget');
+            remElem.textContent = formatKW(remaining);
+
+            if (remaining <= 0) {
+                remElem.className = "text-red-600 font-black text-sm";
+            } else if (remaining < total * 0.1) {
+                remElem.className = "text-amber-600 font-black text-sm";
+            } else {
+                remElem.className = "text-hermes font-black text-sm";
+            }
+
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    });
+}
+
+// ============================================================================
+// 6. 업무 이슈/요청 게시판
 // ============================================================================
 safeAddListener('openModalBtn', 'click', () => {
     if (createModal) {
+        populateClientSelectDropdown();
         createModal.classList.remove('hidden');
         createModal.style.zIndex = "99999";
     }
@@ -900,6 +974,9 @@ safeAddListener('taskForm', 'submit', async (e) => {
         await addDoc(collection(db, "crm_tasks"), newTask);
         createModal.classList.add('hidden');
         document.getElementById('taskForm').reset();
+        const badge = document.getElementById('clientBudgetBadge');
+        if (badge) badge.classList.add('hidden');
+
         await logActivity("이슈 등록", `[${newTask.client}] 신규 이슈 작성: ${tTitle}`);
         fetchTasks();
         alert("이슈가 성공적으로 등록되었습니다.");
@@ -1177,7 +1254,6 @@ async function fetchTasks() {
             tasksMap[docSnap.id] = tItem;
         });
 
-        // 정밀 정렬: createdAt ISO 타임스탬프 또는 date 문자열 기준 내림차순 정렬 (최신글 상단 배치)
         fetchedData.sort((a, b) => {
             const timeA = a.createdAt ? new Date(a.createdAt).getTime() : new Date((a.date || '').replace(/\./g, '-')).getTime();
             const timeB = b.createdAt ? new Date(b.createdAt).getTime() : new Date((b.date || '').replace(/\./g, '-')).getTime();
@@ -1477,52 +1553,6 @@ async function openDetailModal(taskId) {
     detailModal.classList.remove('hidden');
     logActivity("상세 조회", `[${task.title}] 상세 내용을 조회했습니다.`);
 }
-
-function bindInlineEditMode(taskId) {
-    const task = tasksMap[taskId];
-    const titleEl = document.getElementById('detailTitle');
-    const contentEl = document.getElementById('detailContent');
-    const actionArea = document.getElementById('detailTaskActions');
-
-    if (!titleEl || !contentEl) return;
-
-    titleEl.innerHTML = `<input type="text" id="inlineEditTitle" value="${task.title.replace(/"/g, '&quot;')}" class="w-full text-base sm:text-lg font-black border border-orange-400 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-hermes box-border" />`;
-    contentEl.innerHTML = `<textarea id="inlineEditContent" rows="6" class="w-full text-xs sm:text-sm font-medium border border-orange-400 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-hermes box-border">${task.content}</textarea>`;
-
-    if (actionArea) {
-        actionArea.innerHTML = `
-            <button type="button" id="btnInlineSave" class="px-3 py-1.5 bg-hermes hover:bg-orange-600 text-white text-xs font-bold rounded-lg shadow-sm transition whitespace-nowrap">저장</button>
-            <button type="button" id="btnInlineCancel" class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-bold rounded-lg transition whitespace-nowrap">취소</button>
-        `;
-
-        document.getElementById('btnInlineCancel').onclick = () => openDetailModal(taskId);
-        document.getElementById('btnInlineSave').onclick = async () => {
-            const newTitle = document.getElementById('inlineEditTitle').value.trim();
-            const newContent = document.getElementById('inlineEditContent').value.trim();
-            if(!newTitle) { alert("제목을 입력해주세요."); return; }
-
-            document.getElementById('btnInlineSave').innerText = "저장중...";
-            try {
-                await updateDoc(doc(db, "crm_tasks", taskId), { 
-                    title: newTitle, 
-                    content: newContent, 
-                    updatedAt: new Date().toISOString() 
-                });
-                tasksMap[taskId].title = newTitle; 
-                tasksMap[taskId].content = newContent;
-                alert("수정이 반영되었습니다."); 
-                fetchTasks(); 
-                openDetailModal(taskId);
-            } catch(err) { 
-                alert(err.message); 
-            }
-        };
-    }
-}
-
-// ============================================================================
-// 7. 소통 댓글 모듈
-// ============================================================================
 
 function renderNewCommentFilePreviews() {
     let prevArea = document.getElementById('commentNewFilesPreviewArea');
@@ -1927,21 +1957,22 @@ safeAddListener('submitNewCommentBtn', 'click', async () => {
 });
 
 // ============================================================================
-// 8. 클라이언트 관리 (페이지네이션 적용 완료)
+// 7. 클라이언트 관리 (예산 필드 파싱 및 연동)
 // ============================================================================
 safeAddListener('clientForm', 'submit', async (e) => {
     e.preventDefault();
     if (!clientModal) return;
 
-    const inputs = clientModal.querySelectorAll('input');
-    const nameIn = document.getElementById('c_name') || document.getElementById('inputClientName') || clientModal.querySelector('[name="name"]') || inputs[0];
-    const homeIn = document.getElementById('c_homeUrl') || document.getElementById('inputClientHomeUrl') || clientModal.querySelector('[name="homeUrl"]') || inputs[1];
-    const instaIn = document.getElementById('c_instaUrl') || document.getElementById('inputClientInstaUrl') || clientModal.querySelector('[name="instaUrl"]') || inputs[2];
-    const metaIdIn = document.getElementById('c_metaId') || document.getElementById('inputClientMetaId') || clientModal.querySelector('[name="metaId"]') || inputs[3];
-    const metaPwIn = document.getElementById('c_metaPw') || document.getElementById('inputClientMetaPw') || clientModal.querySelector('[name="metaPw"]') || inputs[4];
-    const budgetIn = document.getElementById('c_budget') || document.getElementById('inputClientBudget') || clientModal.querySelector('[name="budget"]') || inputs[5];
-    const instaDateIn = document.getElementById('c_instaDate') || document.getElementById('inputClientInstaDate') || clientModal.querySelector('[name="instaDate"]') || inputs[6];
-    const metaDateIn = document.getElementById('c_metaDate') || document.getElementById('inputClientMetaDate') || clientModal.querySelector('[name="metaDate"]') || inputs[7];
+    const nameIn = document.getElementById('c_name');
+    const homeIn = document.getElementById('c_homeUrl');
+    const instaIn = document.getElementById('c_instaUrl');
+    const metaIdIn = document.getElementById('c_metaId');
+    const metaPwIn = document.getElementById('c_metaPw');
+    const totalBudgetIn = document.getElementById('c_totalBudget');
+    const rechargedBudgetIn = document.getElementById('c_rechargedBudget');
+    const spentBudgetIn = document.getElementById('c_spentBudget');
+    const instaDateIn = document.getElementById('c_instaDate');
+    const metaDateIn = document.getElementById('c_metaDate');
 
     const submitBtn = clientModal.querySelector('button[type="submit"]');
     const origText = submitBtn ? submitBtn.innerText : '저장';
@@ -1951,17 +1982,24 @@ safeAddListener('clientForm', 'submit', async (e) => {
     }
 
     try {
+        const totalNum = Number(totalBudgetIn ? totalBudgetIn.value : 0) || 0;
+        const rechargedNum = Number(rechargedBudgetIn ? rechargedBudgetIn.value : 0) || 0;
+        const spentNum = Number(spentBudgetIn ? spentBudgetIn.value : 0) || 0;
+
         const newClient = {
             name: nameIn ? nameIn.value : '',
             homeUrl: homeIn ? homeIn.value : '',
             instaUrl: instaIn ? instaIn.value : '',
             metaId: metaIdIn ? metaIdIn.value : '',
             metaPw: metaPwIn ? metaPwIn.value : '',
-            budget: budgetIn ? budgetIn.value : '',
+            budget: formatKW(totalNum),
+            totalBudget: totalNum,
+            rechargedBudget: rechargedNum,
+            spentBudget: spentNum,
             instaDate: instaDateIn ? instaDateIn.value : '',
             metaDate: metaDateIn ? metaDateIn.value : '',
             registeredBy: currentUserName,
-            managers: [currentUserName], // 신규 등록 시 로그인한 사용자를 담당자로 자동 배정
+            managers: [currentUserName],
             createdAt: new Date().toISOString()
         };
 
@@ -1999,7 +2037,6 @@ async function deleteClient(clientId) {
     }
 }
 
-// 🌟 클라이언트 수정 모달 오픈 (ID/PW 및 담당자 바인딩 정밀 연동)
 function openEditClientModal(clientId) {
     const client = clientsMap[clientId];
     if (!client) return;
@@ -2011,7 +2048,9 @@ function openEditClientModal(clientId) {
         const instaIn = document.getElementById('edit_c_instaUrl');
         const metaIdIn = document.getElementById('edit_c_metaId');
         const metaPwIn = document.getElementById('edit_c_metaPw');
-        const budgetIn = document.getElementById('edit_c_budget');
+        const totalBudgetIn = document.getElementById('edit_c_totalBudget');
+        const rechargedBudgetIn = document.getElementById('edit_c_rechargedBudget');
+        const spentBudgetIn = document.getElementById('edit_c_spentBudget');
         const instaDateIn = document.getElementById('edit_c_instaDate');
         const metaDateIn = document.getElementById('edit_c_metaDate');
 
@@ -2020,11 +2059,12 @@ function openEditClientModal(clientId) {
         if (instaIn) instaIn.value = client.instaUrl || '';
         if (metaIdIn) metaIdIn.value = client.metaId || '';
         if (metaPwIn) metaPwIn.value = client.metaPw || '';
-        if (budgetIn) budgetIn.value = client.budget || '';
+        if (totalBudgetIn) totalBudgetIn.value = client.totalBudget || 0;
+        if (rechargedBudgetIn) rechargedBudgetIn.value = client.rechargedBudget || 0;
+        if (spentBudgetIn) spentBudgetIn.value = client.spentBudget || 0;
         if (instaDateIn) instaDateIn.value = client.instaDate || '';
         if (metaDateIn) metaDateIn.value = client.metaDate || '';
 
-        // 담당자 연결 체크박스 영역
         const editManagerList = document.getElementById('editClientManagerList');
         if (editManagerList) {
             editManagerList.innerHTML = '<div class="text-xs text-gray-400 p-2 text-center font-bold"><i class="fa-solid fa-spinner animate-spin mr-1"></i> 멤버 목록 불러오는 중...</div>';
@@ -2050,7 +2090,6 @@ function openEditClientModal(clientId) {
     }
 }
 
-// 🌟 클라이언트 수정폼 제출 바인딩
 safeAddListener('editClientForm', 'submit', async (e) => {
     e.preventDefault();
     if (!currentEditClientId) return;
@@ -2060,7 +2099,9 @@ safeAddListener('editClientForm', 'submit', async (e) => {
     const instaIn = document.getElementById('edit_c_instaUrl');
     const metaIdIn = document.getElementById('edit_c_metaId');
     const metaPwIn = document.getElementById('edit_c_metaPw');
-    const budgetIn = document.getElementById('edit_c_budget');
+    const totalBudgetIn = document.getElementById('edit_c_totalBudget');
+    const rechargedBudgetIn = document.getElementById('edit_c_rechargedBudget');
+    const spentBudgetIn = document.getElementById('edit_c_spentBudget');
     const instaDateIn = document.getElementById('edit_c_instaDate');
     const metaDateIn = document.getElementById('edit_c_metaDate');
 
@@ -2070,6 +2111,10 @@ safeAddListener('editClientForm', 'submit', async (e) => {
         updatedManagers = Array.from(editClientModal.querySelectorAll('.edit-client-manager-checkbox:checked')).map(cb => cb.value);
     }
 
+    const totalNum = Number(totalBudgetIn ? totalBudgetIn.value : 0) || 0;
+    const rechargedNum = Number(rechargedBudgetIn ? rechargedBudgetIn.value : 0) || 0;
+    const spentNum = Number(spentBudgetIn ? spentBudgetIn.value : 0) || 0;
+
     try {
         await updateDoc(doc(db, "clients", currentEditClientId), {
             name: nameIn ? nameIn.value : clientsMap[currentEditClientId].name,
@@ -2077,14 +2122,17 @@ safeAddListener('editClientForm', 'submit', async (e) => {
             instaUrl: instaIn ? instaIn.value : clientsMap[currentEditClientId].instaUrl,
             metaId: metaIdIn ? metaIdIn.value : clientsMap[currentEditClientId].metaId,
             metaPw: metaPwIn ? metaPwIn.value : clientsMap[currentEditClientId].metaPw,
-            budget: budgetIn ? budgetIn.value : clientsMap[currentEditClientId].budget,
+            budget: formatKW(totalNum),
+            totalBudget: totalNum,
+            rechargedBudget: rechargedNum,
+            spentBudget: spentNum,
             instaDate: instaDateIn ? instaDateIn.value : (clientsMap[currentEditClientId].instaDate || ''),
             metaDate: metaDateIn ? metaDateIn.value : (clientsMap[currentEditClientId].metaDate || ''),
             managers: updatedManagers,
             updatedAt: new Date().toISOString()
         });
         editClientModal.classList.add('hidden');
-        alert("클라이언트 정보가 수정되었습니다.");
+        alert("클라이언트 정보 및 예산이 수정되었습니다.");
         fetchClients();
     } catch (err) {
         alert("수정 실패: " + err.message);
@@ -2133,7 +2181,6 @@ async function fetchClients() {
             clientsMap[docSnap.id] = clientObj;
         });
 
-        // 최신 등록순 정렬
         allClientsData.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
         renderClientsPage(currentClientPage || 1);
@@ -2141,7 +2188,6 @@ async function fetchClients() {
     } catch (e) { console.error("Client fetch error:", e); }
 }
 
-// 페이징 처리 전용 렌더링 함수
 function renderClientsPage(page) {
     currentClientPage = page;
     const tbody = document.getElementById('clientsTable');
@@ -2208,6 +2254,8 @@ function renderClientsPage(page) {
             </button>
         ` : '';
 
+        const displayBudgetString = data.totalBudget ? formatKW(data.totalBudget) : (data.budget || '-');
+
         const tr = `
             <tr class="hover:bg-orange-50/30 transition border-b border-gray-100 break-keep">
                 <td class="p-3 md:p-4 font-black text-gray-900 align-middle whitespace-nowrap">${data.name}</td>
@@ -2225,7 +2273,7 @@ function renderClientsPage(page) {
                         ${copyPwBtn}
                     </div>
                 </td>
-                <td class="p-3 md:p-4 font-bold text-hermes text-xs align-middle whitespace-nowrap">${data.budget || '-'}</td>
+                <td class="p-3 md:p-4 font-bold text-hermes text-xs align-middle whitespace-nowrap">${displayBudgetString}</td>
                 <td class="p-3 md:p-4 text-xs text-gray-600 align-middle whitespace-nowrap"><div>인스타: ${data.instaDate || '-'}</div><div>메타: ${data.metaDate || '-'}</div></td>
                 <td class="p-3 md:p-4 text-xs font-bold text-gray-500 align-middle whitespace-nowrap">${data.registeredBy || '-'}</td>
                 <td class="p-3 md:p-4 max-w-[130px] overflow-hidden align-middle">${managersHtml}</td>
@@ -2254,6 +2302,147 @@ function renderClientsPage(page) {
 
     checkAllNavBadges();
 }
+
+// ============================================================================
+// 🌟 8. 클라이언트 예산 대시보드 및 Quick 충전 로직 (Admin Only)
+// ============================================================================
+async function fetchBudgetDashboard() {
+    const tbody = document.getElementById('budgetTable');
+    if (!tbody) return;
+
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin text-hermes mr-2"></i> 예산 데이터 계산 중...</td></tr>';
+
+    try {
+        const querySnapshot = await getDocs(collection(db, "clients"));
+        let sumTotal = 0;
+        let sumRecharged = 0;
+        let sumSpent = 0;
+        let sumRemaining = 0;
+
+        tbody.innerHTML = '';
+
+        if (querySnapshot.empty) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-400">등록된 클라이언트 예산 정보가 없습니다.</td></tr>';
+            return;
+        }
+
+        querySnapshot.forEach((docSnap) => {
+            const client = { id: docSnap.id, ...docSnap.data() };
+            clientsMap[docSnap.id] = client;
+
+            const total = Number(client.totalBudget) || Number(client.budget) || 0;
+            const recharged = Number(client.rechargedBudget) || 0;
+            const spent = Number(client.spentBudget) || 0;
+            const totalOperating = total + recharged;
+            const remaining = totalOperating - spent;
+            const burnRate = totalOperating > 0 ? Math.min(100, Math.round((spent / totalOperating) * 100)) : 0;
+
+            sumTotal += total;
+            sumRecharged += recharged;
+            sumSpent += spent;
+            sumRemaining += remaining;
+
+            let statusBadge = `<span class="bg-blue-50 text-blue-600 text-[10px] font-bold px-2 py-0.5 rounded border border-blue-100">정상</span>`;
+            if (remaining <= 0) {
+                statusBadge = `<span class="bg-red-50 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded border border-red-100">소진 완료</span>`;
+            } else if (burnRate >= 90) {
+                statusBadge = `<span class="bg-amber-50 text-amber-600 text-[10px] font-bold px-2 py-0.5 rounded border border-amber-100">소진 임박</span>`;
+            }
+
+            const tr = `
+                <tr class="hover:bg-orange-50/20 transition border-b border-gray-100 break-keep">
+                    <td class="p-3 md:p-4 font-black text-gray-900 align-middle whitespace-nowrap">
+                        ${client.name}
+                        <div class="mt-0.5">${statusBadge}</div>
+                    </td>
+                    <td class="p-3 md:p-4 font-bold text-gray-800 align-middle whitespace-nowrap">${formatKW(total)}</td>
+                    <td class="p-3 md:p-4 font-bold text-blue-600 align-middle whitespace-nowrap">${formatKW(recharged)}</td>
+                    <td class="p-3 md:p-4 font-bold text-amber-600 align-middle whitespace-nowrap">${formatKW(spent)}</td>
+                    <td class="p-3 md:p-4 font-black text-hermes text-base align-middle whitespace-nowrap">${formatKW(remaining)}</td>
+                    <td class="p-3 md:p-4 align-middle whitespace-nowrap">
+                        <div class="flex items-center gap-2">
+                            <div class="w-24 bg-gray-200 rounded-full h-2 overflow-hidden">
+                                <div class="bg-hermes h-2 rounded-full" style="width: ${burnRate}%"></div>
+                            </div>
+                            <span class="text-xs font-bold text-gray-600">${burnRate}%</span>
+                        </div>
+                    </td>
+                    <td class="p-3 md:p-4 text-center align-middle whitespace-nowrap">
+                        <button type="button" class="recharge-budget-btn bg-hermes hover:bg-hermes-hover text-white text-xs font-bold px-3 py-1.5 rounded-lg transition shadow-xs cursor-pointer" data-id="${client.id}">
+                            <i class="fa-solid fa-plus text-[10px] mr-1"></i> 예산 충전
+                        </button>
+                    </td>
+                </tr>
+            `;
+            tbody.innerHTML += tr;
+        });
+
+        document.getElementById('kpiTotalBudget').textContent = formatKW(sumTotal);
+        document.getElementById('kpiRechargedBudget').textContent = formatKW(sumRecharged);
+        document.getElementById('kpiSpentBudget').textContent = formatKW(sumSpent);
+        document.getElementById('kpiRemainingBudget').textContent = formatKW(sumRemaining);
+
+    } catch (e) {
+        console.error("예산 대시보드 로드 에러:", e);
+    }
+}
+
+function openRechargeModal(clientId) {
+    const client = clientsMap[clientId];
+    if (!client) return;
+    currentRechargeClientId = clientId;
+
+    const titleEl = document.getElementById('rechargeClientTitle');
+    if (titleEl) titleEl.textContent = client.name;
+
+    const amountIn = document.getElementById('rechargeAmountInput');
+    if (amountIn) amountIn.value = '';
+
+    if (rechargeModal) {
+        rechargeModal.classList.remove('hidden');
+        rechargeModal.style.zIndex = "99999";
+    }
+}
+
+safeAddListener('rechargeForm', 'submit', async (e) => {
+    e.preventDefault();
+    if (!currentRechargeClientId) return;
+
+    const amountIn = document.getElementById('rechargeAmountInput');
+    const rechargeVal = Number(amountIn ? amountIn.value : 0);
+
+    if (rechargeVal <= 0) {
+        alert("올바른 충전 금액을 입력하세요.");
+        return;
+    }
+
+    const submitBtn = rechargeModal.querySelector('button[type="submit"]');
+    const origText = submitBtn ? submitBtn.innerText : '충전 완료';
+    if (submitBtn) {
+        submitBtn.innerText = "충전 처리 중...";
+        submitBtn.disabled = true;
+    }
+
+    try {
+        const clientRef = doc(db, "clients", currentRechargeClientId);
+        await updateDoc(clientRef, {
+            rechargedBudget: increment(rechargeVal),
+            updatedAt: new Date().toISOString()
+        });
+
+        alert(`[${clientsMap[currentRechargeClientId].name}] 예산 ${formatKW(rechargeVal)} 충전이 완료되었습니다.`);
+        rechargeModal.classList.add('hidden');
+        await logActivity("예산 충전", `[${clientsMap[currentRechargeClientId].name}] ${formatKW(rechargeVal)} 예산 충전 완료`);
+        fetchBudgetDashboard();
+    } catch (err) {
+        alert("예산 충전 실패: " + err.message);
+    } finally {
+        if (submitBtn) {
+            submitBtn.innerText = origText;
+            submitBtn.disabled = false;
+        }
+    }
+});
 
 // ============================================================================
 // 9. 인사이트 라이브러리 모듈

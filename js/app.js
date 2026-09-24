@@ -423,7 +423,7 @@ safeAddListener('libViewCountBadgeBtn', 'click', (e) => toggleViewerTooltip('lib
 });
 
 // ============================================================================
-// 4. 주/부 담당자 선택 UI 생성 헬퍼 함수 (모달 내 재사용)
+// 4. 주/부 담당자 선택 UI 생성 헬퍼 함수 (모달 내 재사용) - 🌟 전체 선택 버튼 추가
 // ============================================================================
 async function buildManagerSelectionUI(containerEl, currentManagersArr, checkboxClassName, primarySelectId) {
     containerEl.innerHTML = '<div class="text-xs text-gray-400 p-2 text-center font-bold"><i class="fa-solid fa-spinner animate-spin mr-1"></i> 멤버 목록 불러오는 중...</div>';
@@ -439,9 +439,14 @@ async function buildManagerSelectionUI(containerEl, currentManagersArr, checkbox
                 <select id="${primarySelectId}" class="w-full text-xs border border-red-200 rounded-lg p-2 focus:border-red-500 outline-none font-bold text-gray-800 bg-red-50/30">
                     <option value="">선택 안함</option>
         `;
+        
+        // 🌟 [추가됨] 전체 선택 버튼 UI 렌더링
         let checkHtml = `
             <div>
-                <label class="block text-[10px] font-bold text-gray-600 mb-1">부 담당자 (다중 선택)</label>
+                <div class="flex justify-between items-center mb-1">
+                    <label class="block text-[10px] font-bold text-gray-600">부 담당자 (다중 선택)</label>
+                    <button type="button" class="text-[9px] bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold px-2 py-0.5 rounded transition ${checkboxClassName}-select-all">전체 선택</button>
+                </div>
                 <div class="flex flex-col gap-1 max-h-32 overflow-y-auto p-1.5 bg-white border border-gray-200 rounded-lg shadow-inner">
         `;
         
@@ -462,6 +467,28 @@ async function buildManagerSelectionUI(containerEl, currentManagersArr, checkbox
         checkHtml += `</div></div>`;
         
         containerEl.innerHTML = selectHtml + checkHtml;
+
+        // 🌟 [추가됨] 전체 선택/해제 기능 이벤트 리스너
+        const selectAllBtn = containerEl.querySelector(`.${checkboxClassName}-select-all`);
+        if (selectAllBtn) {
+            let isAllSelected = false;
+            
+            // 기존 렌더링 시 이미 전체가 선택되어 있는지 확인하여 버튼 텍스트 초기화
+            const allCheckboxes = containerEl.querySelectorAll(`.${checkboxClassName}`);
+            const checkedBoxes = containerEl.querySelectorAll(`.${checkboxClassName}:checked`);
+            if (allCheckboxes.length > 0 && allCheckboxes.length === checkedBoxes.length) {
+                isAllSelected = true;
+                selectAllBtn.innerText = "전체 해제";
+            }
+
+            selectAllBtn.addEventListener('click', () => {
+                isAllSelected = !isAllSelected;
+                allCheckboxes.forEach(cb => {
+                    cb.checked = isAllSelected;
+                });
+                selectAllBtn.innerText = isAllSelected ? "전체 해제" : "전체 선택";
+            });
+        }
     } catch (e) {
         containerEl.innerHTML = '<div class="text-xs text-red-500 p-2 text-center">멤버 목록 로드 실패</div>';
     }
@@ -2800,7 +2827,7 @@ safeAddListener('budgetEditForm', 'submit', async (e) => {
 async function fetchLibraryItems() {
     const grid = document.getElementById('libraryGrid');
     if (!grid) return;
-    grid.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin text-hermes mr-2"></i> 라이브러리 로딩 중...</div>';
+    grid.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin text-hermes mr-2"></i> 라이브러 로딩 중...</div>';
 
     try {
         const querySnapshot = await getDocs(collection(db, "crm_library"));

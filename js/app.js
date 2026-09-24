@@ -1405,14 +1405,13 @@ function updateNotifications(tasksList) {
     if (notifList) notifList.innerHTML = buildNotifHtml(myNotifs);
 }
 
-// 🌟 [추가됨] 대시보드 상단 카운터 전용 분리 함수 (에러 방지 및 완벽한 상태 텍스트 매핑)
+// 대시보드 상단 카운터 전용 분리 함수 (에러 방지 및 완벽한 상태 텍스트 매핑)
 function updateDashboardStats(tasksList) {
     const statTotalEl = document.getElementById('statTotal');
     const statWaitEl = document.getElementById('statWait');
     const statIngEl = document.getElementById('statIng');
     const statDoneEl = document.getElementById('statDone');
 
-    // DOM 요소가 없으면 실행 중지
     if (!statTotalEl || !statWaitEl || !statIngEl || !statDoneEl) return;
 
     let total = 0, wait = 0, ing = 0, done = 0;
@@ -1421,7 +1420,6 @@ function updateDashboardStats(tasksList) {
         total++;
         const st = (t.status || '').trim();
         
-        // 발생 가능한 모든 상태 텍스트 예외 케이스 처리
         if (st === '답변대기' || st === '대기중' || st === '') {
             wait++;
         } else if (st === '진행중') {
@@ -1431,7 +1429,6 @@ function updateDashboardStats(tasksList) {
         }
     });
 
-    // 안전하게 DOM 업데이트 적용
     statTotalEl.innerHTML = `${total}<span class="text-xs font-medium text-gray-500 ml-1">개</span>`;
     statWaitEl.innerHTML = `${wait}<span class="text-xs font-medium text-gray-500 ml-1">건</span>`;
     statIngEl.innerHTML = `${ing}<span class="text-xs font-medium text-gray-500 ml-1">건</span>`;
@@ -1456,16 +1453,13 @@ async function fetchTasks() {
             tasksMap[docSnap.id] = tItem;
         });
 
-        // Date 객체 변환 시 발생할 수 있는 에러 완전 방지
         fetchedData.sort((a, b) => {
             const timeA = a.createdAt ? new Date(a.createdAt).getTime() : (a.date ? new Date(a.date.replace(/\./g, '-')).getTime() : 0);
             const timeB = b.createdAt ? new Date(b.createdAt).getTime() : (b.date ? new Date(b.date.replace(/\./g, '-')).getTime() : 0);
             return (timeB || 0) - (timeA || 0);
         });
 
-        // 🌟 [수정됨] 카운터 즉시 업데이트 (비동기 렌더링 최우선 실행)
         updateDashboardStats(fetchedData);
-
         renderRollingTickers(fetchedData);
         updateNotifications(fetchedData);
 
@@ -1585,6 +1579,11 @@ async function openDetailModal(taskId) {
     const newUrl = `${window.location.pathname}?tab=${activeTab}&id=${taskId}`;
     window.history.pushState({ tab: activeTab, id: taskId }, '', newUrl);
 
+    // 🌟 모든 권한(Player 포함) 유저가 모달을 열었을 때 실시간 예산 바인딩이 보장되도록 클라이언트 정보 수집 확인
+    if (!allClientsData || allClientsData.length === 0) {
+        await fetchClients();
+    }
+
     if (detailModal) {
         const modalCard = detailModal.querySelector('.bg-white') || detailModal.firstElementChild;
         if (modalCard) {
@@ -1655,7 +1654,6 @@ async function openDetailModal(taskId) {
         typeEl.parentElement.classList.add('flex-wrap', 'items-center', 'gap-1');
         let statusSelectEl = document.getElementById('detailStatusSelect');
         
-        // 🌟 2. Admin 여부에 따른 상태 수정 권한 제한 추가 (최상위 관리자 전용)
         const isUserAdmin = checkIsAdmin();
         const selectCursorClass = isUserAdmin ? 'cursor-pointer' : 'cursor-not-allowed bg-gray-100 text-gray-500 border-gray-200';
 
@@ -1689,7 +1687,7 @@ async function openDetailModal(taskId) {
                 tasksMap[taskId].status = newStatus;
                 await logActivity("상태 변경", `[${task.title}] 상태를 '${newStatus}'(으)로 변경`);
                 alert(`상태가 '${newStatus}'(으)로 변경되었습니다.`);
-                fetchTasks(); // 🌟 업데이트 후 즉시 fetchTasks 실행 (카운터 재연동)
+                fetchTasks();
             } catch(err) {
                 alert("상태 변경 실패: " + err.message);
             }
@@ -1732,6 +1730,7 @@ async function openDetailModal(taskId) {
     const budgetRemainingEl = document.getElementById('detailBudgetRemaining');
     const budgetStatusEl = document.getElementById('detailClientBudgetStatus');
 
+    // 🌟 Player 계정이더라도 전역 allClientsData에서 매핑된 클라이언트를 정상 검색 및 렌더링
     const mappedClient = allClientsData.find(c => c.name === task.client);
     if (mappedClient && budgetTotalEl) {
         const tB = Number(mappedClient.totalBudget) || 0;
@@ -2405,7 +2404,6 @@ safeAddListener('editClientForm', 'submit', async (e) => {
 
     let updatedManagers = clientsMap[currentEditClientId].managers || [];
     
-    // 🌟 주/부 담당자 통합 추출
     const pSel = document.getElementById('editClientPrimarySelect');
     if (pSel) {
         updatedManagers = [];
@@ -2450,12 +2448,8 @@ async function fetchClients() {
     }
 
     try {
-        let q = collection(db, "clients");
-        if (currentUserRole === 'player') {
-            q = query(collection(db, "clients"), where("managers", "array-contains", currentUserName));
-        }
-
-        const querySnapshot = await getDocs(q);
+        // 🌟 Player 계정이더라도 전역 allClientsData에 전체 클라이언트 정보를 수집하여 모달 예산 매핑이 원활하게 작동하도록 처리
+        const querySnapshot = await getDocs(collection(db, "clients"));
         allClientsData = [];
         clientsMap = {};
 
@@ -2468,7 +2462,6 @@ async function fetchClients() {
             renderBudgetTable(); 
             return;
         }
-        if(emptyClients) emptyClients.style.display = 'none';
 
         querySnapshot.forEach((docSnap) => {
             const data = docSnap.data();
@@ -2485,7 +2478,7 @@ async function fetchClients() {
     } catch (e) { console.error("Client fetch error:", e); }
 }
 
-// 🌟 일반 클라이언트 리스트 페이지네이션 렌더링 (주/부 담당자 표시 분리)
+// 일반 클라이언트 리스트 페이지네이션 렌더링
 function renderClientsPage(page) {
     currentClientPage = page;
     const tbody = document.getElementById('clientsTable');
@@ -2494,10 +2487,26 @@ function renderClientsPage(page) {
 
     tbody.innerHTML = '';
     
-    const totalPages = Math.ceil(allClientsData.length / CLIENTS_PER_PAGE);
+    // 🌟 Player 계정인 경우 '클라이언트 관리' 테이블 메뉴에서는 본인이 담당자로 지정된 항목만 필터링하여 출력
+    let targetClients = allClientsData;
+    if (currentUserRole === 'player') {
+        targetClients = allClientsData.filter(c => c.managers && c.managers.includes(currentUserName));
+    }
+
+    const totalPages = Math.ceil(targetClients.length / CLIENTS_PER_PAGE);
     const startIndex = (page - 1) * CLIENTS_PER_PAGE;
     const endIndex = startIndex + CLIENTS_PER_PAGE;
-    const pageData = allClientsData.slice(startIndex, endIndex);
+    const pageData = targetClients.slice(startIndex, endIndex);
+
+    if (targetClients.length === 0) {
+        const emptyClients = document.getElementById('emptyClients');
+        if(emptyClients) emptyClients.style.display = 'flex';
+        if(pagination) pagination.classList.add('hidden');
+        return;
+    } else {
+        const emptyClients = document.getElementById('emptyClients');
+        if(emptyClients) emptyClients.style.display = 'none';
+    }
 
     pageData.forEach(data => {
         let managersHtml = '<span class="text-gray-400 text-xs whitespace-nowrap">미배정</span>';

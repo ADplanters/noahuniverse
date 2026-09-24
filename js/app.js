@@ -401,7 +401,7 @@ safeAddListener('libViewCountBadgeBtn', 'click', (e) => toggleViewerTooltip('lib
 });
 
 // ============================================================================
-// 🌟 4. 주/부 담당자 선택 UI 생성 헬퍼 함수 (모달 내 재사용)
+// 4. 주/부 담당자 선택 UI 생성 헬퍼 함수 (모달 내 재사용)
 // ============================================================================
 async function buildManagerSelectionUI(containerEl, currentManagersArr, checkboxClassName, primarySelectId) {
     containerEl.innerHTML = '<div class="text-xs text-gray-400 p-2 text-center font-bold"><i class="fa-solid fa-spinner animate-spin mr-1"></i> 멤버 목록 불러오는 중...</div>';
@@ -447,7 +447,7 @@ async function buildManagerSelectionUI(containerEl, currentManagersArr, checkbox
 
 
 // ============================================================================
-// 🌟 5. 전역 문서 클릭 및 알림 이벤트 
+// 5. 전역 문서 클릭 및 알림 이벤트 
 // ============================================================================
 safeAddListener('notifBellBtn', 'click', (e) => {
     e.stopPropagation();
@@ -999,7 +999,6 @@ safeAddListener('taskForm', 'submit', async (e) => {
     const tTitle = document.getElementById('inputTitle').value;
     const isAdmin = checkIsAdmin();
     
-    // 🌟 폼 전송 시 주 담당자/부 담당자 통합 추출
     let assignedManagersArr = [];
     if (isAdmin) {
         const pSel = document.getElementById('createPrimarySelect');
@@ -1287,7 +1286,6 @@ safeAddListener('editTaskForm', 'submit', async (e) => {
     }
 });
 
-// 🌟 수집된 게시글로 롤링 Ticker 박스 데이터 갱신 및 애니메이션 실행
 function renderRollingTickers(tasksList) {
     const latestListEl = document.getElementById('tickerLatestList');
     const progressListEl = document.getElementById('tickerProgressList');
@@ -1434,6 +1432,24 @@ async function fetchTasks() {
         renderRollingTickers(fetchedData);
         updateNotifications(fetchedData);
 
+        // 🌟 1. 대시보드 상단 상태별 카운터 업데이트 로직
+        const statTotalEl = document.getElementById('statTotal');
+        const statWaitEl = document.getElementById('statWait');
+        const statIngEl = document.getElementById('statIng');
+        const statDoneEl = document.getElementById('statDone');
+
+        if (statTotalEl && statWaitEl && statIngEl && statDoneEl) {
+            const total = fetchedData.length;
+            const wait = fetchedData.filter(t => t.status === '답변대기').length;
+            const ing = fetchedData.filter(t => t.status === '진행중').length;
+            const done = fetchedData.filter(t => t.status === '처리완료').length;
+
+            statTotalEl.innerHTML = `${total}<span class="text-xs font-medium text-gray-500 ml-1">개</span>`;
+            statWaitEl.innerHTML = `${wait}<span class="text-xs font-medium text-gray-500 ml-1">건</span>`;
+            statIngEl.innerHTML = `${ing}<span class="text-xs font-medium text-gray-500 ml-1">건</span>`;
+            statDoneEl.innerHTML = `${done}<span class="text-xs font-medium text-gray-500 ml-1">건</span>`;
+        }
+
         tbody.innerHTML = '';
         if (fetchedData.length === 0) {
             if(emptyState) emptyState.style.display = 'flex';
@@ -1474,7 +1490,6 @@ async function fetchTasks() {
             const commentCount = item.comments ? item.comments.length : 0;
             const authorName = item.staff || item.name || '미상';
             
-            // 🌟 게시판 테이블 리스트 주/부 담당자 UI
             let managerDisplay = '<span class="text-gray-400 font-normal">미배정</span>';
             if (item.assignedManagers && item.assignedManagers.length > 0) {
                 const primary = item.assignedManagers[0];
@@ -1620,11 +1635,24 @@ async function openDetailModal(taskId) {
     if (typeEl && typeEl.parentElement) {
         typeEl.parentElement.classList.add('flex-wrap', 'items-center', 'gap-1');
         let statusSelectEl = document.getElementById('detailStatusSelect');
+        
+        // 🌟 2. Admin 여부에 따른 상태 수정 권한 제한 추가 (최상위 관리자 전용)
+        const isUserAdmin = checkIsAdmin();
+        const selectCursorClass = isUserAdmin ? 'cursor-pointer' : 'cursor-not-allowed bg-gray-100 text-gray-500 border-gray-200';
+
         if (!statusSelectEl) {
             statusSelectEl = document.createElement('select');
             statusSelectEl.id = 'detailStatusSelect';
-            statusSelectEl.className = 'text-xs font-bold border border-gray-300 rounded-lg px-2 py-1 bg-white focus:border-hermes outline-none ml-2 shadow-2xs cursor-pointer my-1';
+            statusSelectEl.className = `text-xs font-bold border border-gray-300 rounded-lg px-2 py-1 bg-white focus:border-hermes outline-none ml-2 shadow-2xs my-1 ${selectCursorClass}`;
+            if (!isUserAdmin) statusSelectEl.setAttribute('disabled', 'true');
             typeEl.parentElement.appendChild(statusSelectEl);
+        } else {
+            statusSelectEl.className = `text-xs font-bold border border-gray-300 rounded-lg px-2 py-1 bg-white focus:border-hermes outline-none ml-2 shadow-2xs my-1 ${selectCursorClass}`;
+            if (!isUserAdmin) {
+                statusSelectEl.setAttribute('disabled', 'true');
+            } else {
+                statusSelectEl.removeAttribute('disabled');
+            }
         }
         
         const currentStatus = task.status || '답변대기';
@@ -1658,7 +1686,6 @@ async function openDetailModal(taskId) {
         detailStaffEl.className = "font-bold text-gray-800";
     }
 
-    // 🌟 상세 모달 내 주/부 담당자 구분 렌더링
     const detailAssignEl = document.getElementById('detailAssignManager') || document.getElementById('detailAssign') || document.getElementById('detailAssignedManagers');
     if (detailAssignEl) {
         let assignedStr = '미지정';

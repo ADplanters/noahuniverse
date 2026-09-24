@@ -43,6 +43,8 @@ let tasksMap = {};
 let clientsMap = {};
 let libraryMap = {}; 
 
+let allTasksData = []; // 🌟 추가됨: 검색 필터링을 위한 전역 배열
+
 // 예산 관리 및 페이지네이션 전역 변수
 let currentEditBudgetId = null;
 let allClientsData = [];
@@ -709,6 +711,11 @@ window.openDetailModal = openDetailModal;
 window.openEditClientModal = openEditClientModal;
 window.deleteClient = deleteClient;
 window.openBudgetEditModal = openBudgetEditModal;
+
+// 🌟 [추가됨] 업무 게시판 필터링 이벤트 연동
+safeAddListener('taskSearchTarget', 'change', applyTaskFilters);
+safeAddListener('taskSearchKeyword', 'input', applyTaskFilters);
+safeAddListener('taskStatusFilter', 'change', applyTaskFilters);
 
 async function uploadFilesToStorage(fileList, folderName) {
     const uploadedFiles = [];
@@ -1454,6 +1461,145 @@ function updateDashboardStats(tasksList) {
     statDoneEl.innerHTML = `${done}<span class="text-xs font-medium text-gray-500 ml-1">건</span>`;
 }
 
+// 🌟 [추가됨] 업무 게시판 검색 필터 적용 함수
+function applyTaskFilters() {
+    const target = document.getElementById('taskSearchTarget') ? document.getElementById('taskSearchTarget').value : 'all';
+    const keyword = document.getElementById('taskSearchKeyword') ? document.getElementById('taskSearchKeyword').value.trim().toLowerCase() : '';
+    const status = document.getElementById('taskStatusFilter') ? document.getElementById('taskStatusFilter').value : 'all';
+
+    const filteredData = allTasksData.filter(task => {
+        // 1. 상태 필터 (전체 또는 일치)
+        if (status !== 'all' && task.status !== status) return false;
+
+        // 2. 키워드 필터
+        if (keyword) {
+            const clientName = (task.client || '').toLowerCase();
+            const titleName = (task.title || '').toLowerCase();
+            
+            if (target === 'client') {
+                if (!clientName.includes(keyword)) return false;
+            } else if (target === 'title') {
+                if (!titleName.includes(keyword)) return false;
+            } else { // 'all'
+                if (!clientName.includes(keyword) && !titleName.includes(keyword)) return false;
+            }
+        }
+        return true;
+    });
+
+    renderTasksTable(filteredData);
+}
+
+// 🌟 [추가됨] 업무 게시판 테이블 동적 렌더링 함수
+function renderTasksTable(dataToRender) {
+    const tbody = document.getElementById('boardTable');
+    const emptyState = document.getElementById('emptyState');
+    if(!tbody) return;
+
+    tbody.innerHTML = '';
+    if (dataToRender.length === 0) {
+        if(emptyState) emptyState.style.display = 'flex';
+        checkAllNavBadges();
+        return;
+    }
+
+    if(emptyState) emptyState.style.display = 'none';
+    let rowsHtml = '';
+
+    dataToRender.forEach(item => {
+        const isAdmin = checkIsAdmin();
+        const isAuthor = checkIsAuthor(item);
+
+        let adminActions = `<td class="admin-only-col p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 align-middle whitespace-nowrap"><span class="text-gray-300 text-xs">-</span></td>`;
+
+        if (isAdmin) {
+            adminActions = `
+                <td class="p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col align-middle whitespace-nowrap">
+                    <div class="flex items-center justify-center gap-1">
+                        <button type="button" class="edit-task-btn bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-2 py-1 rounded transition text-[11px] font-bold whitespace-nowrap cursor-pointer" data-id="${item.id}">수정</button>
+                        <button type="button" class="assign-task-btn bg-orange-50 text-hermes hover:bg-hermes hover:text-white px-2 py-1 rounded transition text-[11px] font-bold whitespace-nowrap cursor-pointer" data-id="${item.id}">담당자</button>
+                        <button type="button" class="delete-task-btn bg-red-50 text-red-500 hover:bg-red-500 hover:text-white px-2 py-1 rounded transition text-[11px] font-bold whitespace-nowrap cursor-pointer" data-id="${item.id}" data-t="${item.title}">삭제</button>
+                    </div>
+                </td>
+            `;
+        } else if (isAuthor) {
+            adminActions = `
+                <td class="p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col align-middle whitespace-nowrap">
+                    <div class="flex items-center justify-center gap-1">
+                        <button type="button" class="edit-task-btn bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-2 py-1 rounded transition text-[11px] font-bold whitespace-nowrap cursor-pointer" data-id="${item.id}">수정</button>
+                    </div>
+                </td>
+            `;
+        }
+
+        const fileButton = renderFileButtons(item, true);
+        const commentCount = item.comments ? item.comments.length : 0;
+        const authorName = item.staff || item.name || '미상';
+        
+        let managerDisplay = '<span class="text-gray-400 font-normal">미배정</span>';
+        if (item.assignedManagers && item.assignedManagers.length > 0) {
+            const primary = item.assignedManagers[0];
+            const extraCount = item.assignedManagers.length - 1;
+            managerDisplay = `<span class="text-red-500 font-bold" title="주 담당자">${primary}</span>`;
+            if (extraCount > 0) managerDisplay += `<span class="text-gray-500 font-medium ml-1 text-[10px]">+${extraCount}</span>`;
+        }
+
+        const displayStaffHtml = `
+            <div class="inline-flex items-center gap-1.5 break-keep whitespace-nowrap text-xs">
+                <span class="text-gray-800 font-extrabold" title="작성자">${authorName}</span>
+                <span class="text-gray-300 font-normal">/</span>
+                ${managerDisplay}
+            </div>
+        `;
+
+        let statusBadgeClass = 'bg-blue-50 text-blue-600 border-blue-100';
+        if (item.status === '진행중') statusBadgeClass = 'bg-amber-50 text-amber-600 border-amber-200';
+        else if (item.status === '처리완료' || item.status === '답변완료' || item.status === '완료') statusBadgeClass = 'bg-green-50 text-green-600 border-green-200';
+        else if (item.status === '보류') statusBadgeClass = 'bg-gray-100 text-gray-600 border-gray-200';
+
+        let clientBadgeHtml = item.client || '-';
+        if (item.client === '📢 전체 공지') {
+            clientBadgeHtml = `<span class="bg-blue-600 text-white font-black text-[11px] px-2 py-0.5 rounded-full shadow-2xs">📢 전체 공지</span>`;
+        }
+
+        rowsHtml += `
+            <tr class="hover:bg-hermes-light/30 transition group border-b border-gray-100 cursor-pointer task-detail-trigger break-keep" data-id="${item.id}">
+                <td class="p-3.5 md:p-4 align-middle text-gray-900 text-[11px] font-bold whitespace-nowrap">
+                    <div>${item.date || '-'}</div>
+                    <div class="text-[10px] text-gray-400 font-normal flex items-center gap-1 mt-0.5">
+                        <i class="fa-regular fa-eye text-gray-400"></i> ${item.views || 0}
+                    </div>
+                </td>
+                <td class="p-3.5 md:p-4 align-middle text-center whitespace-nowrap"><span class="${statusBadgeClass} px-2 py-0.5 rounded text-[10px] font-bold border whitespace-nowrap">${item.status || '답변대기'}</span></td>
+                <td class="p-3.5 md:p-4 font-bold text-gray-900 align-middle text-xs whitespace-nowrap min-w-[80px]">${clientBadgeHtml}</td>
+                <td class="p-3.5 md:p-4 align-middle whitespace-nowrap"><span class="bg-gray-100 text-gray-600 text-[10px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap">${item.type || '-'}</span></td>
+                <td class="p-3.5 md:p-4 align-middle min-w-[200px]">
+                    <div class="font-bold text-gray-900 group-hover:text-hermes transition flex items-center gap-1 break-keep">
+                        <span class="break-all">${item.title || '-'}</span> 
+                        ${commentCount > 0 ? `<span class="text-hermes text-[10px] font-black shrink-0">[${commentCount}]</span>` : ''}
+                    </div>
+                </td>
+                <td class="p-3.5 md:p-4 align-middle whitespace-nowrap">${fileButton}</td>
+                <td class="p-3.5 md:p-4 align-middle text-xs font-bold break-keep min-w-[140px]">${displayStaffHtml}</td>
+                ${adminActions}
+            </tr>
+        `;
+    });
+    
+    tbody.innerHTML = rowsHtml;
+
+    if (!isInitialDeepLinkChecked) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const sharedTaskId = urlParams.get('id');
+        if (sharedTaskId && tasksMap[sharedTaskId]) {
+            openDetailModal(sharedTaskId);
+        }
+        isInitialDeepLinkChecked = true;
+    }
+
+    checkAllNavBadges();
+}
+
 async function fetchTasks() {
     const tbody = document.getElementById('boardTable');
     const emptyState = document.getElementById('emptyState');
@@ -1465,7 +1611,7 @@ async function fetchTasks() {
         let fetchedData = [];
         const querySnapshot = await getDocs(collection(db, "crm_tasks"));
         tasksMap = {}; 
-        
+
         querySnapshot.forEach((docSnap) => { 
             const tItem = { id: docSnap.id, ...docSnap.data() };
             fetchedData.push(tItem);
@@ -1482,108 +1628,8 @@ async function fetchTasks() {
         renderRollingTickers(fetchedData);
         updateNotifications(fetchedData);
 
-        tbody.innerHTML = '';
-        if (fetchedData.length === 0) {
-            if(emptyState) emptyState.style.display = 'flex';
-            checkAllNavBadges();
-            return;
-        }
-
-        if(emptyState) emptyState.style.display = 'none';
-        let rowsHtml = '';
-
-        fetchedData.forEach(item => {
-            const isAdmin = checkIsAdmin();
-            const isAuthor = checkIsAuthor(item);
-
-            let adminActions = `<td class="admin-only-col p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 align-middle whitespace-nowrap"><span class="text-gray-300 text-xs">-</span></td>`;
-
-            if (isAdmin) {
-                adminActions = `
-                    <td class="p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col align-middle whitespace-nowrap">
-                        <div class="flex items-center justify-center gap-1">
-                            <button type="button" class="edit-task-btn bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-2 py-1 rounded transition text-[11px] font-bold whitespace-nowrap cursor-pointer" data-id="${item.id}">수정</button>
-                            <button type="button" class="assign-task-btn bg-orange-50 text-hermes hover:bg-hermes hover:text-white px-2 py-1 rounded transition text-[11px] font-bold whitespace-nowrap cursor-pointer" data-id="${item.id}">담당자</button>
-                            <button type="button" class="delete-task-btn bg-red-50 text-red-500 hover:bg-red-500 hover:text-white px-2 py-1 rounded transition text-[11px] font-bold whitespace-nowrap cursor-pointer" data-id="${item.id}" data-t="${item.title}">삭제</button>
-                        </div>
-                    </td>
-                `;
-            } else if (isAuthor) {
-                adminActions = `
-                    <td class="p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col align-middle whitespace-nowrap">
-                        <div class="flex items-center justify-center gap-1">
-                            <button type="button" class="edit-task-btn bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-2 py-1 rounded transition text-[11px] font-bold whitespace-nowrap cursor-pointer" data-id="${item.id}">수정</button>
-                        </div>
-                    </td>
-                `;
-            }
-
-            const fileButton = renderFileButtons(item, true);
-            const commentCount = item.comments ? item.comments.length : 0;
-            const authorName = item.staff || item.name || '미상';
-            
-            let managerDisplay = '<span class="text-gray-400 font-normal">미배정</span>';
-            if (item.assignedManagers && item.assignedManagers.length > 0) {
-                const primary = item.assignedManagers[0];
-                const extraCount = item.assignedManagers.length - 1;
-                managerDisplay = `<span class="text-red-500 font-bold" title="주 담당자">${primary}</span>`;
-                if (extraCount > 0) managerDisplay += `<span class="text-gray-500 font-medium ml-1 text-[10px]">+${extraCount}</span>`;
-            }
-
-            const displayStaffHtml = `
-                <div class="inline-flex items-center gap-1.5 break-keep whitespace-nowrap text-xs">
-                    <span class="text-gray-800 font-extrabold" title="작성자">${authorName}</span>
-                    <span class="text-gray-300 font-normal">/</span>
-                    ${managerDisplay}
-                </div>
-            `;
-
-            let statusBadgeClass = 'bg-blue-50 text-blue-600 border-blue-100';
-            if (item.status === '진행중') statusBadgeClass = 'bg-amber-50 text-amber-600 border-amber-200';
-            else if (item.status === '처리완료' || item.status === '답변완료' || item.status === '완료') statusBadgeClass = 'bg-green-50 text-green-600 border-green-200';
-            else if (item.status === '보류') statusBadgeClass = 'bg-gray-100 text-gray-600 border-gray-200';
-
-            let clientBadgeHtml = item.client || '-';
-            if (item.client === '📢 전체 공지') {
-                clientBadgeHtml = `<span class="bg-blue-600 text-white font-black text-[11px] px-2 py-0.5 rounded-full shadow-2xs">📢 전체 공지</span>`;
-            }
-
-            rowsHtml += `
-                <tr class="hover:bg-hermes-light/30 transition group border-b border-gray-100 cursor-pointer task-detail-trigger break-keep" data-id="${item.id}">
-                    <td class="p-3.5 md:p-4 align-middle text-gray-900 text-[11px] font-bold whitespace-nowrap">
-                        <div>${item.date || '-'}</div>
-                        <div class="text-[10px] text-gray-400 font-normal flex items-center gap-1 mt-0.5">
-                            <i class="fa-regular fa-eye text-gray-400"></i> ${item.views || 0}
-                        </div>
-                    </td>
-                    <td class="p-3.5 md:p-4 align-middle text-center whitespace-nowrap"><span class="${statusBadgeClass} px-2 py-0.5 rounded text-[10px] font-bold border whitespace-nowrap">${item.status || '답변대기'}</span></td>
-                    <td class="p-3.5 md:p-4 font-bold text-gray-900 align-middle text-xs whitespace-nowrap min-w-[80px]">${clientBadgeHtml}</td>
-                    <td class="p-3.5 md:p-4 align-middle whitespace-nowrap"><span class="bg-gray-100 text-gray-600 text-[10px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap">${item.type || '-'}</span></td>
-                    <td class="p-3.5 md:p-4 align-middle min-w-[200px]">
-                        <div class="font-bold text-gray-900 group-hover:text-hermes transition flex items-center gap-1 break-keep">
-                            <span class="break-all">${item.title || '-'}</span> 
-                            ${commentCount > 0 ? `<span class="text-hermes text-[10px] font-black shrink-0">[${commentCount}]</span>` : ''}
-                        </div>
-                    </td>
-                    <td class="p-3.5 md:p-4 align-middle whitespace-nowrap">${fileButton}</td>
-                    <td class="p-3.5 md:p-4 align-middle text-xs font-bold break-keep min-w-[140px]">${displayStaffHtml}</td>
-                    ${adminActions}
-                </tr>
-            `;
-        });
-        
-        tbody.innerHTML = rowsHtml;
-
-        if (!isInitialDeepLinkChecked) {
-            const urlParams = new URLSearchParams(window.location.search);
-            const sharedTaskId = urlParams.get('id');
-            if (sharedTaskId && tasksMap[sharedTaskId]) {
-                openDetailModal(sharedTaskId);
-            }
-            isInitialDeepLinkChecked = true;
-        }
-
-        checkAllNavBadges();
+        allTasksData = fetchedData; // 🌟 전체 데이터를 전역 배열에 업데이트
+        applyTaskFilters();         // 🌟 필터 조건 기반으로 테이블 렌더링 진행
 
     } catch (e) { console.error("Firestore fetch tasks error:", e); }
 }
@@ -1705,7 +1751,7 @@ async function openDetailModal(taskId) {
                 tasksMap[taskId].status = newStatus;
                 await logActivity("상태 변경", `[${task.title}] 상태를 '${newStatus}'(으)로 변경`);
                 alert(`상태가 '${newStatus}'(으)로 변경되었습니다.`);
-                fetchTasks();
+                fetchTasks(); // 데이터 갱신 시 자동 필터 적용됨
             } catch(err) {
                 alert("상태 변경 실패: " + err.message);
             }
@@ -2332,7 +2378,7 @@ safeAddListener('clientForm', 'submit', async (e) => {
             metaEmail: metaEmailIn ? metaEmailIn.value : '', 
             metaPhone: metaPhoneIn ? metaPhoneIn.value : '', 
             memo: memoIn ? memoIn.value : '',               
-            totalBudget: 0,       
+            totalBudget: 0,        
             rechargedBudget: 0,
             usedBudget: 0,
             instaDate: instaDateIn ? instaDateIn.value : '',

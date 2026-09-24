@@ -96,13 +96,11 @@
                 <span class="text-hermes">ADplanters</span><span class="text-gray-300 mx-1">✕</span><span class="text-noah text-xs">NOAH</span>
             </div>
             <div class="flex items-center gap-3">
-                <!-- 🌟 모바일 전용 알림 종모양 -->
                 <div class="relative">
                     <button type="button" id="mobileNotifBellBtn" class="relative text-gray-500 hover:text-hermes text-lg focus:outline-none transition cursor-pointer p-1">
                         <i class="fa-regular fa-bell"></i>
                         <span id="mobileNotifBadge" class="absolute top-0 right-0 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white hidden z-10 shadow border border-white">0</span>
                     </button>
-                    <!-- 모바일 알림 드롭다운 팝업창 -->
                     <div id="mobileNotifDropdown" class="absolute top-full right-0 mt-3 w-[280px] sm:w-[320px] bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 hidden overflow-hidden transition-all origin-top-right">
                         <div class="flex justify-between items-center bg-gray-50 border-b border-gray-100 p-3">
                             <span class="text-xs font-bold text-gray-800"><i class="fa-solid fa-bell text-hermes mr-1"></i> 최근 업무 알림</span>
@@ -157,12 +155,10 @@
                         <div class="w-9 h-9 rounded-full bg-hermes-light text-hermes flex items-center justify-center text-sm font-bold flex-shrink-0"><i class="fa-solid fa-user-check"></i></div>
                         <div class="truncate flex-1">
                             <p class="text-xs font-bold text-gray-800 truncate" id="currentUserName">사용자</p>
-                            <!-- 🌟 계정 이메일 노출 추가 -->
                             <p class="text-[9px] text-gray-500 font-medium truncate" id="currentUserEmail">email@example.com</p>
                             <p class="text-[10px] text-hermes font-bold truncate mt-0.5" id="currentUserRoleName">직책</p>
                         </div>
                     </div>
-                    <!-- 🌟 PC(사이드바) 알림 종모양 및 드롭다운 -->
                     <div class="relative shrink-0">
                         <button type="button" id="notifBellBtn" class="relative text-gray-400 hover:text-hermes text-lg focus:outline-none transition cursor-pointer p-1">
                             <i class="fa-regular fa-bell"></i>
@@ -200,10 +196,10 @@
                 <div class="bg-white p-4 md:p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between"><div><p class="text-xs font-bold text-gray-500 mb-1">완료 항목</p><p class="text-xl md:text-2xl font-black text-gray-900" id="statDone">0<span class="text-xs font-medium text-gray-500 ml-1">건</span></p></div><div class="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gray-100 text-gray-600 flex items-center justify-center text-lg md:text-xl"><i class="fa-solid fa-check-double"></i></div></div>
             </div>
 
-            <!-- 🌟 뷰 3. 업무 / Q&A (롤링 Ticker 대시보드 추가) -->
+            <!-- 뷰 3. 업무 / Q&A -->
             <div id="tasksContainer" class="hidden flex-1 flex flex-col gap-6 md:gap-8 w-full min-w-0">
                 
-                <!-- 롤링 Ticker 박스 컨테이너 (최소 3개 보이도록 h-[180px], 목록 h-[120px] 적용) -->
+                <!-- 롤링 Ticker 박스 컨테이너 -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
                     <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 relative flex flex-col h-[180px]">
                         <div class="flex items-center gap-2 mb-2 text-sm font-black text-gray-800 border-b border-gray-100 pb-2 z-10 bg-white shrink-0">
@@ -228,12 +224,38 @@
                     </div>
                 </div>
 
-                <!-- 기존 게시판 테이블 레이아웃 -->
+                <!-- 기존 게시판 테이블 레이아웃 + 🌟 검색 및 필터 컨트롤 탑재 -->
                 <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 w-full min-w-0 mt-2">
-                    <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-white flex-wrap gap-2 rounded-t-2xl">
-                        <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-table-list text-hermes mr-2"></i> 업무 / Q&A</h2>
+                    <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-white flex-wrap gap-3 rounded-t-2xl">
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <h2 class="font-bold text-sm md:text-base text-gray-800 shrink-0"><i class="fa-solid fa-table-list text-hermes mr-2"></i> 업무 / Q&A</h2>
+                            
+                            <!-- 🌟 [신규] 검색 및 상태 필터 제어 영역 -->
+                            <div class="flex items-center gap-2 flex-wrap text-xs">
+                                <select id="taskSearchTarget" class="border border-gray-300 rounded-xl px-2.5 py-1.5 focus:border-hermes outline-none bg-white font-bold cursor-pointer text-gray-700 shadow-2xs">
+                                    <option value="all">전체 (클라이언트+제목)</option>
+                                    <option value="client">클라이언트</option>
+                                    <option value="title">제목</option>
+                                </select>
+                                
+                                <div class="relative">
+                                    <input type="text" id="taskSearchKeyword" placeholder="검색어 입력..." class="border border-gray-300 rounded-xl py-1.5 pl-8 pr-3 text-xs focus:border-hermes outline-none bg-white w-36 sm:w-52 font-medium shadow-2xs">
+                                    <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                                </div>
+
+                                <select id="taskStatusFilter" class="border border-gray-300 rounded-xl px-2.5 py-1.5 focus:border-hermes outline-none bg-white font-bold cursor-pointer text-gray-700 shadow-2xs">
+                                    <option value="all">상태 전체 보기</option>
+                                    <option value="답변대기">답변대기</option>
+                                    <option value="진행중">진행중</option>
+                                    <option value="처리완료">처리완료</option>
+                                    <option value="보류">보류</option>
+                                </select>
+                            </div>
+                        </div>
+
                         <button id="openModalBtn" type="button" class="bg-hermes hover:bg-hermes-hover text-white text-xs font-bold px-3 py-2 md:px-4 md:py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5 shrink-0 cursor-pointer"><i class="fa-solid fa-plus"></i> <span class="inline">신규 이슈 등록</span></button>
                     </div>
+
                     <div class="w-full overflow-x-auto p-1 sm:p-2 pb-6">
                         <table class="w-full text-left border-collapse min-w-[700px]">
                             <thead>
@@ -251,7 +273,7 @@
                             <tbody id="boardTable" class="text-sm divide-y divide-gray-100"></tbody>
                         </table>
                     </div>
-                    <div id="emptyState" class="hidden py-12 md:py-16 text-center flex-col items-center justify-center"><i class="fa-solid fa-folder-open text-3xl md:text-4xl text-gray-300 mb-3"></i><p class="text-gray-500 font-medium text-xs md:text-sm">데이터가 없습니다.</p></div>
+                    <div id="emptyState" class="hidden py-12 md:py-16 text-center flex-col items-center justify-center"><i class="fa-solid fa-folder-open text-3xl md:text-4xl text-gray-300 mb-3"></i><p class="text-gray-500 font-medium text-xs md:text-sm">조회된 이슈 데이터가 없습니다.</p></div>
                 </div>
             </div>
 

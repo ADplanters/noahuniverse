@@ -1405,6 +1405,39 @@ function updateNotifications(tasksList) {
     if (notifList) notifList.innerHTML = buildNotifHtml(myNotifs);
 }
 
+// 🌟 [추가됨] 대시보드 상단 카운터 전용 분리 함수 (에러 방지 및 완벽한 상태 텍스트 매핑)
+function updateDashboardStats(tasksList) {
+    const statTotalEl = document.getElementById('statTotal');
+    const statWaitEl = document.getElementById('statWait');
+    const statIngEl = document.getElementById('statIng');
+    const statDoneEl = document.getElementById('statDone');
+
+    // DOM 요소가 없으면 실행 중지
+    if (!statTotalEl || !statWaitEl || !statIngEl || !statDoneEl) return;
+
+    let total = 0, wait = 0, ing = 0, done = 0;
+
+    tasksList.forEach(t => {
+        total++;
+        const st = (t.status || '').trim();
+        
+        // 발생 가능한 모든 상태 텍스트 예외 케이스 처리
+        if (st === '답변대기' || st === '대기중' || st === '') {
+            wait++;
+        } else if (st === '진행중') {
+            ing++;
+        } else if (st === '처리완료' || st === '답변완료' || st === '완료') {
+            done++;
+        }
+    });
+
+    // 안전하게 DOM 업데이트 적용
+    statTotalEl.innerHTML = `${total}<span class="text-xs font-medium text-gray-500 ml-1">개</span>`;
+    statWaitEl.innerHTML = `${wait}<span class="text-xs font-medium text-gray-500 ml-1">건</span>`;
+    statIngEl.innerHTML = `${ing}<span class="text-xs font-medium text-gray-500 ml-1">건</span>`;
+    statDoneEl.innerHTML = `${done}<span class="text-xs font-medium text-gray-500 ml-1">건</span>`;
+}
+
 async function fetchTasks() {
     const tbody = document.getElementById('boardTable');
     const emptyState = document.getElementById('emptyState');
@@ -1423,32 +1456,18 @@ async function fetchTasks() {
             tasksMap[docSnap.id] = tItem;
         });
 
+        // Date 객체 변환 시 발생할 수 있는 에러 완전 방지
         fetchedData.sort((a, b) => {
-            const timeA = a.createdAt ? new Date(a.createdAt).getTime() : new Date((a.date || '').replace(/\./g, '-')).getTime();
-            const timeB = b.createdAt ? new Date(b.createdAt).getTime() : new Date((b.date || '').replace(/\./g, '-')).getTime();
-            return timeB - timeA;
+            const timeA = a.createdAt ? new Date(a.createdAt).getTime() : (a.date ? new Date(a.date.replace(/\./g, '-')).getTime() : 0);
+            const timeB = b.createdAt ? new Date(b.createdAt).getTime() : (b.date ? new Date(b.date.replace(/\./g, '-')).getTime() : 0);
+            return (timeB || 0) - (timeA || 0);
         });
+
+        // 🌟 [수정됨] 카운터 즉시 업데이트 (비동기 렌더링 최우선 실행)
+        updateDashboardStats(fetchedData);
 
         renderRollingTickers(fetchedData);
         updateNotifications(fetchedData);
-
-        // 🌟 1. 대시보드 상단 상태별 카운터 업데이트 로직
-        const statTotalEl = document.getElementById('statTotal');
-        const statWaitEl = document.getElementById('statWait');
-        const statIngEl = document.getElementById('statIng');
-        const statDoneEl = document.getElementById('statDone');
-
-        if (statTotalEl && statWaitEl && statIngEl && statDoneEl) {
-            const total = fetchedData.length;
-            const wait = fetchedData.filter(t => t.status === '답변대기').length;
-            const ing = fetchedData.filter(t => t.status === '진행중').length;
-            const done = fetchedData.filter(t => t.status === '처리완료').length;
-
-            statTotalEl.innerHTML = `${total}<span class="text-xs font-medium text-gray-500 ml-1">개</span>`;
-            statWaitEl.innerHTML = `${wait}<span class="text-xs font-medium text-gray-500 ml-1">건</span>`;
-            statIngEl.innerHTML = `${ing}<span class="text-xs font-medium text-gray-500 ml-1">건</span>`;
-            statDoneEl.innerHTML = `${done}<span class="text-xs font-medium text-gray-500 ml-1">건</span>`;
-        }
 
         tbody.innerHTML = '';
         if (fetchedData.length === 0) {
@@ -1508,7 +1527,7 @@ async function fetchTasks() {
 
             let statusBadgeClass = 'bg-blue-50 text-blue-600 border-blue-100';
             if (item.status === '진행중') statusBadgeClass = 'bg-amber-50 text-amber-600 border-amber-200';
-            else if (item.status === '처리완료') statusBadgeClass = 'bg-green-50 text-green-600 border-green-200';
+            else if (item.status === '처리완료' || item.status === '답변완료' || item.status === '완료') statusBadgeClass = 'bg-green-50 text-green-600 border-green-200';
             else if (item.status === '보류') statusBadgeClass = 'bg-gray-100 text-gray-600 border-gray-200';
 
             let clientBadgeHtml = item.client || '-';
@@ -1670,7 +1689,7 @@ async function openDetailModal(taskId) {
                 tasksMap[taskId].status = newStatus;
                 await logActivity("상태 변경", `[${task.title}] 상태를 '${newStatus}'(으)로 변경`);
                 alert(`상태가 '${newStatus}'(으)로 변경되었습니다.`);
-                fetchTasks();
+                fetchTasks(); // 🌟 업데이트 후 즉시 fetchTasks 실행 (카운터 재연동)
             } catch(err) {
                 alert("상태 변경 실패: " + err.message);
             }

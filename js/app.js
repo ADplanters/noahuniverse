@@ -59,6 +59,26 @@ let currentClientIP = '127.0.0.1';
 // 신규 댓글 작성용 드래그앤드롭 누적 파일 배열
 let newCommentSelectedFiles = [];
 
+// 🌟 [추가됨] 클라이언트 상호명 비교 시 띄어쓰기 및 대소문자 제거 정규화 헬퍼
+const normalizeName = (str) => (str || '').replace(/\s+/g, '').toLowerCase();
+
+// 🌟 [추가됨] 상호명 띄어쓰기 차이, 포함 관계를 지능적으로 검색하는 클라이언트 매칭 함수
+const findClientByName = (clientName) => {
+    if (!clientName || clientName === "📢 전체 공지") return null;
+    const target = normalizeName(clientName);
+    if (!target) return null;
+
+    // 1단계: 띄어쓰기 및 대소문자 제거 완벽 일치 검색
+    let found = allClientsData.find(c => normalizeName(c.name) === target);
+    if (found) return found;
+
+    // 2단계: 상호명 포함 관계 검색 (예: '정원용 회계사' <-> '정원용회계사사무소', '코웨이' <-> '코웨이 메타')
+    return allClientsData.find(c => {
+        const cNorm = normalizeName(c.name);
+        return cNorm && (cNorm.includes(target) || target.includes(cNorm));
+    }) || null;
+};
+
 // ============================================================================
 // 클라이언트 IP 주소 자동 수집 헬퍼
 // ============================================================================
@@ -597,7 +617,7 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
-    // 신규 이슈 등록 (📢 전체 공지 포함, 담당자 지정 분리 UI 적용)
+    // 신규 이슈 등록
     const openTaskModalBtn = e.target.closest('#openModalBtn');
     if (openTaskModalBtn && createModal) {
         e.preventDefault();
@@ -655,7 +675,7 @@ document.addEventListener('click', async (e) => {
     }
 });
 
-// 업무 등록 시 클라이언트 드롭다운 선택 이벤트 연동 (📢 [전체 공지] 바인딩)
+// 업무 등록 시 클라이언트 드롭다운 선택 이벤트 연동
 safeAddListener('inputClient', 'change', (e) => {
     const clientName = e.target.value;
     const infoDiv = document.getElementById('createClientBudgetInfo');
@@ -667,7 +687,8 @@ safeAddListener('inputClient', 'change', (e) => {
         return;
     }
     
-    const client = allClientsData.find(c => c.name === clientName);
+    // 🌟 정규화 매칭 적용
+    const client = findClientByName(clientName);
     if (client) {
         const total = Number(client.totalBudget) || 0;
         const recharged = Number(client.rechargedBudget) || 0;
@@ -1086,7 +1107,7 @@ async function openEditTaskModal(taskId) {
             <option value="📢 전체 공지" ${task.client === '📢 전체 공지' ? 'selected' : ''}>📢 [전체 공지]</option>
         `;
         allClientsData.forEach(c => {
-            const isSelected = (task.client === c.name) ? 'selected' : '';
+            const isSelected = (findClientByName(task.client)?.id === c.id) ? 'selected' : '';
             clientSelect.innerHTML += `<option value="${c.name}" ${isSelected}>${c.name}</option>`;
         });
     }
@@ -1292,9 +1313,7 @@ function renderRollingTickers(tasksList) {
 
     if (!latestListEl || !progressListEl) return;
 
-    // 1. 최신 이슈 (순수 최신순)
     const latestTasks = [...tasksList].slice(0, 10);
-    // 2. 진행중 업무 (상태 필터)
     const progressTasks = tasksList.filter(t => t.status === '진행중' || t.status === '답변대기').slice(0, 10);
 
     const buildTickerItemsHtml = (items) => {
@@ -1405,7 +1424,7 @@ function updateNotifications(tasksList) {
     if (notifList) notifList.innerHTML = buildNotifHtml(myNotifs);
 }
 
-// 대시보드 상단 카운터 전용 분리 함수 (에러 방지 및 완벽한 상태 텍스트 매핑)
+// 대시보드 상단 카운터 전용 분리 함수
 function updateDashboardStats(tasksList) {
     const statTotalEl = document.getElementById('statTotal');
     const statWaitEl = document.getElementById('statWait');
@@ -1579,7 +1598,6 @@ async function openDetailModal(taskId) {
     const newUrl = `${window.location.pathname}?tab=${activeTab}&id=${taskId}`;
     window.history.pushState({ tab: activeTab, id: taskId }, '', newUrl);
 
-    // 🌟 모든 권한(Player 포함) 유저가 모달을 열었을 때 실시간 예산 바인딩이 보장되도록 클라이언트 정보 수집 확인
     if (!allClientsData || allClientsData.length === 0) {
         await fetchClients();
     }
@@ -1730,8 +1748,9 @@ async function openDetailModal(taskId) {
     const budgetRemainingEl = document.getElementById('detailBudgetRemaining');
     const budgetStatusEl = document.getElementById('detailClientBudgetStatus');
 
-    // 🌟 Player 계정이더라도 전역 allClientsData에서 매핑된 클라이언트를 정상 검색 및 렌더링
-    const mappedClient = allClientsData.find(c => c.name === task.client);
+    // 🌟 [수정됨] 상호명/띄어쓰기/부분 일치 매칭을 지원하는 findClientByName 헬퍼 함수 적용
+    const mappedClient = findClientByName(task.client);
+
     if (mappedClient && budgetTotalEl) {
         const tB = Number(mappedClient.totalBudget) || 0;
         const rB = Number(mappedClient.rechargedBudget) || 0;
@@ -1742,6 +1761,14 @@ async function openDetailModal(taskId) {
         budgetRechargedEl.innerText = rB.toLocaleString() + '원';
         budgetSpentEl.innerText = sB.toLocaleString() + '원';
         budgetRemainingEl.innerText = remB.toLocaleString() + '원';
+
+        // 🌟 [추가됨] 집행 소진액 라벨 옆에 통통 튀는 빨간색 ING 배지 동적 삽입
+        if (budgetSpentEl && budgetSpentEl.parentElement) {
+            const spentLabelSpan = budgetSpentEl.parentElement.querySelector('span');
+            if (spentLabelSpan) {
+                spentLabelSpan.innerHTML = `집행 소진액 <span class="inline-inline-flex items-center text-[9px] font-black text-red-500 bg-red-100 px-1 py-0.2 rounded-full animate-bounce ml-0.5 border border-red-200">ING</span>`;
+            }
+        }
 
         if (remB < 0) {
             budgetStatusEl.innerText = '예산 초과';
@@ -2271,7 +2298,7 @@ safeAddListener('submitNewCommentBtn', 'click', async () => {
 });
 
 // ============================================================================
-// 8. 클라이언트 관리 (메타정보 연동 및 예산 수정 별도 관리)
+// 8. 클라이언트 관리
 // ============================================================================
 safeAddListener('clientForm', 'submit', async (e) => {
     e.preventDefault();
@@ -2448,7 +2475,6 @@ async function fetchClients() {
     }
 
     try {
-        // 🌟 Player 계정이더라도 전역 allClientsData에 전체 클라이언트 정보를 수집하여 모달 예산 매핑이 원활하게 작동하도록 처리
         const querySnapshot = await getDocs(collection(db, "clients"));
         allClientsData = [];
         clientsMap = {};
@@ -2487,7 +2513,6 @@ function renderClientsPage(page) {
 
     tbody.innerHTML = '';
     
-    // 🌟 Player 계정인 경우 '클라이언트 관리' 테이블 메뉴에서는 본인이 담당자로 지정된 항목만 필터링하여 출력
     let targetClients = allClientsData;
     if (currentUserRole === 'player') {
         targetClients = allClientsData.filter(c => c.managers && c.managers.includes(currentUserName));
@@ -2608,7 +2633,7 @@ function renderClientsPage(page) {
     checkAllNavBadges();
 }
 
-// 예산 전용 대시보드 및 테이블 렌더링 (어드민 뷰)
+// 예산 전용 대시보드 및 테이블 렌더링
 function renderBudgetTable() {
     const budgetTbody = document.getElementById('budgetTable');
     if (!budgetTbody) return;

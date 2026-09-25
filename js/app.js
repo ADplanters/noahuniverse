@@ -629,13 +629,15 @@ document.addEventListener('click', async (e) => {
     if (addClientBtn && clientModal) {
         e.preventDefault();
         e.stopPropagation();
-        const regIn = document.getElementById('c_registerName');
-        if (regIn) regIn.value = currentUserName; 
         
         const form = document.getElementById('clientForm');
-        if (form) form.reset();
+        if (form) form.reset(); // 🌟 [수정됨] 폼 리셋을 먼저 실행하여 데이터 충돌 방지
 
-        // 🌟 [추가됨] 계약 기간 Input을 찾아서 Admin 전용 읽기/쓰기 권한 제어
+        // 🌟 [수정됨] 폼 리셋 이후에 현재 로그인된 작성자명 안전하게 주입
+        const regIn = document.getElementById('c_registerName');
+        if (regIn) regIn.value = currentUserName; 
+
+        // 계약 기간 Input을 찾아서 Admin 전용 읽기/쓰기 권한 제어
         const contractPeriodIn = document.getElementById('c_contractPeriod');
         if (contractPeriodIn) {
             if (checkIsAdmin()) {
@@ -730,7 +732,6 @@ safeAddListener('inputClient', 'change', (e) => {
         const recharged = Number(client.rechargedBudget) || 0;
         const used = Number(client.usedBudget) || 0;
         const rem = (total + recharged) - used;
-        // 명칭 변경 적용: 충전대기, 충전
         infoDiv.innerHTML = `<span class="font-bold text-hermes">현재 충전대기: ${rem.toLocaleString()}원</span> (총 ${((total+recharged)/10000).toLocaleString()}만 / 충전금액 ${(used/10000).toLocaleString()}만)`;
         infoDiv.classList.remove('hidden');
     } else {
@@ -1855,19 +1856,18 @@ async function openDetailModal(taskId) {
         }
         budgetTotalEl.closest('.col-span-2').classList.remove('hidden');
 
-        // 🌟 [추가됨] 예산 그리드 하단에 계약기간/마감일 동적 추가 (DOM DOM 주입)
+        // 🌟 [추가/수정됨] 예산 그리드 하단에 계약기간/마감일이 명확하게 보이도록 DOM 동적 주입
         const budgetGrid = budgetTotalEl.closest('.grid');
-        if (budgetGrid) {
+        if (budgetGrid && budgetGrid.parentElement) {
             let contractDiv = document.getElementById('detailContractPeriodDiv');
             if (!contractDiv) {
                 contractDiv = document.createElement('div');
                 contractDiv.id = 'detailContractPeriodDiv';
-                contractDiv.className = 'col-span-2 sm:col-span-4 mt-1.5 pt-1.5 border-t border-gray-100 text-[11px] flex items-center justify-between bg-blue-50/50 px-2 py-1.5 rounded-md';
-                budgetGrid.appendChild(contractDiv);
+                contractDiv.className = 'mt-2 border border-blue-100 bg-blue-50/40 px-3 py-2.5 rounded-lg flex items-center justify-between text-[11px] sm:text-xs shadow-sm';
+                budgetGrid.parentElement.appendChild(contractDiv);
             }
-            contractDiv.innerHTML = `<span class="text-gray-500 font-bold"><i class="fa-regular fa-calendar-check mr-1 text-blue-500"></i>계약 기간 / 마감일</span> <span class="font-black text-blue-700">${mappedClient.contractPeriod || '미등록 (Admin 설정 필요)'}</span>`;
+            contractDiv.innerHTML = `<span class="font-bold text-gray-700"><i class="fa-regular fa-calendar-check mr-1.5 text-blue-500"></i>계약 기간 / 마감일</span> <span class="font-black text-blue-700">${mappedClient.contractPeriod || '미등록 (Admin 설정 필요)'}</span>`;
         }
-
     } else if (budgetTotalEl) {
         budgetTotalEl.closest('.col-span-2').classList.add('hidden');
         const contractDiv = document.getElementById('detailContractPeriodDiv');
@@ -2498,7 +2498,6 @@ async function openEditClientModal(clientId) {
         
         if (contractPeriodIn) {
             contractPeriodIn.value = client.contractPeriod || '';
-            // 🌟 [추가됨] 수정 시점에도 Admin만 편집 가능하도록 권한 제어
             if (checkIsAdmin()) {
                 contractPeriodIn.disabled = false;
                 contractPeriodIn.classList.remove('bg-gray-100', 'cursor-not-allowed', 'text-gray-400');
@@ -2854,7 +2853,7 @@ safeAddListener('budgetEditForm', 'submit', async (e) => {
 });
 
 // ============================================================================
-// 9. 인사이트 라이브러리 모듈
+// 9. 인사이트 라이브러 모듈
 // ============================================================================
 async function fetchLibraryItems() {
     const grid = document.getElementById('libraryGrid');

@@ -624,7 +624,7 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
-    // 신규 클라이언트 등록
+    // 신규 클라이언트 등록 버튼 클릭 시 (Admin 권한에 따른 계약기간 제어)
     const addClientBtn = e.target.closest('#openClientModalBtn');
     if (addClientBtn && clientModal) {
         e.preventDefault();
@@ -634,6 +634,20 @@ document.addEventListener('click', async (e) => {
         
         const form = document.getElementById('clientForm');
         if (form) form.reset();
+
+        // 🌟 [추가됨] 계약 기간 Input을 찾아서 Admin 전용 읽기/쓰기 권한 제어
+        const contractPeriodIn = document.getElementById('c_contractPeriod');
+        if (contractPeriodIn) {
+            if (checkIsAdmin()) {
+                contractPeriodIn.disabled = false;
+                contractPeriodIn.placeholder = "예: 2024.01.01 ~ 2024.12.31";
+                contractPeriodIn.classList.remove('bg-gray-100', 'cursor-not-allowed', 'text-gray-400');
+            } else {
+                contractPeriodIn.disabled = true;
+                contractPeriodIn.placeholder = "최상위 관리자(Admin) 전용 설정 항목";
+                contractPeriodIn.classList.add('bg-gray-100', 'cursor-not-allowed', 'text-gray-400');
+            }
+        }
         
         clientModal.classList.remove('hidden');
         clientModal.style.zIndex = "99999";
@@ -1765,7 +1779,7 @@ async function openDetailModal(taskId) {
                 tasksMap[taskId].status = newStatus;
                 await logActivity("상태 변경", `[${task.title}] 상태를 '${newStatus}'(으)로 변경`);
                 alert(`상태가 '${newStatus}'(으)로 변경되었습니다.`);
-                fetchTasks();
+                fetchTasks(); // 데이터 갱신 시 자동 필터 적용됨
             } catch(err) {
                 alert("상태 변경 실패: " + err.message);
             }
@@ -1808,6 +1822,7 @@ async function openDetailModal(taskId) {
     const budgetRemainingEl = document.getElementById('detailBudgetRemaining');
     const budgetStatusEl = document.getElementById('detailClientBudgetStatus');
 
+    // 🌟 상호명/띄어쓰기/부분 일치 매칭을 지원하는 findClientByName 헬퍼 함수 적용
     const mappedClient = findClientByName(task.client);
 
     if (mappedClient && budgetTotalEl) {
@@ -1839,8 +1854,24 @@ async function openDetailModal(taskId) {
             budgetStatusEl.className = 'text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold';
         }
         budgetTotalEl.closest('.col-span-2').classList.remove('hidden');
+
+        // 🌟 [추가됨] 예산 그리드 하단에 계약기간/마감일 동적 추가 (DOM DOM 주입)
+        const budgetGrid = budgetTotalEl.closest('.grid');
+        if (budgetGrid) {
+            let contractDiv = document.getElementById('detailContractPeriodDiv');
+            if (!contractDiv) {
+                contractDiv = document.createElement('div');
+                contractDiv.id = 'detailContractPeriodDiv';
+                contractDiv.className = 'col-span-2 sm:col-span-4 mt-1.5 pt-1.5 border-t border-gray-100 text-[11px] flex items-center justify-between bg-blue-50/50 px-2 py-1.5 rounded-md';
+                budgetGrid.appendChild(contractDiv);
+            }
+            contractDiv.innerHTML = `<span class="text-gray-500 font-bold"><i class="fa-regular fa-calendar-check mr-1 text-blue-500"></i>계약 기간 / 마감일</span> <span class="font-black text-blue-700">${mappedClient.contractPeriod || '미등록 (Admin 설정 필요)'}</span>`;
+        }
+
     } else if (budgetTotalEl) {
         budgetTotalEl.closest('.col-span-2').classList.add('hidden');
+        const contractDiv = document.getElementById('detailContractPeriodDiv');
+        if (contractDiv) contractDiv.remove(); // 데이터가 없을 경우 숨김 처리
     }
     
     const contentEl = document.getElementById('detailContent');
@@ -2372,7 +2403,7 @@ safeAddListener('clientForm', 'submit', async (e) => {
     const memoIn = document.getElementById('c_memo');
     const instaDateIn = document.getElementById('c_instaDate');
     const metaDateIn = document.getElementById('c_metaDate');
-    const contractPeriodIn = document.getElementById('c_contractPeriod'); // 🌟 추가됨
+    const contractPeriodIn = document.getElementById('c_contractPeriod'); 
 
     const submitBtn = clientModal.querySelector('button[type="submit"]');
     const origText = submitBtn ? submitBtn.innerText : '저장';
@@ -2396,7 +2427,7 @@ safeAddListener('clientForm', 'submit', async (e) => {
             usedBudget: 0,
             instaDate: instaDateIn ? instaDateIn.value : '',
             metaDate: metaDateIn ? metaDateIn.value : '',
-            contractPeriod: contractPeriodIn ? contractPeriodIn.value : '', // 🌟 추가됨
+            contractPeriod: contractPeriodIn ? contractPeriodIn.value : '', 
             registeredBy: currentUserName,
             managers: [currentUserName], 
             createdAt: new Date().toISOString()
@@ -2452,7 +2483,7 @@ async function openEditClientModal(clientId) {
         const memoIn = document.getElementById('edit_c_memo');
         const instaDateIn = document.getElementById('edit_c_instaDate');
         const metaDateIn = document.getElementById('edit_c_metaDate');
-        const contractPeriodIn = document.getElementById('edit_c_contractPeriod'); // 🌟 추가됨
+        const contractPeriodIn = document.getElementById('edit_c_contractPeriod'); 
 
         if (nameIn) nameIn.value = client.name || '';
         if (homeIn) homeIn.value = client.homeUrl || '';
@@ -2464,7 +2495,18 @@ async function openEditClientModal(clientId) {
         if (memoIn) memoIn.value = client.memo || '';
         if (instaDateIn) instaDateIn.value = client.instaDate || '';
         if (metaDateIn) metaDateIn.value = client.metaDate || '';
-        if (contractPeriodIn) contractPeriodIn.value = client.contractPeriod || ''; // 🌟 추가됨
+        
+        if (contractPeriodIn) {
+            contractPeriodIn.value = client.contractPeriod || '';
+            // 🌟 [추가됨] 수정 시점에도 Admin만 편집 가능하도록 권한 제어
+            if (checkIsAdmin()) {
+                contractPeriodIn.disabled = false;
+                contractPeriodIn.classList.remove('bg-gray-100', 'cursor-not-allowed', 'text-gray-400');
+            } else {
+                contractPeriodIn.disabled = true;
+                contractPeriodIn.classList.add('bg-gray-100', 'cursor-not-allowed', 'text-gray-400');
+            }
+        }
 
         const editManagerList = document.getElementById('editClientManagerList');
         if (editManagerList) {
@@ -2490,7 +2532,7 @@ safeAddListener('editClientForm', 'submit', async (e) => {
     const memoIn = document.getElementById('edit_c_memo');
     const instaDateIn = document.getElementById('edit_c_instaDate');
     const metaDateIn = document.getElementById('edit_c_metaDate');
-    const contractPeriodIn = document.getElementById('edit_c_contractPeriod'); // 🌟 추가됨
+    const contractPeriodIn = document.getElementById('edit_c_contractPeriod'); 
 
     let updatedManagers = clientsMap[currentEditClientId].managers || [];
     
@@ -2517,7 +2559,7 @@ safeAddListener('editClientForm', 'submit', async (e) => {
             memo: memoIn ? memoIn.value : (clientsMap[currentEditClientId].memo || ''),
             instaDate: instaDateIn ? instaDateIn.value : (clientsMap[currentEditClientId].instaDate || ''),
             metaDate: metaDateIn ? metaDateIn.value : (clientsMap[currentEditClientId].metaDate || ''),
-            contractPeriod: contractPeriodIn ? contractPeriodIn.value : (clientsMap[currentEditClientId].contractPeriod || ''), // 🌟 추가됨
+            contractPeriod: contractPeriodIn ? contractPeriodIn.value : (clientsMap[currentEditClientId].contractPeriod || ''), 
             managers: updatedManagers,
             updatedAt: new Date().toISOString()
         });
@@ -2697,7 +2739,6 @@ function renderClientsPage(page) {
     checkAllNavBadges();
 }
 
-// 🌟 [수정됨] 예산 전용 대시보드 및 테이블 렌더링 (충전금액, 충전대기, 계약기간 열 반영)
 function renderBudgetTable() {
     const budgetTbody = document.getElementById('budgetTable');
     if (!budgetTbody) return;
@@ -2719,7 +2760,7 @@ function renderBudgetTable() {
         const percent = maxBudget > 0 ? Math.min(100, (used / maxBudget) * 100) : 0;
         
         const formatWon = (val) => val.toLocaleString() + '원';
-        const contractPeriod = data.contractPeriod || '-'; // 🌟 추가됨
+        const contractPeriod = data.contractPeriod || '-'; 
 
         let budgetProgressHtml = `
             <div class="flex flex-col gap-1 w-full min-w-[150px]">
@@ -2734,9 +2775,9 @@ function renderBudgetTable() {
                 <td class="p-3 md:p-4 font-black text-gray-900 align-middle whitespace-nowrap">${data.name}</td>
                 <td class="p-3 md:p-4 font-bold text-gray-700 align-middle whitespace-nowrap">${formatWon(total)}</td>
                 <td class="p-3 md:p-4 font-bold text-blue-600 align-middle whitespace-nowrap">${formatWon(recharged)}</td>
-                <td class="p-3 md:p-4 font-bold text-amber-600 align-middle whitespace-nowrap">${formatWon(used)}</td> <!-- 충전금액 -->
-                <td class="p-3 md:p-4 font-black text-hermes align-middle whitespace-nowrap">${formatWon(remaining)}</td> <!-- 충전대기 -->
-                <td class="p-3 md:p-4 font-bold text-blue-700 align-middle whitespace-nowrap">${contractPeriod}</td> <!-- 🌟 계약기간 열 추가됨 -->
+                <td class="p-3 md:p-4 font-bold text-amber-600 align-middle whitespace-nowrap">${formatWon(used)}</td> 
+                <td class="p-3 md:p-4 font-black text-hermes align-middle whitespace-nowrap">${formatWon(remaining)}</td> 
+                <td class="p-3 md:p-4 font-bold text-blue-700 align-middle whitespace-nowrap">${contractPeriod}</td> 
                 <td class="p-3 md:p-4 align-middle whitespace-nowrap">
                     <div class="text-xs font-bold text-gray-600 mb-1">${percent.toFixed(1)}%</div>
                     ${budgetProgressHtml}
@@ -2760,7 +2801,6 @@ function renderBudgetTable() {
     if(elRemaining) elRemaining.innerText = ((sumTotal + sumRecharged) - sumSpent).toLocaleString() + '원';
 }
 
-// 예산 수정 모달 열기 로직
 function openBudgetEditModal(clientId) {
     const client = clientsMap[clientId];
     if (!client) return;
@@ -2782,7 +2822,6 @@ function openBudgetEditModal(clientId) {
     }
 }
 
-// 예산 폼 제출 이벤트 바인딩
 safeAddListener('budgetEditForm', 'submit', async (e) => {
     e.preventDefault();
     if (!currentEditBudgetId) return;

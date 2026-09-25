@@ -43,7 +43,7 @@ let tasksMap = {};
 let clientsMap = {};
 let libraryMap = {}; 
 
-let allTasksData = []; // 🌟 추가됨: 검색 필터링을 위한 전역 배열
+let allTasksData = []; // 검색 필터링을 위한 전역 배열
 
 // 예산 관리 및 페이지네이션 전역 변수
 let currentEditBudgetId = null;
@@ -61,20 +61,18 @@ let currentClientIP = '127.0.0.1';
 // 신규 댓글 작성용 드래그앤드롭 누적 파일 배열
 let newCommentSelectedFiles = [];
 
-// 🌟 [추가됨] 클라이언트 상호명 비교 시 띄어쓰기 및 대소문자 제거 정규화 헬퍼
+// 클라이언트 상호명 비교 시 띄어쓰기 및 대소문자 제거 정규화 헬퍼
 const normalizeName = (str) => (str || '').replace(/\s+/g, '').toLowerCase();
 
-// 🌟 [추가됨] 상호명 띄어쓰기 차이, 포함 관계를 지능적으로 검색하는 클라이언트 매칭 함수
+// 상호명 띄어쓰기 차이, 포함 관계를 지능적으로 검색하는 클라이언트 매칭 함수
 const findClientByName = (clientName) => {
     if (!clientName || clientName === "📢 전체 공지") return null;
     const target = normalizeName(clientName);
     if (!target) return null;
 
-    // 1단계: 띄어쓰기 및 대소문자 제거 완벽 일치 검색
     let found = allClientsData.find(c => normalizeName(c.name) === target);
     if (found) return found;
 
-    // 2단계: 상호명 포함 관계 검색 (예: '정원용 회계사' <-> '정원용회계사사무소', '코웨이' <-> '코웨이 메타')
     return allClientsData.find(c => {
         const cNorm = normalizeName(c.name);
         return cNorm && (cNorm.includes(target) || target.includes(cNorm));
@@ -423,7 +421,7 @@ safeAddListener('libViewCountBadgeBtn', 'click', (e) => toggleViewerTooltip('lib
 });
 
 // ============================================================================
-// 4. 주/부 담당자 선택 UI 생성 헬퍼 함수 (모달 내 재사용) - 🌟 전체 선택 버튼 추가
+// 4. 주/부 담당자 선택 UI 생성 헬퍼 함수
 // ============================================================================
 async function buildManagerSelectionUI(containerEl, currentManagersArr, checkboxClassName, primarySelectId) {
     containerEl.innerHTML = '<div class="text-xs text-gray-400 p-2 text-center font-bold"><i class="fa-solid fa-spinner animate-spin mr-1"></i> 멤버 목록 불러오는 중...</div>';
@@ -440,7 +438,6 @@ async function buildManagerSelectionUI(containerEl, currentManagersArr, checkbox
                     <option value="">선택 안함</option>
         `;
         
-        // 🌟 [추가됨] 전체 선택 버튼 UI 렌더링
         let checkHtml = `
             <div>
                 <div class="flex justify-between items-center mb-1">
@@ -468,12 +465,10 @@ async function buildManagerSelectionUI(containerEl, currentManagersArr, checkbox
         
         containerEl.innerHTML = selectHtml + checkHtml;
 
-        // 🌟 [추가됨] 전체 선택/해제 기능 이벤트 리스너
         const selectAllBtn = containerEl.querySelector(`.${checkboxClassName}-select-all`);
         if (selectAllBtn) {
             let isAllSelected = false;
             
-            // 기존 렌더링 시 이미 전체가 선택되어 있는지 확인하여 버튼 텍스트 초기화
             const allCheckboxes = containerEl.querySelectorAll(`.${checkboxClassName}`);
             const checkedBoxes = containerEl.querySelectorAll(`.${checkboxClassName}:checked`);
             if (allCheckboxes.length > 0 && allCheckboxes.length === checkedBoxes.length) {
@@ -493,7 +488,6 @@ async function buildManagerSelectionUI(containerEl, currentManagersArr, checkbox
         containerEl.innerHTML = '<div class="text-xs text-red-500 p-2 text-center">멤버 목록 로드 실패</div>';
     }
 }
-
 
 // ============================================================================
 // 5. 전역 문서 클릭 및 알림 이벤트 
@@ -716,21 +710,20 @@ safeAddListener('inputClient', 'change', (e) => {
         return;
     }
     
-    // 🌟 정규화 매칭 적용
     const client = findClientByName(clientName);
     if (client) {
         const total = Number(client.totalBudget) || 0;
         const recharged = Number(client.rechargedBudget) || 0;
         const used = Number(client.usedBudget) || 0;
         const rem = (total + recharged) - used;
-        infoDiv.innerHTML = `<span class="font-bold text-hermes">현재 잔여 예산: ${rem.toLocaleString()}원</span> (총 ${((total+recharged)/10000).toLocaleString()}만 / 소진 ${(used/10000).toLocaleString()}만)`;
+        // 명칭 변경 적용: 충전대기, 충전
+        infoDiv.innerHTML = `<span class="font-bold text-hermes">현재 충전대기: ${rem.toLocaleString()}원</span> (총 ${((total+recharged)/10000).toLocaleString()}만 / 충전금액 ${(used/10000).toLocaleString()}만)`;
         infoDiv.classList.remove('hidden');
     } else {
         infoDiv.classList.add('hidden');
     }
 });
 
-// 전역 윈도우 스코프 함수 바인딩
 window.openEditTaskModal = openEditTaskModal;
 window.openAssignModal = openAssignModal;
 window.deleteTask = deleteTask;
@@ -739,7 +732,6 @@ window.openEditClientModal = openEditClientModal;
 window.deleteClient = deleteClient;
 window.openBudgetEditModal = openBudgetEditModal;
 
-// 🌟 [추가됨] 업무 게시판 필터링 이벤트 연동
 safeAddListener('taskSearchTarget', 'change', applyTaskFilters);
 safeAddListener('taskSearchKeyword', 'input', applyTaskFilters);
 safeAddListener('taskStatusFilter', 'change', applyTaskFilters);
@@ -1458,7 +1450,6 @@ function updateNotifications(tasksList) {
     if (notifList) notifList.innerHTML = buildNotifHtml(myNotifs);
 }
 
-// 대시보드 상단 카운터 전용 분리 함수
 function updateDashboardStats(tasksList) {
     const statTotalEl = document.getElementById('statTotal');
     const statWaitEl = document.getElementById('statWait');
@@ -1488,17 +1479,14 @@ function updateDashboardStats(tasksList) {
     statDoneEl.innerHTML = `${done}<span class="text-xs font-medium text-gray-500 ml-1">건</span>`;
 }
 
-// 🌟 [추가됨] 업무 게시판 검색 필터 적용 함수
 function applyTaskFilters() {
     const target = document.getElementById('taskSearchTarget') ? document.getElementById('taskSearchTarget').value : 'all';
     const keyword = document.getElementById('taskSearchKeyword') ? document.getElementById('taskSearchKeyword').value.trim().toLowerCase() : '';
     const status = document.getElementById('taskStatusFilter') ? document.getElementById('taskStatusFilter').value : 'all';
 
     const filteredData = allTasksData.filter(task => {
-        // 1. 상태 필터 (전체 또는 일치)
         if (status !== 'all' && task.status !== status) return false;
 
-        // 2. 키워드 필터
         if (keyword) {
             const clientName = (task.client || '').toLowerCase();
             const titleName = (task.title || '').toLowerCase();
@@ -1507,7 +1495,7 @@ function applyTaskFilters() {
                 if (!clientName.includes(keyword)) return false;
             } else if (target === 'title') {
                 if (!titleName.includes(keyword)) return false;
-            } else { // 'all'
+            } else { 
                 if (!clientName.includes(keyword) && !titleName.includes(keyword)) return false;
             }
         }
@@ -1517,7 +1505,6 @@ function applyTaskFilters() {
     renderTasksTable(filteredData);
 }
 
-// 🌟 [추가됨] 업무 게시판 테이블 동적 렌더링 함수
 function renderTasksTable(dataToRender) {
     const tbody = document.getElementById('boardTable');
     const emptyState = document.getElementById('emptyState');
@@ -1655,8 +1642,8 @@ async function fetchTasks() {
         renderRollingTickers(fetchedData);
         updateNotifications(fetchedData);
 
-        allTasksData = fetchedData; // 🌟 전체 데이터를 전역 배열에 업데이트
-        applyTaskFilters();         // 🌟 필터 조건 기반으로 테이블 렌더링 진행
+        allTasksData = fetchedData; 
+        applyTaskFilters();         
 
     } catch (e) { console.error("Firestore fetch tasks error:", e); }
 }
@@ -1778,7 +1765,7 @@ async function openDetailModal(taskId) {
                 tasksMap[taskId].status = newStatus;
                 await logActivity("상태 변경", `[${task.title}] 상태를 '${newStatus}'(으)로 변경`);
                 alert(`상태가 '${newStatus}'(으)로 변경되었습니다.`);
-                fetchTasks(); // 데이터 갱신 시 자동 필터 적용됨
+                fetchTasks();
             } catch(err) {
                 alert("상태 변경 실패: " + err.message);
             }
@@ -1821,7 +1808,6 @@ async function openDetailModal(taskId) {
     const budgetRemainingEl = document.getElementById('detailBudgetRemaining');
     const budgetStatusEl = document.getElementById('detailClientBudgetStatus');
 
-    // 🌟 [수정됨] 상호명/띄어쓰기/부분 일치 매칭을 지원하는 findClientByName 헬퍼 함수 적용
     const mappedClient = findClientByName(task.client);
 
     if (mappedClient && budgetTotalEl) {
@@ -1835,19 +1821,18 @@ async function openDetailModal(taskId) {
         budgetSpentEl.innerText = sB.toLocaleString() + '원';
         budgetRemainingEl.innerText = remB.toLocaleString() + '원';
 
-        // 🌟 [추가됨] 집행 소진액 라벨 옆에 통통 튀는 빨간색 ING 배지 동적 삽입
         if (budgetSpentEl && budgetSpentEl.parentElement) {
             const spentLabelSpan = budgetSpentEl.parentElement.querySelector('span');
             if (spentLabelSpan) {
-                spentLabelSpan.innerHTML = `집행 소진액 <span class="inline-inline-flex items-center text-[9px] font-black text-red-500 bg-red-100 px-1 py-0.2 rounded-full animate-bounce ml-0.5 border border-red-200">ING</span>`;
+                spentLabelSpan.innerHTML = `충전금액 <span class="inline-flex items-center text-[9px] font-black text-red-500 bg-red-100 px-1 py-0.2 rounded-full animate-bounce ml-0.5 border border-red-200">ING</span>`;
             }
         }
 
         if (remB < 0) {
-            budgetStatusEl.innerText = '예산 초과';
+            budgetStatusEl.innerText = '충전금액 초과';
             budgetStatusEl.className = 'text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-bold';
         } else if (remB === 0 && (tB + rB) > 0) {
-            budgetStatusEl.innerText = '예산 소진';
+            budgetStatusEl.innerText = '충전대기 소진';
             budgetStatusEl.className = 'text-[10px] bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded font-bold';
         } else {
             budgetStatusEl.innerText = '정상 운영중';
@@ -2387,6 +2372,7 @@ safeAddListener('clientForm', 'submit', async (e) => {
     const memoIn = document.getElementById('c_memo');
     const instaDateIn = document.getElementById('c_instaDate');
     const metaDateIn = document.getElementById('c_metaDate');
+    const contractPeriodIn = document.getElementById('c_contractPeriod'); // 🌟 추가됨
 
     const submitBtn = clientModal.querySelector('button[type="submit"]');
     const origText = submitBtn ? submitBtn.innerText : '저장';
@@ -2404,12 +2390,13 @@ safeAddListener('clientForm', 'submit', async (e) => {
             metaPw: metaPwIn ? metaPwIn.value : '',
             metaEmail: metaEmailIn ? metaEmailIn.value : '', 
             metaPhone: metaPhoneIn ? metaPhoneIn.value : '', 
-            memo: memoIn ? memoIn.value : '',               
+            memo: memoIn ? memoIn.value : '',                
             totalBudget: 0,        
             rechargedBudget: 0,
             usedBudget: 0,
             instaDate: instaDateIn ? instaDateIn.value : '',
             metaDate: metaDateIn ? metaDateIn.value : '',
+            contractPeriod: contractPeriodIn ? contractPeriodIn.value : '', // 🌟 추가됨
             registeredBy: currentUserName,
             managers: [currentUserName], 
             createdAt: new Date().toISOString()
@@ -2465,6 +2452,7 @@ async function openEditClientModal(clientId) {
         const memoIn = document.getElementById('edit_c_memo');
         const instaDateIn = document.getElementById('edit_c_instaDate');
         const metaDateIn = document.getElementById('edit_c_metaDate');
+        const contractPeriodIn = document.getElementById('edit_c_contractPeriod'); // 🌟 추가됨
 
         if (nameIn) nameIn.value = client.name || '';
         if (homeIn) homeIn.value = client.homeUrl || '';
@@ -2476,6 +2464,7 @@ async function openEditClientModal(clientId) {
         if (memoIn) memoIn.value = client.memo || '';
         if (instaDateIn) instaDateIn.value = client.instaDate || '';
         if (metaDateIn) metaDateIn.value = client.metaDate || '';
+        if (contractPeriodIn) contractPeriodIn.value = client.contractPeriod || ''; // 🌟 추가됨
 
         const editManagerList = document.getElementById('editClientManagerList');
         if (editManagerList) {
@@ -2501,6 +2490,7 @@ safeAddListener('editClientForm', 'submit', async (e) => {
     const memoIn = document.getElementById('edit_c_memo');
     const instaDateIn = document.getElementById('edit_c_instaDate');
     const metaDateIn = document.getElementById('edit_c_metaDate');
+    const contractPeriodIn = document.getElementById('edit_c_contractPeriod'); // 🌟 추가됨
 
     let updatedManagers = clientsMap[currentEditClientId].managers || [];
     
@@ -2527,6 +2517,7 @@ safeAddListener('editClientForm', 'submit', async (e) => {
             memo: memoIn ? memoIn.value : (clientsMap[currentEditClientId].memo || ''),
             instaDate: instaDateIn ? instaDateIn.value : (clientsMap[currentEditClientId].instaDate || ''),
             metaDate: metaDateIn ? metaDateIn.value : (clientsMap[currentEditClientId].metaDate || ''),
+            contractPeriod: contractPeriodIn ? contractPeriodIn.value : (clientsMap[currentEditClientId].contractPeriod || ''), // 🌟 추가됨
             managers: updatedManagers,
             updatedAt: new Date().toISOString()
         });
@@ -2706,7 +2697,7 @@ function renderClientsPage(page) {
     checkAllNavBadges();
 }
 
-// 예산 전용 대시보드 및 테이블 렌더링
+// 🌟 [수정됨] 예산 전용 대시보드 및 테이블 렌더링 (충전금액, 충전대기, 계약기간 열 반영)
 function renderBudgetTable() {
     const budgetTbody = document.getElementById('budgetTable');
     if (!budgetTbody) return;
@@ -2728,6 +2719,7 @@ function renderBudgetTable() {
         const percent = maxBudget > 0 ? Math.min(100, (used / maxBudget) * 100) : 0;
         
         const formatWon = (val) => val.toLocaleString() + '원';
+        const contractPeriod = data.contractPeriod || '-'; // 🌟 추가됨
 
         let budgetProgressHtml = `
             <div class="flex flex-col gap-1 w-full min-w-[150px]">
@@ -2742,8 +2734,9 @@ function renderBudgetTable() {
                 <td class="p-3 md:p-4 font-black text-gray-900 align-middle whitespace-nowrap">${data.name}</td>
                 <td class="p-3 md:p-4 font-bold text-gray-700 align-middle whitespace-nowrap">${formatWon(total)}</td>
                 <td class="p-3 md:p-4 font-bold text-blue-600 align-middle whitespace-nowrap">${formatWon(recharged)}</td>
-                <td class="p-3 md:p-4 font-bold text-amber-600 align-middle whitespace-nowrap">${formatWon(used)}</td>
-                <td class="p-3 md:p-4 font-black text-hermes align-middle whitespace-nowrap">${formatWon(remaining)}</td>
+                <td class="p-3 md:p-4 font-bold text-amber-600 align-middle whitespace-nowrap">${formatWon(used)}</td> <!-- 충전금액 -->
+                <td class="p-3 md:p-4 font-black text-hermes align-middle whitespace-nowrap">${formatWon(remaining)}</td> <!-- 충전대기 -->
+                <td class="p-3 md:p-4 font-bold text-blue-700 align-middle whitespace-nowrap">${contractPeriod}</td> <!-- 🌟 계약기간 열 추가됨 -->
                 <td class="p-3 md:p-4 align-middle whitespace-nowrap">
                     <div class="text-xs font-bold text-gray-600 mb-1">${percent.toFixed(1)}%</div>
                     ${budgetProgressHtml}
@@ -3233,7 +3226,7 @@ safeAddListener('googleLoginBtn', 'click', async () => {
                 alert(`리디렉션 로그인 오류: ${redirErr.message}`);
             }
         } else if (error.code === 'auth/unauthorized-domain') {
-            alert("Google Cloud Console(GCP) '승인된 자바스크립트 원본'에 https://adplanters.github.io 도메인이 추가되었는지 점검해 주세요.");
+            alert("Google Cloud Console(GCP) '승인된 자바스크립트 원본'에 도메인이 추가되었는지 점검해 주세요.");
         } else if (error.code !== 'auth/popup-closed-by-user') {
             alert(`Google 로그인 인증 실패\n(사유: [${error.code}] ${error.message})`);
         }

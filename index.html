@@ -322,14 +322,14 @@
                 <div class="flex justify-between items-center mb-6">
                     <div>
                         <h2 class="text-xl md:text-2xl font-black text-gray-900"><i class="fa-solid fa-wallet text-hermes mr-2"></i> 클라이언트 예산 통합 관리</h2>
-                        <p class="text-xs text-gray-500 mt-1 font-medium">전체 클라이언트의 기본 계약 예산, 추가 충전액 및 집행 잔액을 실시간으로 추적합니다.</p>
+                        <p class="text-xs text-gray-500 mt-1 font-medium">전체 클라이언트의 기본 계약 예산, 추가 충전액 및 충전대기 금액을 실시간으로 추적합니다.</p>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                     <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm"><span class="text-xs font-bold text-gray-400 uppercase">전체 기본 계약 예산</span><div id="kpiTotalBudget" class="text-xl md:text-2xl font-black text-gray-900 mt-1">0원</div></div>
                     <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm"><span class="text-xs font-bold text-gray-400 uppercase">전체 누적 충전 예산</span><div id="kpiRechargedBudget" class="text-xl md:text-2xl font-black text-blue-600 mt-1">0원</div></div>
-                    <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm"><span class="text-xs font-bold text-gray-400 uppercase">전체 총 집행/소진액</span><div id="kpiSpentBudget" class="text-xl md:text-2xl font-black text-amber-600 mt-1">0원</div></div>
-                    <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm"><span class="text-xs font-bold text-gray-400 uppercase">전체 총 남은 예산</span><div id="kpiRemainingBudget" class="text-xl md:text-2xl font-black text-hermes mt-1">0원</div></div>
+                    <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm"><span class="text-xs font-bold text-gray-400 uppercase">전체 총 충전금액</span><div id="kpiSpentBudget" class="text-xl md:text-2xl font-black text-amber-600 mt-1">0원</div></div>
+                    <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm"><span class="text-xs font-bold text-gray-400 uppercase">전체 총 충전대기</span><div id="kpiRemainingBudget" class="text-xl md:text-2xl font-black text-hermes mt-1">0원</div></div>
                 </div>
                 <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
                     <div class="p-4 md:p-5 border-b border-gray-100 bg-white"><h3 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-list text-hermes mr-2"></i> 클라이언트별 예산 현황 리스트</h3></div>
@@ -340,8 +340,9 @@
                                     <th class="p-3 md:p-4 font-bold">클라이언트명</th>
                                     <th class="p-3 md:p-4 font-bold">기본 계약 예산</th>
                                     <th class="p-3 md:p-4 font-bold">누적 충전액</th>
-                                    <th class="p-3 md:p-4 font-bold">집행 소진액</th>
-                                    <th class="p-3 md:p-4 font-bold">현재 남은 예산</th>
+                                    <th class="p-3 md:p-4 font-bold">충전금액</th>
+                                    <th class="p-3 md:p-4 font-bold">충전대기</th>
+                                    <th class="p-3 md:p-4 font-bold text-blue-600">계약 기간/마감일</th>
                                     <th class="p-3 md:p-4 font-bold">소진율(%)</th>
                                     <th class="p-3 md:p-4 font-bold text-center">예산 수정</th>
                                 </tr>
@@ -447,11 +448,17 @@
                     <div class="col-span-1 sm:col-span-2"><label class="block text-[10px] font-bold text-gray-600 mb-1">특이사항 (메모)</label><input type="text" id="c_memo" placeholder="기타 전달사항" class="w-full text-xs border border-gray-300 rounded-md p-2 focus:border-hermes outline-none"></div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-2">
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">7. 인스타 기술작업 시작일</label><input type="date" id="c_instaDate" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">8. 메타 광고 시작 예정일</label><input type="date" id="c_metaDate" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                 </div>
-                <div><label class="block text-xs font-bold text-gray-700 mb-1">9. 등록자 (자동입력 및 자동 배정)</label><input type="text" id="c_registerName" readonly class="w-full text-sm bg-gray-50 border border-gray-200 text-gray-500 rounded-lg p-2.5 outline-none font-bold"></div>
+                
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">9. 계약 기간/마감일</label>
+                    <input type="text" id="c_contractPeriod" placeholder="예: 2024.01.01 ~ 2024.12.31" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none">
+                </div>
+
+                <div><label class="block text-xs font-bold text-gray-700 mb-1">10. 등록자 (자동입력 및 자동 배정)</label><input type="text" id="c_registerName" readonly class="w-full text-sm bg-gray-50 border border-gray-200 text-gray-500 rounded-lg p-2.5 outline-none font-bold"></div>
                 <div class="flex justify-end gap-2 pt-4 border-t mt-5"><button type="button" id="cancelClientBtn" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-xs font-bold">취소</button><button type="submit" class="px-5 py-2 bg-hermes hover:bg-hermes-hover text-white rounded-xl text-xs font-bold shadow-md">클라이언트 등록</button></div>
             </form>
         </div>
@@ -492,6 +499,12 @@
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">7. 인스타 기술작업 시작일</label><input type="date" id="edit_c_instaDate" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">8. 메타 광고 시작 예정일</label><input type="date" id="edit_c_metaDate" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                 </div>
+                
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">9. 계약 기간/마감일</label>
+                    <input type="text" id="edit_c_contractPeriod" placeholder="예: 2024.01.01 ~ 2024.12.31" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none">
+                </div>
+
                 <div class="flex justify-end gap-2 pt-4 border-t mt-5"><button type="button" id="cancelEditClientBtn" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-xs font-bold">취소</button><button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md">수정사항 저장</button></div>
             </form>
         </div>
@@ -518,8 +531,12 @@
                     <input type="number" id="edit_b_recharge" required placeholder="0" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-blue-500 outline-none font-bold text-blue-600">
                 </div>
                 <div>
-                    <label class="block text-[10px] font-bold text-gray-700 mb-1">집행/소진액 (원)</label>
+                    <label class="block text-[10px] font-bold text-gray-700 mb-1">충전금액 (원)</label>
                     <input type="number" id="edit_b_used" required placeholder="0" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-blue-500 outline-none font-bold text-red-500">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-700 mb-1">계약 기간/마감일</label>
+                    <input type="text" id="edit_b_contract" placeholder="예: 2024.01.01 ~ 2024.12.31" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-blue-500 outline-none font-bold">
                 </div>
                 <div class="flex justify-end gap-2 border-t pt-4">
                     <button type="button" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-xs font-bold" onclick="document.getElementById('budgetEditModal').classList.add('hidden')">취소</button>
@@ -765,8 +782,8 @@
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-white p-2 rounded-lg border border-gray-200 text-[11px]">
                         <div><span class="text-gray-400 block text-[10px]">계약 총예산</span> <strong id="detailBudgetTotal" class="text-gray-800 font-bold block">0원</strong></div>
                         <div><span class="text-gray-400 block text-[10px]">누적 충전</span> <strong id="detailBudgetRecharged" class="text-blue-600 font-bold block">0원</strong></div>
-                        <div><span class="text-gray-400 block text-[10px]">집행 소진액 <span class="inline-flex items-center text-[9px] font-black text-red-500 bg-red-100 px-1 py-0.2 rounded-full animate-bounce ml-0.5 border border-red-200">ING</span></span> <strong id="detailBudgetSpent" class="text-amber-600 font-bold block">0원</strong></div>
-                        <div><span class="text-gray-400 block text-[10px]">현재 남은 예산</span> <strong id="detailBudgetRemaining" class="text-hermes font-black block">0원</strong></div>
+                        <div><span class="text-gray-400 block text-[10px]">충전금액 <span class="inline-flex items-center text-[9px] font-black text-red-500 bg-red-100 px-1 py-0.2 rounded-full animate-bounce ml-0.5 border border-red-200">ING</span></span> <strong id="detailBudgetSpent" class="text-amber-600 font-bold block">0원</strong></div>
+                        <div><span class="text-gray-400 block text-[10px]">충전대기</span> <strong id="detailBudgetRemaining" class="text-hermes font-black block">0원</strong></div>
                     </div>
                 </div>
             </div>

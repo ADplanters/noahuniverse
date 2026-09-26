@@ -1,7 +1,7 @@
 /**
  * ADplanters x NOAH UNIVERSE - Application Main Module
  * File Location: ./js/app.js
- * Version: 1.4.0 (Fixed Tooltip & Aligned Table Headers)
+ * Version: 1.4.0 (Fixed Tooltip Clipping & Table Cell Overflows)
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -536,7 +536,7 @@ function renderSideMemoWidget() {
 }
 
 // ============================================================================
-// 🌟 3.6. 마우스 호버 시 잘림 없는 최상위 흰색 메모지 툴팁 DOM 생성 & 제어
+// 🌟 3.6. 잘림 없는 최상위 화이트 메모지 스타일 커스텀 글로벌 툴팁 DOM 생성 & 위치 정밀 제어
 // ============================================================================
 function getOrCreateGlobalTooltip() {
     let tooltip = document.getElementById('globalMemoTooltip');
@@ -545,8 +545,8 @@ function getOrCreateGlobalTooltip() {
         tooltip.id = 'globalMemoTooltip';
         tooltip.innerHTML = `
             <div class="memo-tooltip-header">
-                <i class="fa-solid fa-note-sticky"></i>
-                <span>메모 내용</span>
+                <i class="fa-solid fa-sticky-note"></i>
+                <span>메모 상세 내용</span>
             </div>
             <div class="memo-tooltip-body" id="globalMemoTooltipBody"></div>
         `;
@@ -555,31 +555,31 @@ function getOrCreateGlobalTooltip() {
     return tooltip;
 }
 
-function showMemoTooltip(text, e) {
-    if (!text) return;
+function showGlobalMemoTooltip(text, e) {
+    if (!text || text === '-') return;
     const tooltip = getOrCreateGlobalTooltip();
     const bodyEl = document.getElementById('globalMemoTooltipBody');
     if (bodyEl) bodyEl.textContent = text;
 
     tooltip.classList.add('visible');
-    positionMemoTooltip(e);
+    positionGlobalMemoTooltip(e);
 }
 
-function moveMemoTooltip(e) {
+function moveGlobalMemoTooltip(e) {
     const tooltip = document.getElementById('globalMemoTooltip');
     if (tooltip && tooltip.classList.contains('visible')) {
-        positionMemoTooltip(e);
+        positionGlobalMemoTooltip(e);
     }
 }
 
-function hideMemoTooltip() {
+function hideGlobalMemoTooltip() {
     const tooltip = document.getElementById('globalMemoTooltip');
     if (tooltip) {
         tooltip.classList.remove('visible');
     }
 }
 
-function positionMemoTooltip(e) {
+function positionGlobalMemoTooltip(e) {
     const tooltip = document.getElementById('globalMemoTooltip');
     if (!tooltip) return;
 
@@ -590,16 +590,36 @@ function positionMemoTooltip(e) {
     const tooltipWidth = tooltip.offsetWidth || 220;
     const tooltipHeight = tooltip.offsetHeight || 80;
 
-    // 우측/하단 화면 잘림 방지 (뷰포트 안쪽으로 자동 밀어넣기)
+    // 우측 화면 한계 진입 시 마우스 커서 좌측 옆으로 자동 전환
     if (left + tooltipWidth > window.innerWidth - 16) {
         left = e.clientX - tooltipWidth - offset;
     }
+    // 하단 화면 한계 진입 시 마우스 커서 위쪽 옆으로 자동 전환
     if (top + tooltipHeight > window.innerHeight - 16) {
         top = e.clientY - tooltipHeight - offset;
     }
+    // 상단 및 좌측 바운더리 보장
+    if (top < 16) top = 16;
+    if (left < 16) left = 16;
 
-    tooltip.style.left = `${Math.max(16, left)}px`;
-    tooltip.style.top = `${Math.max(16, top)}px`;
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+}
+
+function bindMemoTooltipEvents(containerEl) {
+    if (!containerEl) return;
+    containerEl.querySelectorAll('.memo-hover-trigger').forEach(el => {
+        el.addEventListener('mouseenter', (e) => {
+            const memoStr = el.getAttribute('data-memo');
+            showGlobalMemoTooltip(memoStr, e);
+        });
+        el.addEventListener('mousemove', (e) => {
+            moveGlobalMemoTooltip(e);
+        });
+        el.addEventListener('mouseleave', () => {
+            hideGlobalMemoTooltip();
+        });
+    });
 }
 
 // ============================================================================
@@ -2935,15 +2955,16 @@ function renderClientsPage(page) {
 
         let metaExtraHtml = '';
         if(data.metaEmail || data.metaPhone || data.memo) {
+            const memoSnippet = data.memo ? `<div class="pt-1 mt-1 border-t border-gray-200 text-gray-600 truncate max-w-[180px] memo-hover-trigger cursor-pointer" data-memo="${data.memo.replace(/"/g, '&quot;')}"><i class="fa-solid fa-note-sticky text-orange-400 text-[10px] mr-1"></i>${data.memo}</div>` : '';
             metaExtraHtml = `
-                <div class="mt-2 text-[10px] text-gray-500 bg-gray-50 p-2 rounded-lg border border-gray-200 min-w-[160px]">
-                    ${data.metaEmail ? `<div class="mb-0.5 flex items-start gap-1"><span class="font-bold text-gray-400 mt-0.5">E:</span> <span class="break-all">${data.metaEmail}</span></div>` : ''}
-                    ${data.metaPhone ? `<div class="mb-0.5 flex items-start gap-1"><span class="font-bold text-gray-400 mt-0.5">P:</span> <span class="break-all">${data.metaPhone}</span></div>` : ''}
-                    ${data.memo ? `<div class="pt-1 mt-1 border-t border-gray-200 text-gray-600 line-clamp-2" title="${data.memo}">${data.memo}</div>` : ''}
+                <div class="mt-1 text-[10px] text-gray-500 bg-gray-50 p-2 rounded-lg border border-gray-200 max-w-[200px]">
+                    ${data.metaEmail ? `<div class="mb-0.5 flex items-start gap-1"><span class="font-bold text-gray-400">E:</span> <span class="truncate max-w-[150px]">${data.metaEmail}</span></div>` : ''}
+                    ${data.metaPhone ? `<div class="mb-0.5 flex items-start gap-1"><span class="font-bold text-gray-400">P:</span> <span class="truncate max-w-[150px]">${data.metaPhone}</span></div>` : ''}
+                    ${memoSnippet}
                 </div>
             `;
         } else {
-            metaExtraHtml = `<div class="mt-2 text-[10px] text-gray-400 italic">추가 정보 없음</div>`;
+            metaExtraHtml = `<div class="mt-1 text-[10px] text-gray-400 italic">추가 정보 없음</div>`;
         }
 
         const tr = `
@@ -2970,6 +2991,8 @@ function renderClientsPage(page) {
         `;
         tbody.innerHTML += tr;
     });
+
+    bindMemoTooltipEvents(tbody);
 
     if (totalPages > 1 && pagination) {
         pagination.classList.remove('hidden');
@@ -3045,7 +3068,7 @@ function renderBudgetTable() {
 
         // 🌟 잘림 없는 마우스 호버 이벤트를 지원하는 메모 요소 생성
         const memoContentHtml = memoText ? `
-            <span class="has-memo-tooltip truncate block max-w-[150px] text-gray-700 font-medium cursor-pointer" data-memo="${memoText.replace(/"/g, '&quot;')}">${memoText}</span>
+            <span class="memo-hover-trigger truncate block max-w-[150px] text-gray-700 font-medium cursor-pointer" data-memo="${memoText.replace(/"/g, '&quot;')}">${memoText}</span>
         ` : `<span class="text-gray-400">-</span>`;
 
         let budgetProgressHtml = `
@@ -3077,20 +3100,7 @@ function renderBudgetTable() {
         budgetTbody.innerHTML += tr;
     });
 
-    // 🌟 잘림 없는 최상위 툴팁 이벤트 리스너 연동
-    const memoElements = budgetTbody.querySelectorAll('.has-memo-tooltip');
-    memoElements.forEach(el => {
-        el.addEventListener('mouseenter', (e) => {
-            const memoStr = el.getAttribute('data-memo');
-            showMemoTooltip(memoStr, e);
-        });
-        el.addEventListener('mousemove', (e) => {
-            moveMemoTooltip(e);
-        });
-        el.addEventListener('mouseleave', () => {
-            hideMemoTooltip();
-        });
-    });
+    bindMemoTooltipEvents(budgetTbody);
 
     const elTotal = document.getElementById('kpiTotalBudget');
     const elRecharged = document.getElementById('kpiRechargedBudget');

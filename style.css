@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ADplanters x NOAH UNIVERSE - Global & Table Layout Stylesheet (v1.3.8)
+   ADplanters x NOAH UNIVERSE - Global & Table Layout Stylesheet (v1.3.9)
    ========================================================================== */
 
 /* 1. Global Reset & Layout Isolation */
@@ -122,6 +122,54 @@ table th {
   overflow-x: auto !important;
   -webkit-overflow-scrolling: touch;
   border-radius: 16px;
+}
+
+/* 🌟 마우스 오버 전용 고급 커스텀 툴팁 (Tooltip) */
+.memo-tooltip-container {
+  position: relative;
+  display: inline-block;
+  max-width: 160px;
+  cursor: pointer;
+}
+
+.memo-tooltip-container .memo-tooltip-text {
+  visibility: hidden;
+  opacity: 0;
+  width: max-content;
+  max-width: 280px;
+  background-color: #0f172a;
+  color: #ffffff;
+  text-align: left;
+  border-radius: 10px;
+  padding: 8px 12px;
+  position: absolute;
+  z-index: 9999;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25);
+  font-size: 11px;
+  font-weight: 500;
+  white-space: pre-wrap;
+  word-break: break-all;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  pointer-events: none;
+}
+
+.memo-tooltip-container .memo-tooltip-text::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #0f172a transparent transparent transparent;
+}
+
+.memo-tooltip-container:hover .memo-tooltip-text {
+  visibility: visible;
+  opacity: 1;
 }
 
 /* Rolling Ticker Box Animation */

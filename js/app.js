@@ -1,7 +1,7 @@
 /**
  * ADplanters x NOAH UNIVERSE - Application Main Module
  * File Location: ./js/app.js
- * Version: 1.3.8 (Perfect Column Alignment & Memo Integration)
+ * Version: 1.3.9 (Perfect Table Alignment & Hover Tooltip Added)
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -425,7 +425,7 @@ safeAddListener('libViewCountBadgeBtn', 'click', (e) => toggleViewerTooltip('lib
 });
 
 // ============================================================================
-// 🌟 3.5. Note 영역 UI (명칭 "Note"로 변경)
+// 🌟 3.5. Note 영역 UI (명칭 "Note" 적용)
 // ============================================================================
 function initSideMemoWidget() {
     const mainEl = document.querySelector('main');
@@ -2924,7 +2924,7 @@ function renderClientsPage(page) {
     checkAllNavBadges();
 }
 
-// 🌟 예산 관리 테이블 렌더링 (기타(메모) 열 렌더링 추가 및 수직 열 정렬 일치)
+// 🌟 예산 관리 테이블 렌더링 (동적 thead 9개 열 재구성 + 툴팁(Tooltip) 노출)
 function renderBudgetTable() {
     const budgetTbody = document.getElementById('budgetTable');
     if (!budgetTbody) return;
@@ -2937,23 +2937,22 @@ function renderBudgetTable() {
             parentContainer.classList.add('table-scroll-container');
         }
         
-        // 테이블 헤더의 8번째 열("기타(메모)")과 9번째 열("수정") 수직 열 너비 및 명칭 지정
-        const ths = tableEl.querySelectorAll('thead tr th');
-        if (ths.length >= 8) {
-            // 헤더 가공: 소진율 다음 열이 '기타(메모)', 마지막 열이 '수정'
-            if (ths[7]) {
-                ths[7].textContent = '기타(메모)';
-                ths[7].className = 'p-3 md:p-4 font-bold text-left whitespace-nowrap min-w-[150px]';
-            }
-            if (ths[8]) {
-                ths[8].textContent = '수정';
-                ths[8].className = 'p-3 md:p-4 font-bold text-center whitespace-nowrap w-24';
-            } else if (ths.length === 8) {
-                // index.html 헤더 개수가 8개일 경우 동적으로 수정 열 헤더 보완
-                const lastTh = ths[7];
-                lastTh.textContent = '수정';
-                lastTh.className = 'p-3 md:p-4 font-bold text-center whitespace-nowrap w-24';
-            }
+        // 동적으로 thead 9개 열 구조 보장 (헤더와 데이터 행의 정렬 1:1 완벽 통일)
+        const theadEl = tableEl.querySelector('thead');
+        if (theadEl) {
+            theadEl.innerHTML = `
+                <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
+                    <th class="p-3.5 md:p-4 font-bold whitespace-nowrap text-left">클라이언트명</th>
+                    <th class="p-3.5 md:p-4 font-bold whitespace-nowrap text-left">기본 계약 예산</th>
+                    <th class="p-3.5 md:p-4 font-bold whitespace-nowrap text-left">누적 충전액</th>
+                    <th class="p-3.5 md:p-4 font-bold whitespace-nowrap text-left">충전금액</th>
+                    <th class="p-3.5 md:p-4 font-bold whitespace-nowrap text-left">충전대기</th>
+                    <th class="p-3.5 md:p-4 font-bold text-blue-600 whitespace-nowrap text-left">계약 기간/마감일</th>
+                    <th class="p-3.5 md:p-4 font-bold whitespace-nowrap text-left">소진율(%)</th>
+                    <th class="p-3.5 md:p-4 font-bold whitespace-nowrap text-left min-w-[160px]">기타(메모)</th>
+                    <th class="p-3.5 md:p-4 font-bold whitespace-nowrap text-center w-24">수정</th>
+                </tr>
+            `;
         }
     }
 
@@ -2976,7 +2975,15 @@ function renderBudgetTable() {
         
         const formatWon = (val) => val.toLocaleString() + '원';
         const contractPeriod = data.contractPeriod || '-'; 
-        const memoText = data.memo || data.budgetMemo || '-';
+        const memoText = (data.memo || data.budgetMemo) ? (data.memo || data.budgetMemo) : '';
+
+        // 🌟 마우스 오버 시 전체 메모를 띄워주는 커스텀 툴팁(Tooltip) HTML 생성
+        const memoHtml = memoText ? `
+            <div class="memo-tooltip-container">
+                <span class="truncate block max-w-[150px] text-gray-700 font-medium">${memoText}</span>
+                <div class="memo-tooltip-text">${memoText}</div>
+            </div>
+        ` : `<span class="text-gray-400">-</span>`;
 
         let budgetProgressHtml = `
             <div class="flex flex-col gap-1 w-full min-w-[120px]">
@@ -2998,7 +3005,7 @@ function renderBudgetTable() {
                     <div class="text-xs font-bold text-gray-600 mb-1">${percent.toFixed(1)}%</div>
                     ${budgetProgressHtml}
                 </td>
-                <td class="p-3.5 md:p-4 text-xs font-medium text-gray-600 align-middle whitespace-nowrap max-w-[160px] truncate" title="${memoText}">${memoText}</td>
+                <td class="p-3.5 md:p-4 text-xs font-medium text-gray-600 align-middle whitespace-nowrap min-w-[160px]">${memoHtml}</td>
                 <td class="p-3.5 md:p-4 text-center align-middle whitespace-nowrap w-24">
                     <button type="button" class="edit-budget-btn bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl transition shadow-sm whitespace-nowrap cursor-pointer inline-flex items-center justify-center gap-1.5" data-id="${data.id}"><i class="fa-solid fa-pen-to-square"></i> 수정</button>
                 </td>

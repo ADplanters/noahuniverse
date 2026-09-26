@@ -1,7 +1,7 @@
 /**
  * ADplanters x NOAH UNIVERSE - Application Main Module
  * File Location: ./js/app.js
- * Version: 1.4.1 (Vertical Scroll & Max 8 Clients Pagination)
+ * Version: 1.4.2 (Task & Client Max 8 Items Pagination Implementation)
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -44,9 +44,13 @@ let tasksMap = {};
 let clientsMap = {};
 let libraryMap = {}; 
 
-let allTasksData = []; // 검색 필터링을 위한 전역 배열
+let allTasksData = []; // 검색/필터링용 전체 원본 배열
+let filteredTasksData = []; // 필터링 적용 후 보존 배열
 
-// 🌟 클라이언트 리스트 한 페이지당 최대 8개 팀으로 설정
+// 🌟 업무/이슈 및 클라이언트 리스트 한 페이지당 최대 8개 팀/항목으로 설정
+let currentTaskPage = 1;
+const TASKS_PER_PAGE = 8;
+
 let currentEditBudgetId = null;
 let allClientsData = [];
 let currentClientPage = 1;
@@ -1697,11 +1701,12 @@ function updateDashboardStats(tasksList) {
 }
 
 function applyTaskFilters() {
+    currentTaskPage = 1; // 필터 및 검색 변경 시 1페이지로 자동 리셋
     const target = document.getElementById('taskSearchTarget') ? document.getElementById('taskSearchTarget').value : 'all';
     const keyword = document.getElementById('taskSearchKeyword') ? document.getElementById('taskSearchKeyword').value.trim().toLowerCase() : '';
     const status = document.getElementById('taskStatusFilter') ? document.getElementById('taskStatusFilter').value : 'all';
 
-    const filteredData = allTasksData.filter(task => {
+    filteredTasksData = allTasksData.filter(task => {
         if (status !== 'all' && task.status !== status) return false;
 
         if (keyword) {
@@ -1719,17 +1724,38 @@ function applyTaskFilters() {
         return true;
     });
 
-    renderTasksTable(filteredData);
+    renderTasksPage(currentTaskPage);
 }
 
-function renderTasksTable(dataToRender) {
+// 🌟 업무 / Q&A 및 파트너 통합 보드 전용 페이지네이션 렌더링 (최대 8개 항목)
+function renderTasksPage(page) {
+    currentTaskPage = page;
     const tbody = document.getElementById('boardTable');
     const emptyState = document.getElementById('emptyState');
     if(!tbody) return;
 
     tbody.innerHTML = '';
-    if (dataToRender.length === 0) {
+
+    const totalPages = Math.ceil(filteredTasksData.length / TASKS_PER_PAGE);
+    const startIndex = (page - 1) * TASKS_PER_PAGE;
+    const endIndex = startIndex + TASKS_PER_PAGE;
+    const pageData = filteredTasksData.slice(startIndex, endIndex);
+
+    // 하단 페이지네이션 컨테이너 동적 검증 및 보완
+    let paginationEl = document.getElementById('taskPagination');
+    if (!paginationEl) {
+        const boardCard = tbody.closest('.bg-white');
+        if (boardCard) {
+            paginationEl = document.createElement('div');
+            paginationEl.id = 'taskPagination';
+            paginationEl.className = 'flex justify-center items-center gap-2 p-4 border-t border-gray-100 mt-auto shrink-0';
+            boardCard.appendChild(paginationEl);
+        }
+    }
+
+    if (filteredTasksData.length === 0) {
         if(emptyState) emptyState.style.display = 'flex';
+        if(paginationEl) paginationEl.classList.add('hidden');
         checkAllNavBadges();
         return;
     }
@@ -1737,7 +1763,7 @@ function renderTasksTable(dataToRender) {
     if(emptyState) emptyState.style.display = 'none';
     let rowsHtml = '';
 
-    dataToRender.forEach(item => {
+    pageData.forEach(item => {
         const isAdmin = checkIsAdmin();
         const isAuthor = checkIsAuthor(item);
 
@@ -1824,6 +1850,24 @@ function renderTasksTable(dataToRender) {
     
     tbody.innerHTML = rowsHtml;
 
+    // 이슈/요청 게시판 하단 페이지네이션 버튼 렌더링
+    if (totalPages > 1 && paginationEl) {
+        paginationEl.classList.remove('hidden');
+        let pageHtml = '';
+        for (let i = 1; i <= totalPages; i++) {
+            pageHtml += `<button type="button" class="task-page-btn px-3 py-1 text-xs font-bold rounded-md transition ${i === page ? 'bg-hermes text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}" data-page="${i}">${i}</button>`;
+        }
+        paginationEl.innerHTML = pageHtml;
+        
+        paginationEl.querySelectorAll('.task-page-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                renderTasksPage(parseInt(e.currentTarget.getAttribute('data-page')));
+            });
+        });
+    } else if (paginationEl) {
+        paginationEl.classList.add('hidden');
+    }
+
     if (!isInitialDeepLinkChecked) {
         const urlParams = new URLSearchParams(window.location.search);
         const sharedTaskId = urlParams.get('id');
@@ -1838,7 +1882,6 @@ function renderTasksTable(dataToRender) {
 
 async function fetchTasks() {
     const tbody = document.getElementById('boardTable');
-    const emptyState = document.getElementById('emptyState');
     if(!tbody) return;
 
     tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin mr-2"></i> 이슈 전체 데이터 불러오는 중...</td></tr>';

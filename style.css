@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ADplanters x NOAH UNIVERSE - Global & Table Layout Stylesheet (v1.3.5)
+   ADplanters x NOAH UNIVERSE - Global & Table Layout Stylesheet (v1.3.6)
    ========================================================================== */
 
 /* 1. Global Reset & Layout Isolation */
@@ -98,7 +98,7 @@ html, body {
   overflow-y: auto;
 }
 
-/* 🌟 테이블 텍스트 세로 깨짐 완전 방지 및 가로 스크롤 보장 */
+/* 테이블 텍스트 세로 깨짐 완전 방지 및 가로 스크롤 보장 */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -123,7 +123,7 @@ table th {
   border-radius: 16px;
 }
 
-/* 🌟 Rolling Ticker Box Animation */
+/* Rolling Ticker Box Animation */
 .rolling-ticker-wrapper {
   height: 40px;
   overflow: hidden;
@@ -343,14 +343,14 @@ table th {
 
 #libViewHtmlContent .callout-box.callout-green,
 .callout-box.callout-green {
-  background: linear-gradient(180deg, #f0fdf4 0%, #dcbe9e/20 100%) !important;
+  background: linear-gradient(180deg, #f0fdf4 0%, #f0fdf4 100%) !important;
   border: 1px solid #bbf7d0 !important;
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.05) !important;
 }
 
 #libViewHtmlContent .callout-box.callout-orange,
 .callout-box.callout-orange {
-  background: linear-gradient(180deg, #fff7ed 0%, #ffedd5/40 100%) !important;
+  background: linear-gradient(180deg, #fff7ed 0%, #fff7ed 100%) !important;
   border: 1px solid #fed7aa !important;
   box-shadow: 0 4px 12px rgba(243, 112, 33, 0.05) !important;
 }

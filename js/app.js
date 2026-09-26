@@ -1,7 +1,7 @@
 /**
  * ADplanters x NOAH UNIVERSE - Application Main Module
  * File Location: ./js/app.js
- * Version: 1.3.9 (Perfect Table Alignment & Hover Tooltip Added)
+ * Version: 1.4.0 (Fixed Tooltip & Aligned Table Headers)
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -533,6 +533,73 @@ function renderSideMemoWidget() {
             ${displayHtml}
         `;
     }
+}
+
+// ============================================================================
+// 🌟 3.6. 마우스 호버 시 잘림 없는 최상위 흰색 메모지 툴팁 DOM 생성 & 제어
+// ============================================================================
+function getOrCreateGlobalTooltip() {
+    let tooltip = document.getElementById('globalMemoTooltip');
+    if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.id = 'globalMemoTooltip';
+        tooltip.innerHTML = `
+            <div class="memo-tooltip-header">
+                <i class="fa-solid fa-note-sticky"></i>
+                <span>메모 내용</span>
+            </div>
+            <div class="memo-tooltip-body" id="globalMemoTooltipBody"></div>
+        `;
+        document.body.appendChild(tooltip);
+    }
+    return tooltip;
+}
+
+function showMemoTooltip(text, e) {
+    if (!text) return;
+    const tooltip = getOrCreateGlobalTooltip();
+    const bodyEl = document.getElementById('globalMemoTooltipBody');
+    if (bodyEl) bodyEl.textContent = text;
+
+    tooltip.classList.add('visible');
+    positionMemoTooltip(e);
+}
+
+function moveMemoTooltip(e) {
+    const tooltip = document.getElementById('globalMemoTooltip');
+    if (tooltip && tooltip.classList.contains('visible')) {
+        positionMemoTooltip(e);
+    }
+}
+
+function hideMemoTooltip() {
+    const tooltip = document.getElementById('globalMemoTooltip');
+    if (tooltip) {
+        tooltip.classList.remove('visible');
+    }
+}
+
+function positionMemoTooltip(e) {
+    const tooltip = document.getElementById('globalMemoTooltip');
+    if (!tooltip) return;
+
+    const offset = 14;
+    let left = e.clientX + offset;
+    let top = e.clientY + offset;
+
+    const tooltipWidth = tooltip.offsetWidth || 220;
+    const tooltipHeight = tooltip.offsetHeight || 80;
+
+    // 우측/하단 화면 잘림 방지 (뷰포트 안쪽으로 자동 밀어넣기)
+    if (left + tooltipWidth > window.innerWidth - 16) {
+        left = e.clientX - tooltipWidth - offset;
+    }
+    if (top + tooltipHeight > window.innerHeight - 16) {
+        top = e.clientY - tooltipHeight - offset;
+    }
+
+    tooltip.style.left = `${Math.max(16, left)}px`;
+    tooltip.style.top = `${Math.max(16, top)}px`;
 }
 
 // ============================================================================
@@ -2924,7 +2991,7 @@ function renderClientsPage(page) {
     checkAllNavBadges();
 }
 
-// 🌟 예산 관리 테이블 렌더링 (동적 thead 9개 열 재구성 + 툴팁(Tooltip) 노출)
+// 🌟 예산 관리 테이블 렌더링 (헤더 9개 열 정렬 보장 및 커스텀 마우스 호버 이벤트)
 function renderBudgetTable() {
     const budgetTbody = document.getElementById('budgetTable');
     if (!budgetTbody) return;
@@ -2937,7 +3004,6 @@ function renderBudgetTable() {
             parentContainer.classList.add('table-scroll-container');
         }
         
-        // 동적으로 thead 9개 열 구조 보장 (헤더와 데이터 행의 정렬 1:1 완벽 통일)
         const theadEl = tableEl.querySelector('thead');
         if (theadEl) {
             theadEl.innerHTML = `
@@ -2960,7 +3026,7 @@ function renderBudgetTable() {
 
     let sumTotal = 0, sumRecharged = 0, sumSpent = 0;
 
-    allClientsData.forEach(data => {
+    allClientsData.forEach((data, index) => {
         const total = Number(data.totalBudget) || 0;
         const recharged = Number(data.rechargedBudget) || 0;
         const used = Number(data.usedBudget) || 0;
@@ -2977,12 +3043,9 @@ function renderBudgetTable() {
         const contractPeriod = data.contractPeriod || '-'; 
         const memoText = (data.memo || data.budgetMemo) ? (data.memo || data.budgetMemo) : '';
 
-        // 🌟 마우스 오버 시 전체 메모를 띄워주는 커스텀 툴팁(Tooltip) HTML 생성
-        const memoHtml = memoText ? `
-            <div class="memo-tooltip-container">
-                <span class="truncate block max-w-[150px] text-gray-700 font-medium">${memoText}</span>
-                <div class="memo-tooltip-text">${memoText}</div>
-            </div>
+        // 🌟 잘림 없는 마우스 호버 이벤트를 지원하는 메모 요소 생성
+        const memoContentHtml = memoText ? `
+            <span class="has-memo-tooltip truncate block max-w-[150px] text-gray-700 font-medium cursor-pointer" data-memo="${memoText.replace(/"/g, '&quot;')}">${memoText}</span>
         ` : `<span class="text-gray-400">-</span>`;
 
         let budgetProgressHtml = `
@@ -3005,13 +3068,28 @@ function renderBudgetTable() {
                     <div class="text-xs font-bold text-gray-600 mb-1">${percent.toFixed(1)}%</div>
                     ${budgetProgressHtml}
                 </td>
-                <td class="p-3.5 md:p-4 text-xs font-medium text-gray-600 align-middle whitespace-nowrap min-w-[160px]">${memoHtml}</td>
+                <td class="p-3.5 md:p-4 text-xs font-medium text-gray-600 align-middle whitespace-nowrap min-w-[160px]">${memoContentHtml}</td>
                 <td class="p-3.5 md:p-4 text-center align-middle whitespace-nowrap w-24">
                     <button type="button" class="edit-budget-btn bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl transition shadow-sm whitespace-nowrap cursor-pointer inline-flex items-center justify-center gap-1.5" data-id="${data.id}"><i class="fa-solid fa-pen-to-square"></i> 수정</button>
                 </td>
             </tr>
         `;
         budgetTbody.innerHTML += tr;
+    });
+
+    // 🌟 잘림 없는 최상위 툴팁 이벤트 리스너 연동
+    const memoElements = budgetTbody.querySelectorAll('.has-memo-tooltip');
+    memoElements.forEach(el => {
+        el.addEventListener('mouseenter', (e) => {
+            const memoStr = el.getAttribute('data-memo');
+            showMemoTooltip(memoStr, e);
+        });
+        el.addEventListener('mousemove', (e) => {
+            moveMemoTooltip(e);
+        });
+        el.addEventListener('mouseleave', () => {
+            hideMemoTooltip();
+        });
     });
 
     const elTotal = document.getElementById('kpiTotalBudget');

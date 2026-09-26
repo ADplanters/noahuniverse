@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ADplanters x NOAH UNIVERSE - Global & Table Layout Stylesheet (v1.3.9)
+   ADplanters x NOAH UNIVERSE - Global & Table Layout Stylesheet (v1.4.0)
    ========================================================================== */
 
 /* 1. Global Reset & Layout Isolation */
@@ -124,52 +124,48 @@ table th {
   border-radius: 16px;
 }
 
-/* 🌟 마우스 오버 전용 고급 커스텀 툴팁 (Tooltip) */
-.memo-tooltip-container {
-  position: relative;
-  display: inline-block;
-  max-width: 160px;
-  cursor: pointer;
+/* 🌟 화면 잘림이 없는 흰색 메모지 모양 커스텀 글로벌 툴팁 패널 */
+#globalMemoTooltip {
+  position: fixed;
+  z-index: 999999;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #f37021;
+  border-radius: 14px;
+  padding: 12px 16px;
+  box-shadow: 0 14px 30px -4px rgba(15, 23, 42, 0.15), 0 4px 10px rgba(0, 0, 0, 0.04);
+  max-width: 320px;
+  min-width: 180px;
+  pointer-events: none;
+  transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+  opacity: 0;
+  transform: translateY(4px);
 }
 
-.memo-tooltip-container .memo-tooltip-text {
-  visibility: hidden;
-  opacity: 0;
-  width: max-content;
-  max-width: 280px;
-  background-color: #0f172a;
-  color: #ffffff;
-  text-align: left;
-  border-radius: 10px;
-  padding: 8px 12px;
-  position: absolute;
-  z-index: 9999;
-  bottom: 125%;
-  left: 50%;
-  transform: translateX(-50%);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25);
+#globalMemoTooltip.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.memo-tooltip-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 800;
+  color: #f37021;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.memo-tooltip-body {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e293b;
+  line-height: 1.55;
   white-space: pre-wrap;
   word-break: break-all;
-  transition: opacity 0.2s ease, visibility 0.2s ease;
-  pointer-events: none;
-}
-
-.memo-tooltip-container .memo-tooltip-text::after {
-  content: "";
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  margin-left: -5px;
-  border-width: 5px;
-  border-style: solid;
-  border-color: #0f172a transparent transparent transparent;
-}
-
-.memo-tooltip-container:hover .memo-tooltip-text {
-  visibility: visible;
-  opacity: 1;
 }
 
 /* Rolling Ticker Box Animation */

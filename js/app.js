@@ -1,7 +1,7 @@
 /**
  * ADplanters x NOAH UNIVERSE - Application Main Module
  * File Location: ./js/app.js
- * Version: 1.4.0 (Fixed Tooltip Clipping & Table Cell Overflows)
+ * Version: 1.4.1 (Vertical Scroll & Max 8 Clients Pagination)
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -46,11 +46,11 @@ let libraryMap = {};
 
 let allTasksData = []; // 검색 필터링을 위한 전역 배열
 
-// 예산 관리 및 페이지네이션 전역 변수
+// 🌟 클라이언트 리스트 한 페이지당 최대 8개 팀으로 설정
 let currentEditBudgetId = null;
 let allClientsData = [];
 let currentClientPage = 1;
-const CLIENTS_PER_PAGE = 10;
+const CLIENTS_PER_PAGE = 8;
 
 // 대시보드 롤링 Ticker 타이머 보존 객체
 let latestRollingInterval = null;
@@ -425,7 +425,7 @@ safeAddListener('libViewCountBadgeBtn', 'click', (e) => toggleViewerTooltip('lib
 });
 
 // ============================================================================
-// 🌟 3.5. Note 영역 UI (명칭 "Note" 적용)
+// 3.5. Note 영역 UI (명칭 "Note" 적용)
 // ============================================================================
 function initSideMemoWidget() {
     const mainEl = document.querySelector('main');
@@ -536,7 +536,7 @@ function renderSideMemoWidget() {
 }
 
 // ============================================================================
-// 🌟 3.6. 잘림 없는 최상위 화이트 메모지 스타일 커스텀 글로벌 툴팁 DOM 생성 & 위치 정밀 제어
+// 3.6. 잘림 없는 최상위 화이트 메모지 스타일 커스텀 글로벌 툴팁 DOM 생성 & 위치 정밀 제어
 // ============================================================================
 function getOrCreateGlobalTooltip() {
     let tooltip = document.getElementById('globalMemoTooltip');
@@ -2882,7 +2882,7 @@ async function fetchClients() {
     } catch (e) { console.error("Client fetch error:", e); }
 }
 
-// 일반 클라이언트 리스트 페이지네이션 렌더링
+// 🌟 일반 클라이언트 리스트 페이지네이션 렌더링 (한 페이지당 최대 8개 팀)
 function renderClientsPage(page) {
     currentClientPage = page;
     const tbody = document.getElementById('clientsTable');
@@ -2943,10 +2943,10 @@ function renderClientsPage(page) {
 
         const isAdmin = checkIsAdmin();
         const adminActions = isAdmin ? 
-            `<td class="p-3 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col align-middle whitespace-nowrap">
+            `<td class="p-3.5 md:p-4 text-center border-l border-gray-100 bg-gray-50/50 admin-only-col align-middle whitespace-nowrap">
                 <div class="flex items-center justify-center gap-1.5">
-                    <button type="button" class="edit-client-btn bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-2.5 py-1.5 rounded transition shadow-sm whitespace-nowrap cursor-pointer" data-id="${data.id}">수정</button>
-                    <button type="button" class="delete-client-btn bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold px-2.5 py-1.5 rounded transition shadow-sm whitespace-nowrap cursor-pointer" data-id="${data.id}" data-name="${data.name}">삭제</button>
+                    <button type="button" class="edit-client-btn bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-xl transition shadow-sm whitespace-nowrap cursor-pointer" data-id="${data.id}">수정</button>
+                    <button type="button" class="delete-client-btn bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-xl transition shadow-sm whitespace-nowrap cursor-pointer" data-id="${data.id}" data-name="${data.name}">삭제</button>
                 </div>
             </td>` : `<td class="admin-only-col hidden"></td>`;
 
@@ -2955,7 +2955,7 @@ function renderClientsPage(page) {
 
         let metaExtraHtml = '';
         if(data.metaEmail || data.metaPhone || data.memo) {
-            const memoSnippet = data.memo ? `<div class="pt-1 mt-1 border-t border-gray-200 text-gray-600 truncate max-w-[180px] memo-hover-trigger cursor-pointer" data-memo="${data.memo.replace(/"/g, '&quot;')}"><i class="fa-solid fa-note-sticky text-orange-400 text-[10px] mr-1"></i>${data.memo}</div>` : '';
+            const memoSnippet = data.memo ? `<div class="pt-1 mt-1 border-t border-gray-200 text-gray-600 truncate max-w-[170px] memo-hover-trigger cursor-pointer font-medium" data-memo="${data.memo.replace(/"/g, '&quot;')}"><i class="fa-solid fa-note-sticky text-orange-400 text-[10px] mr-1"></i>${data.memo}</div>` : '';
             metaExtraHtml = `
                 <div class="mt-1 text-[10px] text-gray-500 bg-gray-50 p-2 rounded-lg border border-gray-200 max-w-[200px]">
                     ${data.metaEmail ? `<div class="mb-0.5 flex items-start gap-1"><span class="font-bold text-gray-400">E:</span> <span class="truncate max-w-[150px]">${data.metaEmail}</span></div>` : ''}
@@ -2969,12 +2969,12 @@ function renderClientsPage(page) {
 
         const tr = `
             <tr class="hover:bg-orange-50/30 transition border-b border-gray-100 break-keep">
-                <td class="p-3 md:p-4 font-black text-gray-900 align-middle whitespace-nowrap">${data.name}</td>
-                <td class="p-3 md:p-4 text-xs text-gray-500 align-middle whitespace-nowrap">
+                <td class="p-3.5 md:p-4 font-black text-gray-900 align-middle whitespace-nowrap">${data.name}</td>
+                <td class="p-3.5 md:p-4 text-xs text-gray-500 align-middle whitespace-nowrap">
                     ${data.homeUrl ? `<a href="${data.homeUrl}" target="_blank" class="text-blue-500 hover:underline"><i class="fa-solid fa-link"></i> 웹</a> ` : ''}
                     ${data.instaUrl ? `<a href="${data.instaUrl}" target="_blank" class="text-pink-500 hover:underline"><i class="fa-brands fa-instagram"></i> 인스타</a>` : ''}
                 </td>
-                <td class="p-3 md:p-4 text-xs align-middle">
+                <td class="p-3.5 md:p-4 text-xs align-middle">
                     <div class="flex items-center gap-1.5 whitespace-nowrap">
                         <span class="font-medium text-gray-700">ID: ${data.metaId || '-'}</span>${copyIdBtn}
                     </div>
@@ -2982,10 +2982,10 @@ function renderClientsPage(page) {
                         <span class="font-bold text-gray-900">PW: ${data.metaPw || '-'}</span>${copyPwBtn}
                     </div>
                 </td>
-                <td class="p-3 md:p-4 text-xs align-middle">${metaExtraHtml}</td>
-                <td class="p-3 md:p-4 text-xs text-gray-600 align-middle whitespace-nowrap"><div>인스타: ${data.instaDate || '-'}</div><div>메타: ${data.metaDate || '-'}</div></td>
-                <td class="p-3 md:p-4 text-xs font-bold text-gray-500 align-middle whitespace-nowrap">${data.registeredBy || '-'}</td>
-                <td class="p-3 md:p-4 max-w-[130px] overflow-visible align-middle">${managersHtml}</td>
+                <td class="p-3.5 md:p-4 text-xs align-middle">${metaExtraHtml}</td>
+                <td class="p-3.5 md:p-4 text-xs text-gray-600 align-middle whitespace-nowrap"><div>인스타: ${data.instaDate || '-'}</div><div>메타: ${data.metaDate || '-'}</div></td>
+                <td class="p-3.5 md:p-4 text-xs font-bold text-gray-500 align-middle whitespace-nowrap">${data.registeredBy || '-'}</td>
+                <td class="p-3.5 md:p-4 max-w-[130px] overflow-visible align-middle">${managersHtml}</td>
                 ${adminActions}
             </tr>
         `;
@@ -3049,7 +3049,7 @@ function renderBudgetTable() {
 
     let sumTotal = 0, sumRecharged = 0, sumSpent = 0;
 
-    allClientsData.forEach((data, index) => {
+    allClientsData.forEach((data) => {
         const total = Number(data.totalBudget) || 0;
         const recharged = Number(data.rechargedBudget) || 0;
         const used = Number(data.usedBudget) || 0;

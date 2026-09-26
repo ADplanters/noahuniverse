@@ -1,11 +1,12 @@
 /**
  * ADplanters x NOAH UNIVERSE - Application Main Module
  * File Location: ./js/app.js
+ * Version: 1.3.0
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, getDocs, query, where, deleteDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, getDocs, query, where, deleteDoc, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
 // ============================================================================
@@ -60,6 +61,9 @@ let currentClientIP = '127.0.0.1';
 
 // 신규 댓글 작성용 드래그앤드롭 누적 파일 배열
 let newCommentSelectedFiles = [];
+
+// 전역 시스템/관리자 메모 보존
+let globalMemoContent = '';
 
 // 클라이언트 상호명 비교 시 띄어쓰기 및 대소문자 제거 정규화 헬퍼
 const normalizeName = (str) => (str || '').replace(/\s+/g, '').toLowerCase();
@@ -421,6 +425,117 @@ safeAddListener('libViewCountBadgeBtn', 'click', (e) => toggleViewerTooltip('lib
 });
 
 // ============================================================================
+// 🌟 3.5. 전역 공유 관리자 메모 패널 UI (우측 메모창)
+// ============================================================================
+function initSideMemoWidget() {
+    const mainEl = document.querySelector('main');
+    if (!mainEl) return;
+
+    let widgetEl = document.getElementById('globalSideMemoWidget');
+    if (!widgetEl) {
+        widgetEl = document.createElement('div');
+        widgetEl.id = 'globalSideMemoWidget';
+        widgetEl.className = 'side-memo-widget mb-6 w-full';
+
+        const headerSection = mainEl.querySelector('header');
+        if (headerSection) {
+            headerSection.after(widgetEl);
+        } else {
+            mainEl.prepend(widgetEl);
+        }
+    }
+
+    renderSideMemoWidget();
+    subscribeGlobalMemo();
+}
+
+function subscribeGlobalMemo() {
+    try {
+        const memoDocRef = doc(db, "system_settings", "global_memo");
+        onSnapshot(memoDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                globalMemoContent = data.content || '';
+            } else {
+                globalMemoContent = '';
+            }
+            renderSideMemoWidget();
+        });
+    } catch (e) {
+        console.error("Global memo subscription error:", e);
+    }
+}
+
+function renderSideMemoWidget() {
+    const widgetEl = document.getElementById('globalSideMemoWidget');
+    if (!widgetEl) return;
+
+    const isAdmin = checkIsAdmin();
+
+    if (isAdmin) {
+        widgetEl.innerHTML = `
+            <div class="side-memo-header">
+                <div class="side-memo-title">
+                    <i class="fa-solid fa-note-sticky text-hermes"></i>
+                    <span>전체 관리자 공유 메모 (Admin)</span>
+                </div>
+                <span class="side-memo-badge">수정 권한 보유</span>
+            </div>
+            <div class="space-y-2">
+                <textarea id="globalMemoTextarea" rows="3" placeholder="모든 계정에서 공통으로 열람 가능한 시스템 메모를 입력하세요." class="w-full text-xs p-3 border border-orange-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-hermes/40 bg-white font-medium resize-y leading-relaxed">${globalMemoContent}</textarea>
+                <div class="flex justify-end gap-2">
+                    <button type="button" id="saveGlobalMemoBtn" class="bg-hermes hover:bg-orange-600 text-white text-xs font-bold px-4 py-1.5 rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5">
+                        <i class="fa-solid fa-floppy-disk"></i> 메모 저장
+                    </button>
+                </div>
+            </div>
+        `;
+
+        const saveBtn = document.getElementById('saveGlobalMemoBtn');
+        if (saveBtn) {
+            saveBtn.onclick = async () => {
+                const textIn = document.getElementById('globalMemoTextarea');
+                const val = textIn ? textIn.value.trim() : '';
+
+                saveBtn.innerText = "저장 중...";
+                saveBtn.disabled = true;
+
+                try {
+                    await setDoc(doc(db, "system_settings", "global_memo"), {
+                        content: val,
+                        updatedAt: new Date().toISOString(),
+                        updatedBy: currentUserName
+                    }, { merge: true });
+
+                    await logActivity("전체 메모 수정", `공유 메모 업데이트 완료`);
+                    alert("공유 메모가 저장되었습니다.");
+                } catch (err) {
+                    alert("메모 저장 실패: " + err.message);
+                } finally {
+                    saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> 메모 저장`;
+                    saveBtn.disabled = false;
+                }
+            };
+        }
+    } else {
+        const displayHtml = globalMemoContent
+            ? `<div class="text-xs text-gray-800 whitespace-pre-wrap leading-relaxed font-medium bg-white p-3 rounded-xl border border-orange-100">${globalMemoContent}</div>`
+            : `<div class="text-xs text-gray-400 italic py-2">등록된 메모 공지가 없습니다.</div>`;
+
+        widgetEl.innerHTML = `
+            <div class="side-memo-header">
+                <div class="side-memo-title">
+                    <i class="fa-solid fa-note-sticky text-hermes"></i>
+                    <span>전체 관리자 공유 메모</span>
+                </div>
+                <span class="side-memo-badge">전체 공개</span>
+            </div>
+            ${displayHtml}
+        `;
+    }
+}
+
+// ============================================================================
 // 4. 주/부 담당자 선택 UI 생성 헬퍼 함수
 // ============================================================================
 async function buildManagerSelectionUI(containerEl, currentManagersArr, checkboxClassName, primarySelectId) {
@@ -624,20 +739,18 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
-    // 신규 클라이언트 등록 버튼 클릭 시 (Admin 권한에 따른 계약기간 제어)
+    // 신규 클라이언트 등록 버튼 클릭 시
     const addClientBtn = e.target.closest('#openClientModalBtn');
     if (addClientBtn && clientModal) {
         e.preventDefault();
         e.stopPropagation();
         
         const form = document.getElementById('clientForm');
-        if (form) form.reset(); // 🌟 [수정됨] 폼 리셋을 먼저 실행하여 데이터 충돌 방지
+        if (form) form.reset(); 
 
-        // 🌟 [수정됨] 폼 리셋 이후에 현재 로그인된 작성자명 안전하게 주입
         const regIn = document.getElementById('c_registerName');
         if (regIn) regIn.value = currentUserName; 
 
-        // 계약 기간 Input을 찾아서 Admin 전용 읽기/쓰기 권한 제어
         const contractPeriodIn = document.getElementById('c_contractPeriod');
         if (contractPeriodIn) {
             if (checkIsAdmin()) {
@@ -1011,6 +1124,7 @@ function showDashboard(user) {
     setupDragAndDrop('inputContent', 'inputFile');
     initNewCommentDragAndDrop();
 
+    initSideMemoWidget(); // 🌟 우측 관리자 메모창 초기화
     fetchClients();
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -1059,6 +1173,7 @@ safeAddListener('taskForm', 'submit', async (e) => {
     }
 
     const tTitle = document.getElementById('inputTitle').value;
+    const taskType = document.getElementById('inputType').value;
     const isAdmin = checkIsAdmin();
     
     let assignedManagersArr = [];
@@ -1078,7 +1193,7 @@ safeAddListener('taskForm', 'submit', async (e) => {
 
     const newTask = {
         client: selectedClient,
-        type: document.getElementById('inputType').value,
+        type: taskType,
         agency: document.getElementById('inputAgency').value,
         title: tTitle,
         content: document.getElementById('inputContent').value,
@@ -1591,6 +1706,11 @@ function renderTasksTable(dataToRender) {
             clientBadgeHtml = `<span class="bg-blue-600 text-white font-black text-[11px] px-2 py-0.5 rounded-full shadow-2xs">📢 전체 공지</span>`;
         }
 
+        let typeBadgeHtml = `<span class="bg-gray-100 text-gray-600 text-[10px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap">${item.type || '-'}</span>`;
+        if (item.type === '기타') {
+            typeBadgeHtml = `<span class="bg-purple-100 text-purple-700 border border-purple-200 text-[10px] px-1.5 py-0.5 rounded font-extrabold whitespace-nowrap"><i class="fa-solid fa-note-sticky text-[9px] mr-0.5"></i>기타(메모)</span>`;
+        }
+
         rowsHtml += `
             <tr class="hover:bg-hermes-light/30 transition group border-b border-gray-100 cursor-pointer task-detail-trigger break-keep" data-id="${item.id}">
                 <td class="p-3.5 md:p-4 align-middle text-gray-900 text-[11px] font-bold whitespace-nowrap">
@@ -1601,7 +1721,7 @@ function renderTasksTable(dataToRender) {
                 </td>
                 <td class="p-3.5 md:p-4 align-middle text-center whitespace-nowrap"><span class="${statusBadgeClass} px-2 py-0.5 rounded text-[10px] font-bold border whitespace-nowrap">${item.status || '답변대기'}</span></td>
                 <td class="p-3.5 md:p-4 font-bold text-gray-900 align-middle text-xs whitespace-nowrap min-w-[80px]">${clientBadgeHtml}</td>
-                <td class="p-3.5 md:p-4 align-middle whitespace-nowrap"><span class="bg-gray-100 text-gray-600 text-[10px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap">${item.type || '-'}</span></td>
+                <td class="p-3.5 md:p-4 align-middle whitespace-nowrap">${typeBadgeHtml}</td>
                 <td class="p-3.5 md:p-4 align-middle min-w-[200px]">
                     <div class="font-bold text-gray-900 group-hover:text-hermes transition flex items-center gap-1 break-keep">
                         <span class="break-all">${item.title || '-'}</span> 
@@ -1780,7 +1900,7 @@ async function openDetailModal(taskId) {
                 tasksMap[taskId].status = newStatus;
                 await logActivity("상태 변경", `[${task.title}] 상태를 '${newStatus}'(으)로 변경`);
                 alert(`상태가 '${newStatus}'(으)로 변경되었습니다.`);
-                fetchTasks(); // 데이터 갱신 시 자동 필터 적용됨
+                fetchTasks();
             } catch(err) {
                 alert("상태 변경 실패: " + err.message);
             }
@@ -1823,7 +1943,6 @@ async function openDetailModal(taskId) {
     const budgetRemainingEl = document.getElementById('detailBudgetRemaining');
     const budgetStatusEl = document.getElementById('detailClientBudgetStatus');
 
-    // 🌟 상호명/띄어쓰기/부분 일치 매칭을 지원하는 findClientByName 헬퍼 함수 적용
     const mappedClient = findClientByName(task.client);
 
     if (mappedClient && budgetTotalEl) {
@@ -1856,7 +1975,6 @@ async function openDetailModal(taskId) {
         }
         budgetTotalEl.closest('.col-span-2').classList.remove('hidden');
 
-        // 🌟 [추가/수정됨] 예산 그리드 하단에 계약기간/마감일이 명확하게 보이도록 DOM 동적 주입
         const budgetGrid = budgetTotalEl.closest('.grid');
         if (budgetGrid && budgetGrid.parentElement) {
             let contractDiv = document.getElementById('detailContractPeriodDiv');
@@ -1871,13 +1989,82 @@ async function openDetailModal(taskId) {
     } else if (budgetTotalEl) {
         budgetTotalEl.closest('.col-span-2').classList.add('hidden');
         const contractDiv = document.getElementById('detailContractPeriodDiv');
-        if (contractDiv) contractDiv.remove(); // 데이터가 없을 경우 숨김 처리
+        if (contractDiv) contractDiv.remove(); 
     }
     
     const contentEl = document.getElementById('detailContent');
     if (contentEl) {
         contentEl.innerText = task.content || '등록된 내용이 없습니다.';
         contentEl.className = "text-xs sm:text-sm text-gray-700 whitespace-pre-line break-all max-w-full overflow-x-auto leading-relaxed";
+    }
+
+    // 🌟 '기타' 분류 전용 관리자 메모 영역 동적 생성/렌더링
+    let otherMemoBox = document.getElementById('detailOtherMemoBox');
+    if (!otherMemoBox && contentEl && contentEl.parentElement) {
+        otherMemoBox = document.createElement('div');
+        otherMemoBox.id = 'detailOtherMemoBox';
+        otherMemoBox.className = 'mt-4 p-3 bg-purple-50/60 border border-purple-200 rounded-xl hidden';
+        contentEl.parentElement.appendChild(otherMemoBox);
+    }
+
+    const isAdmin = checkIsAdmin();
+
+    if (otherMemoBox) {
+        if (task.type === '기타') {
+            otherMemoBox.classList.remove('hidden');
+            const memoVal = task.otherMemo || '';
+
+            if (isAdmin) {
+                otherMemoBox.innerHTML = `
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-xs font-bold text-purple-900 flex items-center gap-1">
+                            <i class="fa-solid fa-note-sticky text-purple-600"></i> 기타 항목 관리자 전용 메모 (Admin 전용 수정)
+                        </span>
+                        <span class="text-[10px] text-purple-600 font-bold bg-purple-100 px-1.5 py-0.5 rounded">전체 열람 가능</span>
+                    </div>
+                    <textarea id="taskOtherMemoTextarea" rows="2" placeholder="최상위 관리자 전용 메모를 입력하세요." class="w-full text-xs p-2 border border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white font-medium resize-y">${memoVal}</textarea>
+                    <div class="flex justify-end mt-1.5">
+                        <button type="button" id="saveTaskOtherMemoBtn" class="bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-bold px-3 py-1 rounded-lg transition shadow-xs">
+                            메모 저장
+                        </button>
+                    </div>
+                `;
+
+                const saveMemoBtn = document.getElementById('saveTaskOtherMemoBtn');
+                if (saveMemoBtn) {
+                    saveMemoBtn.onclick = async () => {
+                        const txt = document.getElementById('taskOtherMemoTextarea').value.trim();
+                        saveMemoBtn.innerText = "저장중...";
+                        saveMemoBtn.disabled = true;
+
+                        try {
+                            await updateDoc(doc(db, "crm_tasks", taskId), { otherMemo: txt });
+                            tasksMap[taskId].otherMemo = txt;
+                            await logActivity("기타 메모 수정", `[${task.title}] 기타 메모 업데이트`);
+                            alert("기타 항목 메모가 저장되었습니다.");
+                        } catch (err) {
+                            alert("메모 저장 실패: " + err.message);
+                        } finally {
+                            saveMemoBtn.innerText = "메모 저장";
+                            saveMemoBtn.disabled = false;
+                        }
+                    };
+                }
+            } else {
+                otherMemoBox.innerHTML = `
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-bold text-purple-900 flex items-center gap-1">
+                            <i class="fa-solid fa-note-sticky text-purple-600"></i> 기타 항목 특이사항 메모
+                        </span>
+                    </div>
+                    <div class="text-xs text-purple-950 font-medium whitespace-pre-wrap leading-relaxed bg-white p-2.5 rounded-lg border border-purple-100">
+                        ${memoVal || '등록된 메모가 없습니다.'}
+                    </div>
+                `;
+            }
+        } else {
+            otherMemoBox.classList.add('hidden');
+        }
     }
 
     const shareBtn = document.getElementById('shareLinkBtn') || Array.from(detailModal.querySelectorAll('button')).find(b => b.textContent.includes('링크 복사'));
@@ -1891,7 +2078,6 @@ async function openDetailModal(taskId) {
         };
     }
 
-    const isAdmin = checkIsAdmin();
     const isAuthor = checkIsAuthor(task);
 
     let actionArea = document.getElementById('detailTaskActions');
@@ -2853,12 +3039,12 @@ safeAddListener('budgetEditForm', 'submit', async (e) => {
 });
 
 // ============================================================================
-// 9. 인사이트 라이브러 모듈
+// 9. 인사이트 라이브러리 모듈
 // ============================================================================
 async function fetchLibraryItems() {
     const grid = document.getElementById('libraryGrid');
     if (!grid) return;
-    grid.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin text-hermes mr-2"></i> 라이브러 로딩 중...</div>';
+    grid.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500 font-bold"><i class="fa-solid fa-spinner animate-spin text-hermes mr-2"></i> 라이브러리 로딩 중...</div>';
 
     try {
         const querySnapshot = await getDocs(collection(db, "crm_library"));

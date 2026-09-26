@@ -85,7 +85,7 @@
         </div>
     </div>
 
-    <!-- 2. 대시보드 화면 -->
+    <!-- 2. 대시보 화면 -->
     <div id="dashboardSection" class="hidden relative z-10 min-h-screen flex flex-col md:flex-row w-full">
         
         <div id="mobileOverlay" class="fixed inset-0 bg-black/50 z-30 hidden md:hidden backdrop-blur-sm transition-opacity"></div>
@@ -227,13 +227,13 @@
                     </div>
                 </div>
 
-                <!-- 기존 게시판 테이블 레이아웃 + 🌟 검색 및 상태 필터 추가 -->
+                <!-- 기존 게시판 테이블 레이아웃 + 검색 및 상태 필터 추가 -->
                 <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex-1 w-full min-w-0 mt-2">
                     <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-white flex-wrap gap-3 rounded-t-2xl">
                         <div class="flex items-center gap-3 flex-wrap">
                             <h2 class="font-bold text-sm md:text-base text-gray-800"><i class="fa-solid fa-table-list text-hermes mr-2"></i> 업무 / Q&A</h2>
                             
-                            <!-- 🌟 검색 대상, 키워드, 상태 필터 제어 영역 -->
+                            <!-- 검색 대상, 키워드, 상태 필터 제어 영역 -->
                             <div class="flex items-center gap-2 flex-wrap">
                                 <select id="taskSearchTarget" class="text-xs border border-gray-300 rounded-xl px-2.5 py-1.5 outline-none focus:border-hermes bg-white font-bold cursor-pointer">
                                     <option value="all">전체 (클라이언트+제목)</option>
@@ -290,6 +290,8 @@
                                 <th class="p-3 md:p-4 font-bold">URL (홈/인스타)</th>
                                 <th class="p-3 md:p-4 font-bold">메타광고 계정 (ID/PW)</th>
                                 <th class="p-3 md:p-4 font-bold min-w-[150px]">담당자 추가정보(메모)</th>
+                                <!-- 🌟 클라이언트 리스트에도 기타(Admin 메모) 노출 -->
+                                <th class="p-3 md:p-4 font-bold min-w-[200px] text-yellow-700">기타(Admin 메모)</th>
                                 <th class="p-3 md:p-4 font-bold">작업/광고 시작일</th>
                                 <th class="p-3 md:p-4 font-bold">등록자</th>
                                 <th class="p-3 md:p-4 font-bold">연결된 담당자</th>
@@ -344,6 +346,8 @@
                                     <th class="p-3 md:p-4 font-bold">충전대기</th>
                                     <th class="p-3 md:p-4 font-bold text-blue-600">계약 기간/마감일</th>
                                     <th class="p-3 md:p-4 font-bold">소진율(%)</th>
+                                    <!-- 🌟 예산 통합 관리 리스트 우측에도 기타(메모) 노출 추가 -->
+                                    <th class="p-3 md:p-4 font-bold min-w-[200px] text-yellow-700">기타(메모)</th>
                                     <th class="p-3 md:p-4 font-bold text-center">예산 수정</th>
                                 </tr>
                             </thead>
@@ -510,9 +514,10 @@
         </div>
     </div>
 
-    <!-- 어드민 전용 예산 직접 수정 모달 -->
+    <!-- 어드민 전용 예산 직접 수정 모달 (🌟 기타 메모 입력 추가됨) -->
     <div id="budgetEditModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl w-full max-w-sm p-5 md:p-6 shadow-2xl border border-blue-200">
+        <!-- 모달 창 너비 약간 증가 (max-w-md) -->
+        <div class="bg-white rounded-2xl w-full max-w-md p-5 md:p-6 shadow-2xl border border-blue-200">
             <div class="flex justify-between items-center mb-4 border-b pb-3">
                 <h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-coins text-blue-600 mr-2"></i> 예산 정보 수정</h3>
                 <button id="closeBudgetEditModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -537,6 +542,11 @@
                 <div>
                     <label class="block text-[10px] font-bold text-gray-700 mb-1">계약 기간/마감일</label>
                     <input type="text" id="edit_b_contract" placeholder="예: 2024.01.01 ~ 2024.12.31" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-blue-500 outline-none font-bold">
+                </div>
+                <!-- 🌟 기타 메모 추가 -->
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-700 mb-1">기타 (메모) - <span class="text-blue-500">전체 계정에 노출됩니다.</span></label>
+                    <textarea id="edit_b_memo" rows="3" placeholder="기타 특이사항 및 메모 입력" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-blue-500 outline-none resize-none font-medium"></textarea>
                 </div>
                 <div class="flex justify-end gap-2 border-t pt-4">
                     <button type="button" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-xs font-bold" onclick="document.getElementById('budgetEditModal').classList.add('hidden')">취소</button>

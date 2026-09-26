@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ADplanters x NOAH UNIVERSE - Global & Modal Stylesheet (v1.2.5)
+   ADplanters x NOAH UNIVERSE - Global & Modal Stylesheet (v1.3.0 Luxury)
    ========================================================================== */
 
 /* 1. Global Reset & Layout Isolation */
@@ -13,9 +13,10 @@
 html, body {
   width: 100%;
   height: 100%;
-  background-color: #f4f6f8;
-  color: #333333;
+  background-color: #f8fafc;
+  color: #1e293b;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* 2. Background Watermark Isolation */
@@ -30,7 +31,7 @@ html, body {
   pointer-events: none !important;
   z-index: 0 !important;
   overflow: hidden !important;
-  opacity: 0.05 !important;
+  opacity: 0.04 !important;
   user-select: none !important;
 }
 
@@ -42,47 +43,52 @@ html, body {
   z-index: 10;
 }
 
-/* Sidebar */
+/* Sidebar 고급화 */
 .sidebar {
-  width: 240px;
-  background-color: #ffffff;
-  border-right: 1px solid #e2e8f0;
+  width: 250px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  border-right: 1px solid rgba(226, 232, 240, 0.8);
   padding: 24px 16px;
   display: flex;
   flex-direction: column;
   gap: 8px;
   flex-shrink: 0;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.02);
 }
 
 .sidebar-logo {
   font-size: 16px;
-  font-weight: 800;
-  color: #1a202c;
+  font-weight: 900;
+  color: #0f172a;
   padding: 0 12px 16px 12px;
-  border-bottom: 1px solid #edf2f7;
+  border-bottom: 1px solid #f1f5f9;
   margin-bottom: 12px;
+  letter-spacing: -0.02em;
 }
 
 .sidebar-nav-item {
   display: flex;
   align-items: center;
-  padding: 10px 14px;
+  padding: 11px 16px;
   font-size: 14px;
   font-weight: 600;
-  color: #4a5568;
-  border-radius: 8px;
+  color: #475569;
+  border-radius: 12px;
   text-decoration: none;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar-nav-item:hover {
-  background-color: #f7fafc;
-  color: #1a202c;
+  background-color: #f1f5f9;
+  color: #0f172a;
+  transform: translateX(3px);
 }
 
 .sidebar-nav-item.active {
-  background-color: #ff6b00;
+  background: linear-gradient(135deg, #F37021 0%, #e05d0e 100%);
   color: #ffffff;
+  box-shadow: 0 8px 16px -2px rgba(243, 112, 33, 0.3);
 }
 
 /* Main Content Area */
@@ -111,8 +117,8 @@ html, body {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(8px);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -129,18 +135,19 @@ html, body {
   width: 100%;
   max-width: 860px;
   max-height: 90vh;
-  border-radius: 16px;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
+  border-radius: 24px;
+  box-shadow: 0 32px 64px -12px rgba(15, 23, 42, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.8);
   display: flex;
   flex-direction: column;
   position: relative;
   overflow: hidden;
-  animation: modalFadeIn 0.25s ease-out;
+  animation: modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes modalFadeIn {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* Modal Header */
@@ -157,36 +164,40 @@ html, body {
   right: 24px;
   background: transparent;
   border: none;
-  font-size: 26px;
-  color: #a0aec0;
+  font-size: 24px;
+  color: #94a3b8;
   cursor: pointer;
   line-height: 1;
-  padding: 4px;
-  transition: color 0.2s ease;
+  padding: 6px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
 }
 
 .modal-close-btn:hover {
-  color: #2d3748;
+  color: #0f172a;
+  background-color: #f1f5f9;
 }
 
 .badge-category {
   display: inline-block;
   background-color: #fff4ec;
-  color: #ff7e36;
-  font-size: 13px;
-  font-weight: 700;
+  color: #f37021;
+  font-size: 12px;
+  font-weight: 800;
   padding: 6px 12px;
-  border-radius: 6px;
+  border-radius: 8px;
   margin-bottom: 12px;
+  border: 1px solid #ffedd5;
 }
 
 .modal-title {
-  font-size: 24px;
-  font-weight: 800;
-  color: #1a202c;
+  font-size: 22px;
+  font-weight: 900;
+  color: #0f172a;
   line-height: 1.35;
   margin-bottom: 16px;
   word-break: keep-all;
+  letter-spacing: -0.01em;
 }
 
 .meta-toolbar {
@@ -194,7 +205,7 @@ html, body {
   align-items: center;
   gap: 8px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #edf2f7;
+  border-bottom: 1px solid #f1f5f9;
   margin-bottom: 0;
 }
 
@@ -202,19 +213,20 @@ html, body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background-color: #f7fafc;
-  color: #4a5568;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 6px 12px;
-  border-radius: 6px;
+  background-color: #f8fafc;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 14px;
+  border-radius: 10px;
   border: 1px solid #e2e8f0;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .meta-btn:hover {
-  background-color: #edf2f7;
+  background-color: #f1f5f9;
+  color: #0f172a;
 }
 
 .meta-btn.btn-admin {
@@ -227,7 +239,7 @@ html, body {
   background-color: #dbeafe;
 }
 
-/* 5. Modal Body (상하/좌우 2D 스크롤 활성화) */
+/* 5. Modal Body */
 .modal-body {
   padding: 24px 28px;
   overflow-x: auto !important;
@@ -239,10 +251,9 @@ html, body {
   background-color: #ffffff;
 }
 
-/* 본문 영역 2차원 스크롤 보장 */
 #libViewHtmlContent {
   color: #334155;
-  line-height: 1.7;
+  line-height: 1.75;
   width: 100%;
   clear: both;
   display: block;
@@ -250,7 +261,6 @@ html, body {
   overflow-y: auto !important;
 }
 
-/* 본문 섹션 블록 */
 .content-section {
   display: flex !important;
   flex-direction: column !important;
@@ -262,18 +272,18 @@ html, body {
 
 .section-title {
   font-size: 18px !important;
-  font-weight: 800 !important;
+  font-weight: 900 !important;
   color: #0f172a !important;
   line-height: 1.4 !important;
   position: relative !important;
   display: block !important;
-  margin: 12px 0 6px 0 !important;
+  margin: 14px 0 8px 0 !important;
 }
 
 .section-text {
   font-size: 14px !important;
   color: #475569 !important;
-  line-height: 1.6 !important;
+  line-height: 1.65 !important;
   word-break: keep-all !important;
   display: block !important;
   margin: 0 0 8px 0 !important;
@@ -293,36 +303,31 @@ html, body {
   width: 100% !important;
   min-width: 100% !important;
   height: auto !important;
-  min-height: fit-content !important;
-  max-height: none !important;
   box-sizing: border-box !important;
   overflow-x: auto !important;
   overflow-y: auto !important;
 }
 
-/* 파란색 스타일 (메타 가이드) */
 #libViewHtmlContent .callout-box.callout-blue,
 .callout-box.callout-blue,
 #libViewHtmlContent .callout-box {
-  background-color: #f0f7ff !important;
+  background: linear-gradient(180deg, #f0f7ff 0%, #e6f0fa 100%) !important;
   border: 1px solid #bfdbfe !important;
-  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.04) !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.05) !important;
 }
 
-/* 초록색 스타일 (네이버 스마트플레이스) */
 #libViewHtmlContent .callout-box.callout-green,
 .callout-box.callout-green {
-  background-color: #f0fdf4 !important;
+  background: linear-gradient(180deg, #f0fdf4 0%, #dcbe9e/20 100%) !important;
   border: 1px solid #bbf7d0 !important;
-  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.04) !important;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.05) !important;
 }
 
-/* 주황색 스타일 (웹 기획/개발) */
 #libViewHtmlContent .callout-box.callout-orange,
 .callout-box.callout-orange {
-  background-color: #fff7ed !important;
+  background: linear-gradient(180deg, #fff7ed 0%, #ffedd5/40 100%) !important;
   border: 1px solid #fed7aa !important;
-  box-shadow: 0 2px 6px rgba(243, 112, 33, 0.04) !important;
+  box-shadow: 0 4px 12px rgba(243, 112, 33, 0.05) !important;
 }
 
 #libViewHtmlContent .callout-title,
@@ -334,8 +339,6 @@ html, body {
   gap: 8px !important;
   margin: 0 !important;
   line-height: 1.4 !important;
-  height: auto !important;
-  visibility: visible !important;
 }
 
 #libViewHtmlContent .callout-desc,
@@ -345,10 +348,6 @@ html, body {
   word-break: keep-all !important;
   margin: 0 !important;
   line-height: 1.6 !important;
-  height: auto !important;
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
 }
 
 /* 6. Attachments Grid Section */
@@ -365,8 +364,8 @@ html, body {
 
 .attachment-header {
   font-size: 15px;
-  font-weight: 700;
-  color: #2d3748;
+  font-weight: 800;
+  color: #1e293b;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -383,13 +382,13 @@ html, body {
 .attachment-card {
   background-color: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 8px;
+  border-radius: 12px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
   position: relative;
   overflow: hidden;
@@ -397,8 +396,8 @@ html, body {
 }
 
 .attachment-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 20px -4px rgba(15, 23, 42, 0.08);
   border-color: #cbd5e1;
 }
 
@@ -406,7 +405,7 @@ html, body {
   width: 100%;
   height: 76px;
   object-fit: cover;
-  border-radius: 6px;
+  border-radius: 8px;
   background-color: #f1f5f9;
   margin-bottom: 8px;
   display: block;
@@ -422,7 +421,7 @@ html, body {
 
 .attachment-name {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   color: #334155;
   white-space: nowrap;
   overflow: hidden;
@@ -435,7 +434,7 @@ html, body {
 .attachment-download-btn {
   font-size: 11px;
   color: #2563eb;
-  font-weight: 600;
+  font-weight: 700;
   display: flex;
   align-items: center;
   gap: 2px;
@@ -443,9 +442,9 @@ html, body {
 
 /* 7. Modal Footer */
 .modal-footer {
-  padding: 16px 28px;
+  padding: 18px 28px;
   background-color: #f8fafc;
-  border-top: 1px solid #edf2f7;
+  border-top: 1px solid #f1f5f9;
   display: flex;
   justify-content: flex-end;
   flex-shrink: 0;
@@ -453,25 +452,69 @@ html, body {
 
 .btn-close {
   background-color: #e2e8f0;
-  color: #475569;
-  font-size: 14px;
-  font-weight: 600;
-  padding: 8px 20px;
-  border-radius: 8px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 10px 22px;
+  border-radius: 12px;
   border: none;
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .btn-close:hover {
   background-color: #cbd5e1;
-  color: #1e293b;
+  color: #0f172a;
 }
 
-/* 8. Scrollbar Customization */
+/* 8. 🌟 우측 상단/사이드 글로벌 관리자 메모 위젯 (New Luxury Side Memo Panel) */
+.side-memo-widget {
+  background: linear-gradient(135deg, #ffffff 0%, #fffbf7 100%);
+  border: 1px solid rgba(243, 112, 33, 0.25);
+  border-radius: 20px;
+  box-shadow: 0 10px 30px -5px rgba(243, 112, 33, 0.08), 0 4px 12px rgba(0, 0, 0, 0.03);
+  padding: 18px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.side-memo-widget:hover {
+  border-color: rgba(243, 112, 33, 0.45);
+  box-shadow: 0 16px 36px -4px rgba(243, 112, 33, 0.12);
+}
+
+.side-memo-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #ffedd5;
+}
+
+.side-memo-title {
+  font-size: 13px;
+  font-weight: 900;
+  color: #9a3412;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.side-memo-badge {
+  background-color: #ffedd5;
+  color: #ea580c;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  border: 1px solid #fed7aa;
+}
+
+/* 9. Scrollbar Customization */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
 }
 
 ::-webkit-scrollbar-track {
@@ -485,10 +528,10 @@ html, body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #f37021;
 }
 
-/* 9. Mobile Responsive Layout */
+/* 10. Mobile Responsive Layout */
 @media (max-width: 640px) {
   .sidebar {
     display: none;
@@ -510,7 +553,7 @@ html, body {
   }
 
   .modal-title {
-    font-size: 20px;
+    font-size: 19px;
   }
 
   .attachment-grid {
@@ -519,32 +562,26 @@ html, body {
   }
 }
 
-/* ==========================================================================
-   10. Search & Filter UI Enhancements (신규 추가됨 - 업무 Q&A 필터용)
-   ========================================================================== */
-
-/* 🌟 검색 및 필터 입력 요소 부드러운 전환 효과 */
+/* 11. Search & Filter UI Enhancements */
 #taskSearchKeyword, 
 #taskSearchTarget, 
 #taskStatusFilter {
   transition: all 0.2s ease-in-out;
 }
 
-/* 🌟 입력창/드롭다운 포커스(클릭) 시 외곽선 그림자 효과 (테일윈드 ring 확장 보완) */
 #taskSearchKeyword:focus, 
 #taskSearchTarget:focus, 
 #taskStatusFilter:focus {
-  box-shadow: 0 0 0 3px rgba(243, 112, 33, 0.15) !important; 
+  box-shadow: 0 0 0 3px rgba(243, 112, 33, 0.18) !important;
+  border-color: #f37021 !important;
 }
 
-/* 🌟 Select Dropdown 옵션 내부 텍스트 폰트 설정 (브라우저 호환) */
 select option {
   color: #1e293b;
   font-weight: 600;
   padding: 8px;
 }
 
-/* 🌟 모바일 환경 검색 영역 폭 최적화 보조 */
 @media (max-width: 640px) {
   #taskSearchKeyword {
     width: 100%;

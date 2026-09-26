@@ -1,7 +1,7 @@
 /**
  * ADplanters x NOAH UNIVERSE - Application Main Module
  * File Location: ./js/app.js
- * Version: 1.3.5 (Responsive Table Fix & Full Lossless Code)
+ * Version: 1.3.6 (Bug Fixed & Full Lossless Code)
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -425,7 +425,7 @@ safeAddListener('libViewCountBadgeBtn', 'click', (e) => toggleViewerTooltip('lib
 });
 
 // ============================================================================
-// 🌟 3.5. 전역 공유 관리자 메모 패널 UI (우측 메모창)
+// 3.5. 전역 공유 관리자 메모 패널 UI (우측 메모창)
 // ============================================================================
 function initSideMemoWidget() {
     const mainEl = document.querySelector('main');
@@ -1097,7 +1097,7 @@ onAuthStateChanged(auth, async (user) => {
 function showDashboard(user) {
     if(loginSection) loginSection.classList.add('hidden');
     if(pendingModal) pendingModal.classList.add('hidden');
-    if(dashboardSection) dashboardSection.remove('hidden');
+    if(dashboardSection) dashboardSection.classList.remove('hidden'); // 🌟 오탈자 정상 수정 구문
 
     if(document.getElementById('currentUserName')) {
         document.getElementById('currentUserName').innerText = user.displayName || '사용자';
@@ -2373,7 +2373,7 @@ function renderComments(commentsArr) {
                     <div class="space-y-1 bg-white p-2.5 rounded-xl border border-gray-200 max-w-full">
                         <div class="text-[10px] font-bold text-gray-500 flex justify-between flex-wrap gap-1">
                             <span>기존 첨부파일:</span>
-                            <span class="text-orange-500 font-bold text-[9px] proposed-highlight">* 이 박스 영역 전체에 파일 드래그 & 드롭 가능</span>
+                            <span class="text-orange-500 font-bold text-[9px]">* 이 박스 영역 전체에 파일 드래그 & 드롭 가능</span>
                         </div>
                         
                         <div id="inline-edit-files-container-${idx}" class="flex flex-wrap gap-1 max-w-full">
@@ -2924,12 +2924,11 @@ function renderClientsPage(page) {
     checkAllNavBadges();
 }
 
-// 🌟 예산 관리 테이블 렌더링 (가로 스크롤 레이아웃 및 텍스트 찌그러짐 방지 적용)
+// 예산 관리 테이블 렌더링
 function renderBudgetTable() {
     const budgetTbody = document.getElementById('budgetTable');
     if (!budgetTbody) return;
 
-    // 테이블 부모 영역 가로 스크롤 및 최소 너비 확보
     const tableEl = budgetTbody.closest('table');
     if (tableEl) {
         tableEl.style.minWidth = '1080px';

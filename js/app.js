@@ -1,7 +1,7 @@
 /**
  * ADplanters x NOAH UNIVERSE - Application Main Module
  * File Location: ./js/app.js
- * Version: 1.4.2 (Task & Client Max 8 Items Pagination Implementation)
+ * Version: 1.4.3 (Full Watermark Background Expansion Fix)
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -47,7 +47,7 @@ let libraryMap = {};
 let allTasksData = []; // 검색/필터링용 전체 원본 배열
 let filteredTasksData = []; // 필터링 적용 후 보존 배열
 
-// 🌟 업무/이슈 및 클라이언트 리스트 한 페이지당 최대 8개 팀/항목으로 설정
+// 업무/이슈 및 클라이언트 리스트 한 페이지당 최대 8개 팀/항목으로 설정
 let currentTaskPage = 1;
 const TASKS_PER_PAGE = 8;
 
@@ -285,16 +285,17 @@ function checkAllNavBadges() {
     setMenuBadge('library', hasNewLibrary);
 }
 
+// 🌟 화면 전체 상/하/좌/우 사선 영역까지 빈틈없이 100% 채우는 배경 워터마크 생성
 function renderWatermark() {
     const container = document.getElementById('watermarkGrid');
     if (!container || container.children.length > 0) return;
 
     let rowsHtml = '';
     const textRow = "ADplanters X NOAH UNIVERSE COMPANY ";
-    for (let i = 0; i < 24; i++) {
+    for (let i = 0; i < 90; i++) {
         const shiftStyle = (i % 2 === 0) ? 'margin-left: 0px;' : 'margin-left: 140px;';
         rowsHtml += `<div class="whitespace-nowrap font-black text-sm tracking-widest text-slate-800 select-none" style="${shiftStyle}">`;
-        for (let j = 0; j < 8; j++) {
+        for (let j = 0; j < 25; j++) {
             rowsHtml += `<span style="margin-right:1.5rem;">${textRow}</span>`;
         }
         rowsHtml += `</div>`;
@@ -1727,7 +1728,7 @@ function applyTaskFilters() {
     renderTasksPage(currentTaskPage);
 }
 
-// 🌟 업무 / Q&A 및 파트너 통합 보드 전용 페이지네이션 렌더링 (최대 8개 항목)
+// 🌟 업무 / Q&A 및 파트너 통합 보드 전용 페이지네이션 렌더링 (한 페이지당 최대 8개 항목)
 function renderTasksPage(page) {
     currentTaskPage = page;
     const tbody = document.getElementById('boardTable');
@@ -3057,7 +3058,7 @@ function renderClientsPage(page) {
     checkAllNavBadges();
 }
 
-// 🌟 예산 관리 테이블 렌더링 (헤더 9개 열 정렬 보장 및 커스텀 마우스 호버 이벤트)
+// 예산 관리 테이블 렌더링
 function renderBudgetTable() {
     const budgetTbody = document.getElementById('budgetTable');
     if (!budgetTbody) return;
@@ -3109,7 +3110,7 @@ function renderBudgetTable() {
         const contractPeriod = data.contractPeriod || '-'; 
         const memoText = (data.memo || data.budgetMemo) ? (data.memo || data.budgetMemo) : '';
 
-        // 🌟 잘림 없는 마우스 호버 이벤트를 지원하는 메모 요소 생성
+        // 잘림 없는 마우스 호버 이벤트를 지원하는 메모 요소 생성
         const memoContentHtml = memoText ? `
             <span class="memo-hover-trigger truncate block max-w-[150px] text-gray-700 font-medium cursor-pointer" data-memo="${memoText.replace(/"/g, '&quot;')}">${memoText}</span>
         ` : `<span class="text-gray-400">-</span>`;

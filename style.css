@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ADplanters x NOAH UNIVERSE - Global & Table Layout Stylesheet (v1.4.2)
+   ADplanters x NOAH UNIVERSE - Global & Table Layout Stylesheet (v1.4.3)
    ========================================================================== */
 
 /* 1. Global Reset & Layout Isolation */
@@ -21,8 +21,7 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* 2. Background Watermark Isolation */
-#watermarkGrid,
+/* 2. Background Watermark Isolation (전체 화면 꽉 차는 배경 워터마크 보장) */
 .bg-watermark-container,
 .watermark-container {
   position: fixed !important;
@@ -33,8 +32,13 @@ html, body {
   pointer-events: none !important;
   z-index: 0 !important;
   overflow: hidden !important;
-  opacity: 0.04 !important;
   user-select: none !important;
+}
+
+#watermarkGrid {
+  pointer-events: none !important;
+  user-select: none !important;
+  opacity: 0.04 !important;
 }
 
 /* 3. Main Dashboard App Layout (자연스러운 세로 확장) */

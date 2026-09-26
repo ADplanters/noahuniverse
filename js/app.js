@@ -1,7 +1,7 @@
 /**
  * ADplanters x NOAH UNIVERSE - Application Main Module
  * File Location: ./js/app.js
- * Version: 1.3.7 (Aligned Header & Simplified '수정' Button Text)
+ * Version: 1.3.8 (Perfect Column Alignment & Memo Integration)
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -425,7 +425,7 @@ safeAddListener('libViewCountBadgeBtn', 'click', (e) => toggleViewerTooltip('lib
 });
 
 // ============================================================================
-// 3.5. 전역 공유 관리자 메모 패널 UI (우측 메모창)
+// 🌟 3.5. Note 영역 UI (명칭 "Note"로 변경)
 // ============================================================================
 function initSideMemoWidget() {
     const mainEl = document.querySelector('main');
@@ -477,15 +477,15 @@ function renderSideMemoWidget() {
             <div class="side-memo-header">
                 <div class="side-memo-title">
                     <i class="fa-solid fa-note-sticky text-hermes"></i>
-                    <span>전체 관리자 공유 메모 (Admin)</span>
+                    <span>Note</span>
                 </div>
-                <span class="side-memo-badge">수정 권한 보유</span>
+                <span class="side-memo-badge">Admin</span>
             </div>
             <div class="space-y-2">
-                <textarea id="globalMemoTextarea" rows="3" placeholder="모든 계정에서 공통으로 열람 가능한 시스템 메모를 입력하세요." class="w-full text-xs p-3 border border-orange-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-hermes/40 bg-white font-medium resize-y leading-relaxed">${globalMemoContent}</textarea>
+                <textarea id="globalMemoTextarea" rows="3" placeholder="모든 계정에서 공통으로 열람 가능한 Note 내용을 입력하세요." class="w-full text-xs p-3 border border-orange-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-hermes/40 bg-white font-medium resize-y leading-relaxed">${globalMemoContent}</textarea>
                 <div class="flex justify-end gap-2">
                     <button type="button" id="saveGlobalMemoBtn" class="bg-hermes hover:bg-orange-600 text-white text-xs font-bold px-4 py-1.5 rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5">
-                        <i class="fa-solid fa-floppy-disk"></i> 메모 저장
+                        <i class="fa-solid fa-floppy-disk"></i> 저장
                     </button>
                 </div>
             </div>
@@ -507,12 +507,12 @@ function renderSideMemoWidget() {
                         updatedBy: currentUserName
                     }, { merge: true });
 
-                    await logActivity("전체 메모 수정", `공유 메모 업데이트 완료`);
-                    alert("공유 메모가 저장되었습니다.");
+                    await logActivity("Note 수정", `공유 Note 업데이트 완료`);
+                    alert("Note가 저장되었습니다.");
                 } catch (err) {
-                    alert("메모 저장 실패: " + err.message);
+                    alert("Note 저장 실패: " + err.message);
                 } finally {
-                    saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> 메모 저장`;
+                    saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> 저장`;
                     saveBtn.disabled = false;
                 }
             };
@@ -520,15 +520,15 @@ function renderSideMemoWidget() {
     } else {
         const displayHtml = globalMemoContent
             ? `<div class="text-xs text-gray-800 whitespace-pre-wrap leading-relaxed font-medium bg-white p-3 rounded-xl border border-orange-100">${globalMemoContent}</div>`
-            : `<div class="text-xs text-gray-400 italic py-2">등록된 메모 공지가 없습니다.</div>`;
+            : `<div class="text-xs text-gray-400 italic py-2">등록된 Note가 없습니다.</div>`;
 
         widgetEl.innerHTML = `
             <div class="side-memo-header">
                 <div class="side-memo-title">
                     <i class="fa-solid fa-note-sticky text-hermes"></i>
-                    <span>전체 관리자 공유 메모</span>
+                    <span>Note</span>
                 </div>
-                <span class="side-memo-badge">전체 공개</span>
+                <span class="side-memo-badge">공유</span>
             </div>
             ${displayHtml}
         `;
@@ -2018,11 +2018,11 @@ async function openDetailModal(taskId) {
                 otherMemoBox.innerHTML = `
                     <div class="flex items-center justify-between mb-1.5">
                         <span class="text-xs font-bold text-purple-900 flex items-center gap-1">
-                            <i class="fa-solid fa-note-sticky text-purple-600"></i> 기타 항목 관리자 전용 메모 (Admin 전용 수정)
+                            <i class="fa-solid fa-note-sticky text-purple-600"></i> 기타 항목 메모 (Admin 전용 수정)
                         </span>
                         <span class="text-[10px] text-purple-600 font-bold bg-purple-100 px-1.5 py-0.5 rounded">전체 열람 가능</span>
                     </div>
-                    <textarea id="taskOtherMemoTextarea" rows="2" placeholder="최상위 관리자 전용 메모를 입력하세요." class="w-full text-xs p-2 border border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white font-medium resize-y">${memoVal}</textarea>
+                    <textarea id="taskOtherMemoTextarea" rows="2" placeholder="관리자 전용 메모를 입력하세요." class="w-full text-xs p-2 border border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white font-medium resize-y">${memoVal}</textarea>
                     <div class="flex justify-end mt-1.5">
                         <button type="button" id="saveTaskOtherMemoBtn" class="bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-bold px-3 py-1 rounded-lg transition shadow-xs">
                             메모 저장
@@ -2054,7 +2054,7 @@ async function openDetailModal(taskId) {
                 otherMemoBox.innerHTML = `
                     <div class="flex items-center justify-between mb-1">
                         <span class="text-xs font-bold text-purple-900 flex items-center gap-1">
-                            <i class="fa-solid fa-note-sticky text-purple-600"></i> 기타 항목 특이사항 메모
+                            <i class="fa-solid fa-note-sticky text-purple-600"></i> 기타 항목 메모
                         </span>
                     </div>
                     <div class="text-xs text-purple-950 font-medium whitespace-pre-wrap leading-relaxed bg-white p-2.5 rounded-lg border border-purple-100">
@@ -2924,7 +2924,7 @@ function renderClientsPage(page) {
     checkAllNavBadges();
 }
 
-// 🌟 예산 관리 테이블 렌더링 (헤더와 데이터 행의 '수정' 열 완벽 정렬)
+// 🌟 예산 관리 테이블 렌더링 (기타(메모) 열 렌더링 추가 및 수직 열 정렬 일치)
 function renderBudgetTable() {
     const budgetTbody = document.getElementById('budgetTable');
     if (!budgetTbody) return;
@@ -2937,11 +2937,23 @@ function renderBudgetTable() {
             parentContainer.classList.add('table-scroll-container');
         }
         
-        // 가장 우측 8번째 열 헤더 정렬 및 텍스트 "수정"으로 통일
-        const lastTh = tableEl.querySelector('thead tr th:last-child');
-        if (lastTh) {
-            lastTh.textContent = '수정';
-            lastTh.className = 'p-3 md:p-4 font-bold text-center whitespace-nowrap w-24';
+        // 테이블 헤더의 8번째 열("기타(메모)")과 9번째 열("수정") 수직 열 너비 및 명칭 지정
+        const ths = tableEl.querySelectorAll('thead tr th');
+        if (ths.length >= 8) {
+            // 헤더 가공: 소진율 다음 열이 '기타(메모)', 마지막 열이 '수정'
+            if (ths[7]) {
+                ths[7].textContent = '기타(메모)';
+                ths[7].className = 'p-3 md:p-4 font-bold text-left whitespace-nowrap min-w-[150px]';
+            }
+            if (ths[8]) {
+                ths[8].textContent = '수정';
+                ths[8].className = 'p-3 md:p-4 font-bold text-center whitespace-nowrap w-24';
+            } else if (ths.length === 8) {
+                // index.html 헤더 개수가 8개일 경우 동적으로 수정 열 헤더 보완
+                const lastTh = ths[7];
+                lastTh.textContent = '수정';
+                lastTh.className = 'p-3 md:p-4 font-bold text-center whitespace-nowrap w-24';
+            }
         }
     }
 
@@ -2964,6 +2976,7 @@ function renderBudgetTable() {
         
         const formatWon = (val) => val.toLocaleString() + '원';
         const contractPeriod = data.contractPeriod || '-'; 
+        const memoText = data.memo || data.budgetMemo || '-';
 
         let budgetProgressHtml = `
             <div class="flex flex-col gap-1 w-full min-w-[120px]">
@@ -2985,6 +2998,7 @@ function renderBudgetTable() {
                     <div class="text-xs font-bold text-gray-600 mb-1">${percent.toFixed(1)}%</div>
                     ${budgetProgressHtml}
                 </td>
+                <td class="p-3.5 md:p-4 text-xs font-medium text-gray-600 align-middle whitespace-nowrap max-w-[160px] truncate" title="${memoText}">${memoText}</td>
                 <td class="p-3.5 md:p-4 text-center align-middle whitespace-nowrap w-24">
                     <button type="button" class="edit-budget-btn bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl transition shadow-sm whitespace-nowrap cursor-pointer inline-flex items-center justify-center gap-1.5" data-id="${data.id}"><i class="fa-solid fa-pen-to-square"></i> 수정</button>
                 </td>
@@ -3013,11 +3027,36 @@ function openBudgetEditModal(clientId) {
     const totalIn = document.getElementById('edit_b_total');
     const rechargeIn = document.getElementById('edit_b_recharge');
     const usedIn = document.getElementById('edit_b_used');
+    const contractIn = document.getElementById('edit_b_contract');
 
     if (titleEl) titleEl.innerText = client.name;
     if (totalIn) totalIn.value = client.totalBudget || 0;
     if (rechargeIn) rechargeIn.value = client.rechargedBudget || 0;
     if (usedIn) usedIn.value = client.usedBudget || 0;
+    if (contractIn) contractIn.value = client.contractPeriod || '';
+
+    // 모달 내 메모 입력 인풋창 동적 보완 (없을 경우 자동 추가)
+    const formEl = document.getElementById('budgetEditForm');
+    let memoIn = document.getElementById('edit_b_memo');
+    if (!memoIn && formEl) {
+        const btnGroup = formEl.querySelector('.flex.justify-end');
+        const memoDiv = document.createElement('div');
+        memoDiv.className = 'mb-3';
+        memoDiv.innerHTML = `
+            <label class="block text-[10px] font-bold text-gray-700 mb-1">기타 (메모)</label>
+            <input type="text" id="edit_b_memo" placeholder="전달사항 및 메모 입력" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-blue-500 outline-none font-medium">
+        `;
+        if (btnGroup) {
+            formEl.insertBefore(memoDiv, btnGroup);
+        } else {
+            formEl.appendChild(memoDiv);
+        }
+        memoIn = document.getElementById('edit_b_memo');
+    }
+
+    if (memoIn) {
+        memoIn.value = client.memo || client.budgetMemo || '';
+    }
 
     if (budgetEditModal) {
         budgetEditModal.classList.remove('hidden');
@@ -3032,21 +3071,31 @@ safeAddListener('budgetEditForm', 'submit', async (e) => {
     const totalIn = document.getElementById('edit_b_total');
     const rechargeIn = document.getElementById('edit_b_recharge');
     const usedIn = document.getElementById('edit_b_used');
+    const contractIn = document.getElementById('edit_b_contract');
+    const memoIn = document.getElementById('edit_b_memo');
 
     const submitBtn = budgetEditModal.querySelector('button[type="submit"]');
     const origText = submitBtn ? submitBtn.innerText : '저장';
     if(submitBtn) { submitBtn.innerText = '저장 중...'; submitBtn.disabled = true; }
 
     try {
-        await updateDoc(doc(db, "clients", currentEditBudgetId), {
+        const updateData = {
             totalBudget: totalIn ? Number(totalIn.value) : 0,
             rechargedBudget: rechargeIn ? Number(rechargeIn.value) : 0,
             usedBudget: usedIn ? Number(usedIn.value) : 0,
             updatedAt: new Date().toISOString()
-        });
+        };
+
+        if (contractIn) updateData.contractPeriod = contractIn.value;
+        if (memoIn) {
+            updateData.memo = memoIn.value;
+            updateData.budgetMemo = memoIn.value;
+        }
+
+        await updateDoc(doc(db, "clients", currentEditBudgetId), updateData);
         
         budgetEditModal.classList.add('hidden');
-        alert("해당 클라이언트의 예산 정보가 업데이트되었습니다.");
+        alert("해당 클라이언트의 정보가 업데이트되었습니다.");
         fetchClients();
 
     } catch (err) {

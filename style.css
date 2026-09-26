@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ADplanters x NOAH UNIVERSE - Global & Table Layout Stylesheet (v1.3.7)
+   ADplanters x NOAH UNIVERSE - Global & Table Layout Stylesheet (v1.3.8)
    ========================================================================== */
 
 /* 1. Global Reset & Layout Isolation */
@@ -519,12 +519,13 @@ table th {
 }
 
 .side-memo-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 900;
   color: #9a3412;
   display: flex;
   align-items: center;
   gap: 6px;
+  letter-spacing: -0.01em;
 }
 
 .side-memo-badge {

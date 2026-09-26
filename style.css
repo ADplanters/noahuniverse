@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ADplanters x NOAH UNIVERSE - Global & Modal Stylesheet (v1.3.0 Luxury)
+   ADplanters x NOAH UNIVERSE - Global & Table Layout Stylesheet (v1.3.5)
    ========================================================================== */
 
 /* 1. Global Reset & Layout Isolation */
@@ -43,7 +43,7 @@ html, body {
   z-index: 10;
 }
 
-/* Sidebar 고급화 */
+/* Sidebar 고급 스타일링 */
 .sidebar {
   width: 250px;
   background: rgba(255, 255, 255, 0.95);
@@ -96,6 +96,31 @@ html, body {
   flex: 1;
   padding: 32px;
   overflow-y: auto;
+}
+
+/* 🌟 테이블 텍스트 세로 깨짐 완전 방지 및 가로 스크롤 보장 */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+table th,
+table td {
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  writing-mode: horizontal-tb !important;
+}
+
+table th {
+  letter-spacing: -0.01em;
+  font-weight: 800;
+}
+
+.table-scroll-container {
+  width: 100%;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 16px;
 }
 
 /* 🌟 Rolling Ticker Box Animation */
@@ -289,7 +314,7 @@ html, body {
   margin: 0 0 8px 0 !important;
 }
 
-/* 라운드 컬러 박스 */
+/* Callout Box Styling */
 #libViewHtmlContent .callout-box,
 .callout-box {
   border-radius: 16px !important;
@@ -467,7 +492,7 @@ html, body {
   color: #0f172a;
 }
 
-/* 8. 🌟 우측 상단/사이드 글로벌 관리자 메모 위젯 (New Luxury Side Memo Panel) */
+/* 8. Side Memo Panel (우측 공유 메모 패널) */
 .side-memo-widget {
   background: linear-gradient(135deg, #ffffff 0%, #fffbf7 100%);
   border: 1px solid rgba(243, 112, 33, 0.25);
@@ -511,7 +536,7 @@ html, body {
   border: 1px solid #fed7aa;
 }
 
-/* 9. Scrollbar Customization */
+/* 9. Custom Scrollbar Styling */
 ::-webkit-scrollbar {
   width: 7px;
   height: 7px;
@@ -562,7 +587,7 @@ html, body {
   }
 }
 
-/* 11. Search & Filter UI Enhancements */
+/* 11. Search & Filter Focus Visuals */
 #taskSearchKeyword, 
 #taskSearchTarget, 
 #taskStatusFilter {
@@ -580,11 +605,4 @@ select option {
   color: #1e293b;
   font-weight: 600;
   padding: 8px;
-}
-
-@media (max-width: 640px) {
-  #taskSearchKeyword {
-    width: 100%;
-    min-width: 140px;
-  }
 }

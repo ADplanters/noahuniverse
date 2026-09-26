@@ -1,7 +1,7 @@
 /**
  * ADplanters x NOAH UNIVERSE - Application Main Module
  * File Location: ./js/app.js
- * Version: 1.3.0
+ * Version: 1.3.5 (Responsive Table Fix & Full Lossless Code)
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -1097,7 +1097,7 @@ onAuthStateChanged(auth, async (user) => {
 function showDashboard(user) {
     if(loginSection) loginSection.classList.add('hidden');
     if(pendingModal) pendingModal.classList.add('hidden');
-    if(dashboardSection) dashboardSection.classList.remove('hidden');
+    if(dashboardSection) dashboardSection.remove('hidden');
 
     if(document.getElementById('currentUserName')) {
         document.getElementById('currentUserName').innerText = user.displayName || '사용자';
@@ -1124,7 +1124,7 @@ function showDashboard(user) {
     setupDragAndDrop('inputContent', 'inputFile');
     initNewCommentDragAndDrop();
 
-    initSideMemoWidget(); // 🌟 우측 관리자 메모창 초기화
+    initSideMemoWidget(); 
     fetchClients();
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -1998,7 +1998,7 @@ async function openDetailModal(taskId) {
         contentEl.className = "text-xs sm:text-sm text-gray-700 whitespace-pre-line break-all max-w-full overflow-x-auto leading-relaxed";
     }
 
-    // 🌟 '기타' 분류 전용 관리자 메모 영역 동적 생성/렌더링
+    // 기타 분류 전용 메모 영역
     let otherMemoBox = document.getElementById('detailOtherMemoBox');
     if (!otherMemoBox && contentEl && contentEl.parentElement) {
         otherMemoBox = document.createElement('div');
@@ -2373,7 +2373,7 @@ function renderComments(commentsArr) {
                     <div class="space-y-1 bg-white p-2.5 rounded-xl border border-gray-200 max-w-full">
                         <div class="text-[10px] font-bold text-gray-500 flex justify-between flex-wrap gap-1">
                             <span>기존 첨부파일:</span>
-                            <span class="text-orange-500 font-bold text-[9px]">* 이 박스 영역 전체에 파일 드래그 & 드롭 가능</span>
+                            <span class="text-orange-500 font-bold text-[9px] proposed-highlight">* 이 박스 영역 전체에 파일 드래그 & 드롭 가능</span>
                         </div>
                         
                         <div id="inline-edit-files-container-${idx}" class="flex flex-wrap gap-1 max-w-full">
@@ -2924,9 +2924,21 @@ function renderClientsPage(page) {
     checkAllNavBadges();
 }
 
+// 🌟 예산 관리 테이블 렌더링 (가로 스크롤 레이아웃 및 텍스트 찌그러짐 방지 적용)
 function renderBudgetTable() {
     const budgetTbody = document.getElementById('budgetTable');
     if (!budgetTbody) return;
+
+    // 테이블 부모 영역 가로 스크롤 및 최소 너비 확보
+    const tableEl = budgetTbody.closest('table');
+    if (tableEl) {
+        tableEl.style.minWidth = '1080px';
+        const parentContainer = tableEl.parentElement;
+        if (parentContainer) {
+            parentContainer.classList.add('table-scroll-container');
+        }
+    }
+
     budgetTbody.innerHTML = '';
 
     let sumTotal = 0, sumRecharged = 0, sumSpent = 0;
@@ -2948,7 +2960,7 @@ function renderBudgetTable() {
         const contractPeriod = data.contractPeriod || '-'; 
 
         let budgetProgressHtml = `
-            <div class="flex flex-col gap-1 w-full min-w-[150px]">
+            <div class="flex flex-col gap-1 w-full min-w-[120px]">
                 <div class="w-full bg-gray-100 rounded-full h-2 shadow-inner overflow-hidden">
                     <div class="${percent > 90 ? 'bg-red-500' : 'bg-hermes'} h-2 rounded-full transition-all" style="width: ${percent}%"></div>
                 </div>
@@ -2956,19 +2968,19 @@ function renderBudgetTable() {
         `;
 
         const tr = `
-            <tr class="hover:bg-blue-50/30 transition border-b border-gray-100 break-keep">
-                <td class="p-3 md:p-4 font-black text-gray-900 align-middle whitespace-nowrap">${data.name}</td>
-                <td class="p-3 md:p-4 font-bold text-gray-700 align-middle whitespace-nowrap">${formatWon(total)}</td>
-                <td class="p-3 md:p-4 font-bold text-blue-600 align-middle whitespace-nowrap">${formatWon(recharged)}</td>
-                <td class="p-3 md:p-4 font-bold text-amber-600 align-middle whitespace-nowrap">${formatWon(used)}</td> 
-                <td class="p-3 md:p-4 font-black text-hermes align-middle whitespace-nowrap">${formatWon(remaining)}</td> 
-                <td class="p-3 md:p-4 font-bold text-blue-700 align-middle whitespace-nowrap">${contractPeriod}</td> 
-                <td class="p-3 md:p-4 align-middle whitespace-nowrap">
+            <tr class="hover:bg-blue-50/30 transition border-b border-gray-100 whitespace-nowrap">
+                <td class="p-3.5 md:p-4 font-black text-gray-900 align-middle whitespace-nowrap">${data.name}</td>
+                <td class="p-3.5 md:p-4 font-bold text-gray-700 align-middle whitespace-nowrap">${formatWon(total)}</td>
+                <td class="p-3.5 md:p-4 font-bold text-blue-600 align-middle whitespace-nowrap">${formatWon(recharged)}</td>
+                <td class="p-3.5 md:p-4 font-bold text-amber-600 align-middle whitespace-nowrap">${formatWon(used)}</td> 
+                <td class="p-3.5 md:p-4 font-black text-hermes align-middle whitespace-nowrap">${formatWon(remaining)}</td> 
+                <td class="p-3.5 md:p-4 font-bold text-blue-700 align-middle whitespace-nowrap">${contractPeriod}</td> 
+                <td class="p-3.5 md:p-4 align-middle whitespace-nowrap">
                     <div class="text-xs font-bold text-gray-600 mb-1">${percent.toFixed(1)}%</div>
                     ${budgetProgressHtml}
                 </td>
-                <td class="p-3 md:p-4 text-center align-middle whitespace-nowrap">
-                    <button type="button" class="edit-budget-btn bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-3 py-1.5 rounded transition shadow-sm whitespace-nowrap cursor-pointer" data-id="${data.id}"><i class="fa-solid fa-pen-to-square"></i> 예산 수정</button>
+                <td class="p-3.5 md:p-4 text-center align-middle whitespace-nowrap">
+                    <button type="button" class="edit-budget-btn bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl transition shadow-sm whitespace-nowrap cursor-pointer" data-id="${data.id}"><i class="fa-solid fa-pen-to-square"></i> 예산 수정</button>
                 </td>
             </tr>
         `;

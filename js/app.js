@@ -1,7 +1,7 @@
 /**
  * ADplanters x NOAH UNIVERSE - Application Main Module
  * File Location: ./js/app.js
- * Version: 1.3.6 (Bug Fixed & Full Lossless Code)
+ * Version: 1.3.7 (Aligned Header & Simplified '수정' Button Text)
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -1097,7 +1097,7 @@ onAuthStateChanged(auth, async (user) => {
 function showDashboard(user) {
     if(loginSection) loginSection.classList.add('hidden');
     if(pendingModal) pendingModal.classList.add('hidden');
-    if(dashboardSection) dashboardSection.classList.remove('hidden'); // 🌟 오탈자 정상 수정 구문
+    if(dashboardSection) dashboardSection.classList.remove('hidden');
 
     if(document.getElementById('currentUserName')) {
         document.getElementById('currentUserName').innerText = user.displayName || '사용자';
@@ -2924,17 +2924,24 @@ function renderClientsPage(page) {
     checkAllNavBadges();
 }
 
-// 예산 관리 테이블 렌더링
+// 🌟 예산 관리 테이블 렌더링 (헤더와 데이터 행의 '수정' 열 완벽 정렬)
 function renderBudgetTable() {
     const budgetTbody = document.getElementById('budgetTable');
     if (!budgetTbody) return;
 
     const tableEl = budgetTbody.closest('table');
     if (tableEl) {
-        tableEl.style.minWidth = '1080px';
+        tableEl.style.minWidth = '1120px';
         const parentContainer = tableEl.parentElement;
         if (parentContainer) {
             parentContainer.classList.add('table-scroll-container');
+        }
+        
+        // 가장 우측 8번째 열 헤더 정렬 및 텍스트 "수정"으로 통일
+        const lastTh = tableEl.querySelector('thead tr th:last-child');
+        if (lastTh) {
+            lastTh.textContent = '수정';
+            lastTh.className = 'p-3 md:p-4 font-bold text-center whitespace-nowrap w-24';
         }
     }
 
@@ -2978,8 +2985,8 @@ function renderBudgetTable() {
                     <div class="text-xs font-bold text-gray-600 mb-1">${percent.toFixed(1)}%</div>
                     ${budgetProgressHtml}
                 </td>
-                <td class="p-3.5 md:p-4 text-center align-middle whitespace-nowrap">
-                    <button type="button" class="edit-budget-btn bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl transition shadow-sm whitespace-nowrap cursor-pointer" data-id="${data.id}"><i class="fa-solid fa-pen-to-square"></i> 예산 수정</button>
+                <td class="p-3.5 md:p-4 text-center align-middle whitespace-nowrap w-24">
+                    <button type="button" class="edit-budget-btn bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl transition shadow-sm whitespace-nowrap cursor-pointer inline-flex items-center justify-center gap-1.5" data-id="${data.id}"><i class="fa-solid fa-pen-to-square"></i> 수정</button>
                 </td>
             </tr>
         `;

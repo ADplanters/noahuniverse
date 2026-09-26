@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ADplanters x NOAH UNIVERSE - Global & Table Layout Stylesheet (v1.3.6)
+   ADplanters x NOAH UNIVERSE - Global & Table Layout Stylesheet (v1.3.7)
    ========================================================================== */
 
 /* 1. Global Reset & Layout Isolation */
@@ -98,7 +98,7 @@ html, body {
   overflow-y: auto;
 }
 
-/* 테이블 텍스트 세로 깨짐 완전 방지 및 가로 스크롤 보장 */
+/* 테이블 텍스트 세로 깨짐 완전 방지 및 열 정렬 보장 */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -109,6 +109,7 @@ table td {
   white-space: nowrap !important;
   word-break: keep-all !important;
   writing-mode: horizontal-tb !important;
+  vertical-align: middle !important;
 }
 
 table th {

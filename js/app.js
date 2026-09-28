@@ -1,7 +1,7 @@
 /**
  * ADplanters x NOAH UNIVERSE - Application Main Module
  * File Location: ./js/app.js
- * Version: 1.4.5 (Responsive Note Area Auto-Resizing)
+ * Version: 1.5.0 (Rich Text Formatting Toolbar & HTML Mode Integration)
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -68,6 +68,7 @@ let newCommentSelectedFiles = [];
 
 // 전역 시스템/관리자 메모 보존
 let globalMemoContent = '';
+let isNoteHtmlMode = false;
 
 // 클라이언트 상호명 비교 시 띄어쓰기 및 대소문자 제거 정규화 헬퍼
 const normalizeName = (str) => (str || '').replace(/\s+/g, '').toLowerCase();
@@ -430,7 +431,7 @@ safeAddListener('libViewCountBadgeBtn', 'click', (e) => toggleViewerTooltip('lib
 });
 
 // ============================================================================
-// 🌟 3.5. Note 영역 UI (명칭 "Note" 적용 & 반응형 자동 높이 조절)
+// 🌟 3.5. Note 영역 UI (서식 툴바 + HTML 코드 모드 전환 서식 에디터)
 // ============================================================================
 function initSideMemoWidget() {
     const mainEl = document.querySelector('main');
@@ -484,11 +485,53 @@ function renderSideMemoWidget() {
                     <i class="fa-solid fa-note-sticky text-hermes"></i>
                     <span>Note</span>
                 </div>
-                <span class="side-memo-badge">Admin</span>
+                <div class="flex items-center gap-3">
+                    <label class="flex items-center gap-1.5 text-xs text-gray-700 font-bold cursor-pointer select-none">
+                        <input type="checkbox" id="noteHtmlModeToggle" class="rounded text-hermes focus:ring-hermes cursor-pointer" ${isNoteHtmlMode ? 'checked' : ''} />
+                        <span>HTML 코드 편집</span>
+                    </label>
+                    <span class="side-memo-badge">Admin</span>
+                </div>
             </div>
-            <div class="space-y-2">
-                <textarea id="globalMemoTextarea" placeholder="모든 계정에서 공통으로 열람 가능한 Note 내용을 입력하세요." class="w-full text-xs p-3 border border-orange-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-hermes/40 bg-white font-medium leading-relaxed">${globalMemoContent}</textarea>
-                <div class="flex justify-end gap-2">
+            
+            <!-- 서식 툴바 (일반 비주얼 편집 모드일 때만 표시) -->
+            <div id="noteVisualToolbar" class="note-toolbar ${isNoteHtmlMode ? 'hidden' : 'flex'}">
+                <select id="noteFontSize" class="text-xs border border-gray-300 rounded px-2 py-1 bg-white font-bold cursor-pointer outline-none focus:border-hermes" title="글자 크기">
+                    <option value="">글자 크기</option>
+                    <option value="12px">작게 (12px)</option>
+                    <option value="14px">보통 (14px)</option>
+                    <option value="16px">크게 (16px)</option>
+                    <option value="18px">특대 (18px)</option>
+                </select>
+                <div class="h-4 w-[1px] bg-orange-200 mx-1"></div>
+                <button type="button" class="note-btn note-cmd-btn" data-cmd="bold" title="굵게 (Bold)"><b>B</b></button>
+                <button type="button" class="note-btn note-cmd-btn" data-cmd="underline" title="밑줄 (Underline)"><u>U</u></button>
+                <button type="button" class="note-btn note-cmd-btn" data-cmd="italic" title="기울임 (Italic)"><i>I</i></button>
+                <button type="button" class="note-btn note-cmd-btn" data-cmd="strikeThrough" title="취소선 (Strike)"><s>S</s></button>
+                <div class="h-4 w-[1px] bg-orange-200 mx-1"></div>
+                <label class="flex items-center gap-1 text-[11px] font-bold text-gray-600 cursor-pointer" title="글자 색상">
+                    <span>글자색</span>
+                    <input type="color" id="noteTextColor" value="#1e293b" class="note-color-picker" />
+                </label>
+                <label class="flex items-center gap-1 text-[11px] font-bold text-gray-600 cursor-pointer" title="배경 색상">
+                    <span>배경색</span>
+                    <input type="color" id="noteBgColor" value="#ffffff" class="note-color-picker" />
+                </label>
+                <div class="h-4 w-[1px] bg-orange-200 mx-1"></div>
+                <button type="button" class="note-btn note-cmd-btn" data-cmd="justifyLeft" title="왼쪽 정렬"><i class="fa-solid fa-align-left"></i></button>
+                <button type="button" class="note-btn note-cmd-btn" data-cmd="justifyCenter" title="가운데 정렬"><i class="fa-solid fa-align-center"></i></button>
+                <button type="button" class="note-btn note-cmd-btn" data-cmd="justifyRight" title="오른쪽 정렬"><i class="fa-solid fa-align-right"></i></button>
+                <button type="button" class="note-btn note-cmd-btn ml-auto text-red-500" data-cmd="removeFormat" title="서식 지우기"><i class="fa-solid fa-eraser"></i> 지우기</button>
+            </div>
+
+            <div class="space-y-2 mt-2">
+                <!-- 일반 비주얼 리치 에디터 -->
+                <div id="globalMemoRichEditor" contenteditable="true" class="w-full min-h-[90px] max-h-[220px] overflow-y-auto text-xs p-3.5 border border-orange-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-hermes/40 bg-white font-medium leading-relaxed ${isNoteHtmlMode ? 'hidden' : 'block'}">${globalMemoContent}</div>
+
+                <!-- HTML 코드 에디터 -->
+                <textarea id="globalMemoTextarea" rows="6" placeholder="HTML 코드를 직접 입력하세요." class="w-full text-xs font-mono p-3 border border-gray-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-hermes/40 bg-gray-900 text-green-400 leading-relaxed ${isNoteHtmlMode ? 'block' : 'hidden'}">${globalMemoContent}</textarea>
+
+                <div class="flex justify-end gap-2 pt-1">
                     <button type="button" id="saveGlobalMemoBtn" class="bg-hermes hover:bg-orange-600 text-white text-xs font-bold px-4 py-1.5 rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5">
                         <i class="fa-solid fa-floppy-disk"></i> 저장
                     </button>
@@ -496,36 +539,105 @@ function renderSideMemoWidget() {
             </div>
         `;
 
-        // 🌟 Note 입력 내용 길이에 따라 최대 2배 높이(180px)까지 자동으로 반응형 조절되는 스크립트
-        const textIn = document.getElementById('globalMemoTextarea');
-        if (textIn) {
-            const autoResizeNote = () => {
-                textIn.style.height = 'auto';
-                const newHeight = Math.min(Math.max(textIn.scrollHeight, 80), 180);
-                textIn.style.height = `${newHeight}px`;
+        const htmlToggle = document.getElementById('noteHtmlModeToggle');
+        const richEditor = document.getElementById('globalMemoRichEditor');
+        const htmlTextarea = document.getElementById('globalMemoTextarea');
+        const visualToolbar = document.getElementById('noteVisualToolbar');
+
+        // HTML 코드 모드 체크박스 전환 핸들러
+        if (htmlToggle) {
+            htmlToggle.onchange = (e) => {
+                isNoteHtmlMode = e.target.checked;
+                if (isNoteHtmlMode) {
+                    if (richEditor && htmlTextarea) {
+                        htmlTextarea.value = richEditor.innerHTML;
+                    }
+                    if (visualToolbar) visualToolbar.classList.replace('flex', 'hidden');
+                    if (richEditor) richEditor.classList.replace('block', 'hidden');
+                    if (htmlTextarea) htmlTextarea.classList.replace('hidden', 'block');
+                } else {
+                    if (richEditor && htmlTextarea) {
+                        richEditor.innerHTML = htmlTextarea.value;
+                    }
+                    if (visualToolbar) visualToolbar.classList.replace('hidden', 'flex');
+                    if (richEditor) richEditor.classList.replace('hidden', 'block');
+                    if (htmlTextarea) htmlTextarea.classList.replace('block', 'hidden');
+                }
             };
-            textIn.addEventListener('input', autoResizeNote);
-            setTimeout(autoResizeNote, 0); // 렌더링 직후 높이 자동 계산
         }
 
+        // 비주얼 에디터 서식 명령 버튼 핸들러
+        const cmdBtns = widgetEl.querySelectorAll('.note-cmd-btn');
+        cmdBtns.forEach(btn => {
+            btn.onclick = (e) => {
+                e.preventDefault();
+                const cmd = btn.getAttribute('data-cmd');
+                if (richEditor) richEditor.focus();
+                document.execCommand(cmd, false, null);
+            };
+        });
+
+        // 글자 크기 조절 선택기
+        const fontSizeSelect = document.getElementById('noteFontSize');
+        if (fontSizeSelect) {
+            fontSizeSelect.onchange = () => {
+                const val = fontSizeSelect.value;
+                if (!val) return;
+                if (richEditor) richEditor.focus();
+                const selection = window.getSelection();
+                if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
+                    const range = selection.getRangeAt(0);
+                    const span = document.createElement('span');
+                    span.style.fontSize = val;
+                    range.surroundContents(span);
+                } else {
+                    document.execCommand('fontSize', false, '3');
+                }
+                fontSizeSelect.value = '';
+            };
+        }
+
+        // 글자색 및 배경색 피커 핸들러
+        const textColorPicker = document.getElementById('noteTextColor');
+        if (textColorPicker) {
+            textColorPicker.oninput = () => {
+                if (richEditor) richEditor.focus();
+                document.execCommand('foreColor', false, textColorPicker.value);
+            };
+        }
+
+        const bgColorPicker = document.getElementById('noteBgColor');
+        if (bgColorPicker) {
+            bgColorPicker.oninput = () => {
+                if (richEditor) richEditor.focus();
+                document.execCommand('hiliteColor', false, bgColorPicker.value);
+            };
+        }
+
+        // 저장 버튼 핸들러
         const saveBtn = document.getElementById('saveGlobalMemoBtn');
         if (saveBtn) {
             saveBtn.onclick = async () => {
-                const textInEl = document.getElementById('globalMemoTextarea');
-                const val = textInEl ? textInEl.value.trim() : '';
+                let finalVal = '';
+                if (isNoteHtmlMode && htmlTextarea) {
+                    finalVal = htmlTextarea.value.trim();
+                } else if (richEditor) {
+                    finalVal = richEditor.innerHTML.trim();
+                }
 
                 saveBtn.innerText = "저장 중...";
                 saveBtn.disabled = true;
 
                 try {
                     await setDoc(doc(db, "system_settings", "global_memo"), {
-                        content: val,
+                        content: finalVal,
                         updatedAt: new Date().toISOString(),
                         updatedBy: currentUserName
                     }, { merge: true });
 
+                    globalMemoContent = finalVal;
                     await logActivity("Note 수정", `공유 Note 업데이트 완료`);
-                    alert("Note가 저장되었습니다.");
+                    alert("Note가 성공적으로 저장되었습니다.");
                 } catch (err) {
                     alert("Note 저장 실패: " + err.message);
                 } finally {
@@ -536,7 +648,7 @@ function renderSideMemoWidget() {
         }
     } else {
         const displayHtml = globalMemoContent
-            ? `<div class="text-xs text-gray-800 whitespace-pre-wrap leading-relaxed font-medium bg-white p-3 rounded-xl border border-orange-100 max-h-[180px] overflow-y-auto">${globalMemoContent}</div>`
+            ? `<div class="text-xs text-gray-800 leading-relaxed font-medium bg-white p-3.5 rounded-xl border border-orange-100 max-h-[220px] overflow-y-auto prose max-w-none">${globalMemoContent}</div>`
             : `<div class="text-xs text-gray-400 italic py-2">등록된 Note가 없습니다.</div>`;
 
         widgetEl.innerHTML = `
@@ -607,15 +719,12 @@ function positionGlobalMemoTooltip(e) {
     const tooltipWidth = tooltip.offsetWidth || 220;
     const tooltipHeight = tooltip.offsetHeight || 80;
 
-    // 우측 화면 한계 진입 시 마우스 커서 좌측 옆으로 자동 전환
     if (left + tooltipWidth > window.innerWidth - 16) {
         left = e.clientX - tooltipWidth - offset;
     }
-    // 하단 화면 한계 진입 시 마우스 커서 위쪽 옆으로 자동 전환
     if (top + tooltipHeight > window.innerHeight - 16) {
         top = e.clientY - tooltipHeight - offset;
     }
-    // 상단 및 좌측 바운더리 보장
     if (top < 16) top = 16;
     if (left < 16) left = 16;
 
@@ -1742,7 +1851,7 @@ function applyTaskFilters() {
     renderTasksPage(currentTaskPage);
 }
 
-// 🌟 업무 / Q&A 및 파트너 통합 보드 전용 페이지네이션 렌더링 (한 페이지당 최대 8개 항목)
+// 업무 / Q&A 및 파트너 통합 보드 전용 페이지네이션 렌더링 (한 페이지당 최대 8개 항목)
 function renderTasksPage(page) {
     currentTaskPage = page;
     const tbody = document.getElementById('boardTable');

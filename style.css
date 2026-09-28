@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ADplanters x NOAH UNIVERSE - Global & Table Layout Stylesheet (v1.4.5)
+   ADplanters x NOAH UNIVERSE - Global & Table Layout Stylesheet (v1.5.0)
    ========================================================================== */
 
 /* 1. Global Reset & Layout Isolation */
@@ -608,13 +608,61 @@ table th {
   border: 1px solid #fed7aa;
 }
 
-/* 🌟 Note 전용 반응형 높이 제어 (기본 80px ~ 최대 2배 180px) */
+/* 🌟 Note 전용 서식 툴바 & 텍스트/HTML 에디터 스타일링 */
+.note-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background-color: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 12px;
+  margin-bottom: 8px;
+}
+
+.note-btn {
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.note-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #f37021;
+}
+
+.note-color-picker {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  cursor: pointer;
+  background: none;
+}
+
+#globalMemoRichEditor {
+  min-height: 90px !important;
+  max-height: 220px !important;
+  overflow-y: auto !important;
+}
+
 #globalMemoTextarea {
-  min-height: 80px !important;
-  max-height: 180px !important;
+  min-height: 90px !important;
+  max-height: 220px !important;
   overflow-y: auto !important;
   resize: vertical;
-  transition: height 0.15s ease-out;
 }
 
 /* 9. Custom Scrollbar Styling */

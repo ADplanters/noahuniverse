@@ -1,7 +1,7 @@
 /**
  * ADplanters x NOAH UNIVERSE - Application Main Module
  * File Location: ./js/app.js
- * Version: 1.4.3 (Full Watermark Background Expansion Fix)
+ * Version: 1.4.4 (Duplicate Drag-Drop Event Fix & Lossless Code)
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -285,7 +285,7 @@ function checkAllNavBadges() {
     setMenuBadge('library', hasNewLibrary);
 }
 
-// 🌟 화면 전체 상/하/좌/우 사선 영역까지 빈틈없이 100% 채우는 배경 워터마크 생성
+// 화면 전체 상/하/좌/우 사선 영역까지 빈틈없이 100% 채우는 배경 워터마크 생성
 function renderWatermark() {
     const container = document.getElementById('watermarkGrid');
     if (!container || container.children.length > 0) return;
@@ -982,10 +982,12 @@ async function uploadFilesToStorage(fileList, folderName) {
     return uploadedFiles;
 }
 
+// 🌟 드래그 앤 드롭 중복 등록 방지 (dataset 플래그 보완)
 function setupDragAndDrop(dropAreaId, fileInputId) {
     const dropArea = document.getElementById(dropAreaId);
     const fileInput = document.getElementById(fileInputId);
-    if (!dropArea) return;
+    if (!dropArea || dropArea.dataset.dragSetup === 'true') return;
+    dropArea.dataset.dragSetup = 'true';
 
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
         dropArea.addEventListener(eventName, (e) => {
@@ -2350,34 +2352,36 @@ function renderNewCommentFilePreviews() {
 function initNewCommentDragAndDrop() {
     const commentInput = document.getElementById('commentInputBox');
     const commentFileInput = document.getElementById('commentFileInputBox');
+    const attachBtn = document.getElementById('attachFileLocalBtn');
 
-    if (commentInput) {
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            commentInput.addEventListener(eventName, (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-            }, false);
-        });
+    if (!commentInput || commentInput.dataset.dragCommentInit === 'true') return;
+    commentInput.dataset.dragCommentInit = 'true';
 
-        ['dragenter', 'dragover'].forEach(eventName => {
-            commentInput.addEventListener(eventName, () => {
-                commentInput.classList.add('border-hermes', 'bg-orange-50/50', 'ring-2', 'ring-orange-300');
-            }, false);
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            commentInput.addEventListener(eventName, () => {
-                commentInput.classList.remove('border-hermes', 'bg-orange-50/50', 'ring-2', 'ring-orange-300');
-            }, false);
-        });
-
-        commentInput.addEventListener('drop', (e) => {
-            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                Array.from(e.dataTransfer.files).forEach(f => newCommentSelectedFiles.push(f));
-                renderNewCommentFilePreviews();
-            }
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        commentInput.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
         }, false);
-    }
+    });
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        commentInput.addEventListener(eventName, () => {
+            commentInput.classList.add('border-hermes', 'bg-orange-50/50', 'ring-2', 'ring-orange-300');
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        commentInput.addEventListener(eventName, () => {
+            commentInput.classList.remove('border-hermes', 'bg-orange-50/50', 'ring-2', 'ring-orange-300');
+        }, false);
+    });
+
+    commentInput.addEventListener('drop', (e) => {
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            Array.from(e.dataTransfer.files).forEach(f => newCommentSelectedFiles.push(f));
+            renderNewCommentFilePreviews();
+        }
+    }, false);
 
     if (commentFileInput) {
         commentFileInput.onchange = (e) => {
@@ -2386,6 +2390,13 @@ function initNewCommentDragAndDrop() {
                 renderNewCommentFilePreviews();
                 e.target.value = '';
             }
+        };
+    }
+
+    if (attachBtn && commentFileInput) {
+        attachBtn.onclick = (e) => {
+            e.preventDefault();
+            commentFileInput.click();
         };
     }
 }
@@ -3058,7 +3069,7 @@ function renderClientsPage(page) {
     checkAllNavBadges();
 }
 
-// 예산 관리 테이블 렌더링
+// 예산 관리 테이블 렌더링 (헤더 9개 열 정렬 보장 및 커스텀 마우스 호버 이벤트)
 function renderBudgetTable() {
     const budgetTbody = document.getElementById('budgetTable');
     if (!budgetTbody) return;

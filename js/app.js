@@ -1,7 +1,7 @@
 /**
  * ADplanters x NOAH UNIVERSE - Application Main Module
  * File Location: ./js/app.js
- * Version: 1.4.4 (Duplicate Drag-Drop Event Fix & Lossless Code)
+ * Version: 1.4.5 (Responsive Note Area Auto-Resizing)
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -430,7 +430,7 @@ safeAddListener('libViewCountBadgeBtn', 'click', (e) => toggleViewerTooltip('lib
 });
 
 // ============================================================================
-// 3.5. Note 영역 UI (명칭 "Note" 적용)
+// 🌟 3.5. Note 영역 UI (명칭 "Note" 적용 & 반응형 자동 높이 조절)
 // ============================================================================
 function initSideMemoWidget() {
     const mainEl = document.querySelector('main');
@@ -487,7 +487,7 @@ function renderSideMemoWidget() {
                 <span class="side-memo-badge">Admin</span>
             </div>
             <div class="space-y-2">
-                <textarea id="globalMemoTextarea" rows="3" placeholder="모든 계정에서 공통으로 열람 가능한 Note 내용을 입력하세요." class="w-full text-xs p-3 border border-orange-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-hermes/40 bg-white font-medium resize-y leading-relaxed">${globalMemoContent}</textarea>
+                <textarea id="globalMemoTextarea" placeholder="모든 계정에서 공통으로 열람 가능한 Note 내용을 입력하세요." class="w-full text-xs p-3 border border-orange-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-hermes/40 bg-white font-medium leading-relaxed">${globalMemoContent}</textarea>
                 <div class="flex justify-end gap-2">
                     <button type="button" id="saveGlobalMemoBtn" class="bg-hermes hover:bg-orange-600 text-white text-xs font-bold px-4 py-1.5 rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5">
                         <i class="fa-solid fa-floppy-disk"></i> 저장
@@ -496,11 +496,23 @@ function renderSideMemoWidget() {
             </div>
         `;
 
+        // 🌟 Note 입력 내용 길이에 따라 최대 2배 높이(180px)까지 자동으로 반응형 조절되는 스크립트
+        const textIn = document.getElementById('globalMemoTextarea');
+        if (textIn) {
+            const autoResizeNote = () => {
+                textIn.style.height = 'auto';
+                const newHeight = Math.min(Math.max(textIn.scrollHeight, 80), 180);
+                textIn.style.height = `${newHeight}px`;
+            };
+            textIn.addEventListener('input', autoResizeNote);
+            setTimeout(autoResizeNote, 0); // 렌더링 직후 높이 자동 계산
+        }
+
         const saveBtn = document.getElementById('saveGlobalMemoBtn');
         if (saveBtn) {
             saveBtn.onclick = async () => {
-                const textIn = document.getElementById('globalMemoTextarea');
-                const val = textIn ? textIn.value.trim() : '';
+                const textInEl = document.getElementById('globalMemoTextarea');
+                const val = textInEl ? textInEl.value.trim() : '';
 
                 saveBtn.innerText = "저장 중...";
                 saveBtn.disabled = true;
@@ -524,7 +536,7 @@ function renderSideMemoWidget() {
         }
     } else {
         const displayHtml = globalMemoContent
-            ? `<div class="text-xs text-gray-800 whitespace-pre-wrap leading-relaxed font-medium bg-white p-3 rounded-xl border border-orange-100">${globalMemoContent}</div>`
+            ? `<div class="text-xs text-gray-800 whitespace-pre-wrap leading-relaxed font-medium bg-white p-3 rounded-xl border border-orange-100 max-h-[180px] overflow-y-auto">${globalMemoContent}</div>`
             : `<div class="text-xs text-gray-400 italic py-2">등록된 Note가 없습니다.</div>`;
 
         widgetEl.innerHTML = `
@@ -982,7 +994,7 @@ async function uploadFilesToStorage(fileList, folderName) {
     return uploadedFiles;
 }
 
-// 🌟 드래그 앤 드롭 중복 등록 방지 (dataset 플래그 보완)
+// 드래그 앤 드롭 중복 등록 방지 (dataset 플래그 보완)
 function setupDragAndDrop(dropAreaId, fileInputId) {
     const dropArea = document.getElementById(dropAreaId);
     const fileInput = document.getElementById(fileInputId);
@@ -2937,7 +2949,7 @@ async function fetchClients() {
     } catch (e) { console.error("Client fetch error:", e); }
 }
 
-// 🌟 일반 클라이언트 리스트 페이지네이션 렌더링 (한 페이지당 최대 8개 팀)
+// 일반 클라이언트 리스트 페이지네이션 렌더링 (한 페이지당 최대 8개 팀)
 function renderClientsPage(page) {
     currentClientPage = page;
     const tbody = document.getElementById('clientsTable');

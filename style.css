@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ADplanters x NOAH UNIVERSE - Global & Table Layout Stylesheet (v1.4.4)
+   ADplanters x NOAH UNIVERSE - Global & Table Layout Stylesheet (v1.4.5)
    ========================================================================== */
 
 /* 1. Global Reset & Layout Isolation */
@@ -606,6 +606,15 @@ table th {
   padding: 2px 8px;
   border-radius: 9999px;
   border: 1px solid #fed7aa;
+}
+
+/* 🌟 Note 전용 반응형 높이 제어 (기본 80px ~ 최대 2배 180px) */
+#globalMemoTextarea {
+  min-height: 80px !important;
+  max-height: 180px !important;
+  overflow-y: auto !important;
+  resize: vertical;
+  transition: height 0.15s ease-out;
 }
 
 /* 9. Custom Scrollbar Styling */

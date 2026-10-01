@@ -1,7 +1,7 @@
 /**
  * ADplanters x NOAH UNIVERSE - Application Main Module
  * File Location: ./js/app.js
- * Version: 1.5.2 (Instagram ID/PW Fields Integrated Lossless)
+ * Version: 1.5.3 (Full Lossless Code)
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -431,7 +431,7 @@ safeAddListener('libViewCountBadgeBtn', 'click', (e) => toggleViewerTooltip('lib
 });
 
 // ============================================================================
-// 🌟 3.5. Note 영역 UI (서식 툴바 + HTML 코드 모드 전환 서식 에디터)
+// 3.5. Note 영역 UI (서식 툴바 + HTML 코드 모드 전환 서식 에디터)
 // ============================================================================
 function initSideMemoWidget() {
     const mainEl = document.querySelector('main');
@@ -544,7 +544,6 @@ function renderSideMemoWidget() {
         const htmlTextarea = document.getElementById('globalMemoTextarea');
         const visualToolbar = document.getElementById('noteVisualToolbar');
 
-        // HTML 코드 모드 체크박스 전환 핸들러
         if (htmlToggle) {
             htmlToggle.onchange = (e) => {
                 isNoteHtmlMode = e.target.checked;
@@ -566,7 +565,6 @@ function renderSideMemoWidget() {
             };
         }
 
-        // 비주얼 에디터 서식 명령 버튼 핸들러
         const cmdBtns = widgetEl.querySelectorAll('.note-cmd-btn');
         cmdBtns.forEach(btn => {
             btn.onclick = (e) => {
@@ -577,7 +575,6 @@ function renderSideMemoWidget() {
             };
         });
 
-        // 글자 크기 조절 선택기
         const fontSizeSelect = document.getElementById('noteFontSize');
         if (fontSizeSelect) {
             fontSizeSelect.onchange = () => {
@@ -597,7 +594,6 @@ function renderSideMemoWidget() {
             };
         }
 
-        // 글자색 및 배경색 피커 핸들러
         const textColorPicker = document.getElementById('noteTextColor');
         if (textColorPicker) {
             textColorPicker.oninput = () => {
@@ -614,7 +610,6 @@ function renderSideMemoWidget() {
             };
         }
 
-        // 저장 버튼 핸들러
         const saveBtn = document.getElementById('saveGlobalMemoBtn');
         if (saveBtn) {
             saveBtn.onclick = async () => {
@@ -2845,8 +2840,8 @@ safeAddListener('clientForm', 'submit', async (e) => {
     const instaIn = document.getElementById('c_instaUrl');
     const metaIdIn = document.getElementById('c_metaId');
     const metaPwIn = document.getElementById('c_metaPw');
-    const instaIdIn = document.getElementById('c_instaId'); // 🌟 인스타그램 ID
-    const instaPwIn = document.getElementById('c_instaPw'); // 🌟 인스타그램 PW
+    const instaIdIn = document.getElementById('c_instaId'); // 인스타그램 ID
+    const instaPwIn = document.getElementById('c_instaPw'); // 인스타그램 PW
     const metaEmailIn = document.getElementById('c_metaEmail');
     const metaPhoneIn = document.getElementById('c_metaPhone');
     const memoIn = document.getElementById('c_memo');
@@ -2862,17 +2857,19 @@ safeAddListener('clientForm', 'submit', async (e) => {
     }
 
     try {
+        const memoVal = memoIn ? memoIn.value : '';
         const newClient = {
             name: nameIn ? nameIn.value : '',
             homeUrl: homeIn ? homeIn.value : '',
             instaUrl: instaIn ? instaIn.value : '',
             metaId: metaIdIn ? metaIdIn.value : '',
             metaPw: metaPwIn ? metaPwIn.value : '',
-            instaId: instaIdIn ? instaIdIn.value : '', // 🌟 DB 저장
-            instaPw: instaPwIn ? instaPwIn.value : '', // 🌟 DB 저장
+            instaId: instaIdIn ? instaIdIn.value : '', 
+            instaPw: instaPwIn ? instaPwIn.value : '', 
             metaEmail: metaEmailIn ? metaEmailIn.value : '', 
             metaPhone: metaPhoneIn ? metaPhoneIn.value : '', 
-            memo: memoIn ? memoIn.value : '',                
+            memo: memoVal,
+            budgetMemo: memoVal, // memo 및 budgetMemo 데이터 동기화
             totalBudget: 0,        
             rechargedBudget: 0,
             usedBudget: 0,
@@ -2929,8 +2926,8 @@ async function openEditClientModal(clientId) {
         const instaIn = document.getElementById('edit_c_instaUrl');
         const metaIdIn = document.getElementById('edit_c_metaId');
         const metaPwIn = document.getElementById('edit_c_metaPw');
-        const instaIdIn = document.getElementById('edit_c_instaId'); // 🌟 인스타그램 ID 불러오기
-        const instaPwIn = document.getElementById('edit_c_instaPw'); // 🌟 인스타그램 PW 불러오기
+        const instaIdIn = document.getElementById('edit_c_instaId'); 
+        const instaPwIn = document.getElementById('edit_c_instaPw'); 
         const metaEmailIn = document.getElementById('edit_c_metaEmail');
         const metaPhoneIn = document.getElementById('edit_c_metaPhone');
         const memoIn = document.getElementById('edit_c_memo');
@@ -2943,11 +2940,11 @@ async function openEditClientModal(clientId) {
         if (instaIn) instaIn.value = client.instaUrl || '';
         if (metaIdIn) metaIdIn.value = client.metaId || '';
         if (metaPwIn) metaPwIn.value = client.metaPw || '';
-        if (instaIdIn) instaIdIn.value = client.instaId || ''; // 🌟
-        if (instaPwIn) instaPwIn.value = client.instaPw || ''; // 🌟
+        if (instaIdIn) instaIdIn.value = client.instaId || ''; 
+        if (instaPwIn) instaPwIn.value = client.instaPw || ''; 
         if (metaEmailIn) metaEmailIn.value = client.metaEmail || '';
         if (metaPhoneIn) metaPhoneIn.value = client.metaPhone || '';
-        if (memoIn) memoIn.value = client.memo || '';
+        if (memoIn) memoIn.value = client.budgetMemo || client.memo || ''; // memo 및 budgetMemo 폴백
         if (instaDateIn) instaDateIn.value = client.instaDate || '';
         if (metaDateIn) metaDateIn.value = client.metaDate || '';
         
@@ -2981,8 +2978,8 @@ safeAddListener('editClientForm', 'submit', async (e) => {
     const instaIn = document.getElementById('edit_c_instaUrl');
     const metaIdIn = document.getElementById('edit_c_metaId');
     const metaPwIn = document.getElementById('edit_c_metaPw');
-    const instaIdIn = document.getElementById('edit_c_instaId'); // 🌟 인스타그램 ID 수정
-    const instaPwIn = document.getElementById('edit_c_instaPw'); // 🌟 인스타그램 PW 수정
+    const instaIdIn = document.getElementById('edit_c_instaId'); 
+    const instaPwIn = document.getElementById('edit_c_instaPw'); 
     const metaEmailIn = document.getElementById('edit_c_metaEmail');
     const metaPhoneIn = document.getElementById('edit_c_metaPhone');
     const memoIn = document.getElementById('edit_c_memo');
@@ -3004,17 +3001,19 @@ safeAddListener('editClientForm', 'submit', async (e) => {
     }
 
     try {
+        const memoVal = memoIn ? memoIn.value : (clientsMap[currentEditClientId].budgetMemo || clientsMap[currentEditClientId].memo || '');
         await updateDoc(doc(db, "clients", currentEditClientId), {
             name: nameIn ? nameIn.value : clientsMap[currentEditClientId].name,
             homeUrl: homeIn ? homeIn.value : clientsMap[currentEditClientId].homeUrl,
             instaUrl: instaIn ? instaIn.value : clientsMap[currentEditClientId].instaUrl,
             metaId: metaIdIn ? metaIdIn.value : clientsMap[currentEditClientId].metaId,
             metaPw: metaPwIn ? metaPwIn.value : clientsMap[currentEditClientId].metaPw,
-            instaId: instaIdIn ? instaIdIn.value : (clientsMap[currentEditClientId].instaId || ''), // 🌟
-            instaPw: instaPwIn ? instaPwIn.value : (clientsMap[currentEditClientId].instaPw || ''), // 🌟
+            instaId: instaIdIn ? instaIdIn.value : (clientsMap[currentEditClientId].instaId || ''), 
+            instaPw: instaPwIn ? instaPwIn.value : (clientsMap[currentEditClientId].instaPw || ''), 
             metaEmail: metaEmailIn ? metaEmailIn.value : (clientsMap[currentEditClientId].metaEmail || ''),
             metaPhone: metaPhoneIn ? metaPhoneIn.value : (clientsMap[currentEditClientId].metaPhone || ''),
-            memo: memoIn ? memoIn.value : (clientsMap[currentEditClientId].memo || ''),
+            memo: memoVal,
+            budgetMemo: memoVal, // 양쪽 필드 데이터 동기화
             instaDate: instaDateIn ? instaDateIn.value : (clientsMap[currentEditClientId].instaDate || ''),
             metaDate: metaDateIn ? metaDateIn.value : (clientsMap[currentEditClientId].metaDate || ''),
             contractPeriod: contractPeriodIn ? contractPeriodIn.value : (clientsMap[currentEditClientId].contractPeriod || ''), 
@@ -3136,34 +3135,36 @@ function renderClientsPage(page) {
                 </div>
             </td>` : `<td class="admin-only-col hidden"></td>`;
 
-        // 🌟 인스타 및 메타 계정 정보 노출 UI 수정 (복사 버튼 연동 유지)
+        // 계정 복사 버튼 연동
+        let copyMetaIdBtn = data.metaId ? `<button type="button" class="copy-text-btn text-gray-400 hover:text-hermes transition p-0.5 rounded cursor-pointer" data-copy="${data.metaId}" title="메타 ID 복사"><i class="fa-regular fa-copy text-[11px]"></i></button>` : '';
+        let copyMetaPwBtn = data.metaPw ? `<button type="button" class="copy-text-btn text-gray-400 hover:text-hermes transition p-0.5 rounded cursor-pointer" data-copy="${data.metaPw}" title="메타 PW 복사"><i class="fa-regular fa-copy text-[11px]"></i></button>` : '';
+        
+        let copyInstaIdBtn = data.instaId ? `<button type="button" class="copy-text-btn text-gray-400 hover:text-pink-600 transition p-0.5 rounded cursor-pointer" data-copy="${data.instaId}" title="인스타 ID 복사"><i class="fa-regular fa-copy text-[11px]"></i></button>` : '';
+        let copyInstaPwBtn = data.instaPw ? `<button type="button" class="copy-text-btn text-gray-400 hover:text-pink-600 transition p-0.5 rounded cursor-pointer" data-copy="${data.instaPw}" title="인스타 PW 복사"><i class="fa-regular fa-copy text-[11px]"></i></button>` : '';
+
         let metaIdHtml = data.metaId ? `
             <div class="flex items-center gap-1.5 whitespace-nowrap">
                 <span class="font-bold text-[11px] text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 inline-block w-[46px] text-center shrink-0">메타</span>
-                <span class="font-medium text-gray-700 w-16 truncate">ID: ${data.metaId}</span>
-                <button type="button" class="copy-text-btn text-gray-400 hover:text-hermes transition p-0.5 rounded cursor-pointer" data-copy="${data.metaId}" title="메타 ID 복사"><i class="fa-regular fa-copy text-[11px]"></i></button>
+                <span class="font-medium text-gray-700 w-16 truncate">ID: ${data.metaId}</span>${copyMetaIdBtn}
             </div>
         ` : '';
         let metaPwHtml = data.metaPw ? `
             <div class="flex items-center gap-1.5 whitespace-nowrap">
                 <span class="font-bold text-[11px] text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 inline-block w-[46px] text-center shrink-0 invisible">메타</span>
-                <span class="font-bold text-gray-900 w-16 truncate">PW: ${data.metaPw}</span>
-                <button type="button" class="copy-text-btn text-gray-400 hover:text-hermes transition p-0.5 rounded cursor-pointer" data-copy="${data.metaPw}" title="메타 PW 복사"><i class="fa-regular fa-copy text-[11px]"></i></button>
+                <span class="font-bold text-gray-900 w-16 truncate">PW: ${data.metaPw}</span>${copyMetaPwBtn}
             </div>
         ` : '';
 
         let instaIdHtml = data.instaId ? `
             <div class="flex items-center gap-1.5 whitespace-nowrap">
                 <span class="font-bold text-[11px] text-pink-700 bg-pink-50 px-1.5 py-0.5 rounded border border-pink-100 inline-block w-[46px] text-center shrink-0">인스타</span>
-                <span class="font-medium text-gray-700 w-16 truncate">ID: ${data.instaId}</span>
-                <button type="button" class="copy-text-btn text-gray-400 hover:text-pink-600 transition p-0.5 rounded cursor-pointer" data-copy="${data.instaId}" title="인스타 ID 복사"><i class="fa-regular fa-copy text-[11px]"></i></button>
+                <span class="font-medium text-gray-700 w-16 truncate">ID: ${data.instaId}</span>${copyInstaIdBtn}
             </div>
         ` : '';
         let instaPwHtml = data.instaPw ? `
             <div class="flex items-center gap-1.5 whitespace-nowrap">
                 <span class="font-bold text-[11px] text-pink-700 bg-pink-50 px-1.5 py-0.5 rounded border border-pink-100 inline-block w-[46px] text-center shrink-0 invisible">인스타</span>
-                <span class="font-bold text-gray-900 w-16 truncate">PW: ${data.instaPw}</span>
-                <button type="button" class="copy-text-btn text-gray-400 hover:text-pink-600 transition p-0.5 rounded cursor-pointer" data-copy="${data.instaPw}" title="인스타 PW 복사"><i class="fa-regular fa-copy text-[11px]"></i></button>
+                <span class="font-bold text-gray-900 w-16 truncate">PW: ${data.instaPw}</span>${copyInstaPwBtn}
             </div>
         ` : '';
 
@@ -3181,11 +3182,13 @@ function renderClientsPage(page) {
             metaExtraHtml = `<div class="mt-1 text-[10px] text-gray-400 italic">추가 정보 없음</div>`;
         }
 
-        const adminMemoText = data.budgetMemo ? `
-            <span class="memo-hover-trigger truncate block max-w-[200px] text-yellow-700 font-medium cursor-pointer bg-yellow-50 px-2 py-1 rounded border border-yellow-200" data-memo="${data.budgetMemo.replace(/"/g, '&quot;')}">
-                <i class="fa-solid fa-note-sticky mr-1"></i>${data.budgetMemo}
+        // budgetMemo 및 memo 필드를 상호 연동하여 노출
+        const adminMemoVal = data.budgetMemo || data.memo || '';
+        const adminMemoText = adminMemoVal ? `
+            <span class="memo-hover-trigger truncate block max-w-[200px] text-yellow-800 font-bold cursor-pointer bg-yellow-100/80 px-2.5 py-1 rounded-lg border border-yellow-300 shadow-2xs" data-memo="${adminMemoVal.replace(/"/g, '&quot;')}">
+                <i class="fa-solid fa-note-sticky text-yellow-600 mr-1"></i>${adminMemoVal}
             </span>
-        ` : `<span class="text-gray-300">-</span>`;
+        ` : `<span class="text-gray-300 font-normal">-</span>`;
 
         const tr = `
             <tr class="hover:bg-orange-50/30 transition border-b border-gray-100 break-keep">
@@ -3234,7 +3237,7 @@ function renderClientsPage(page) {
     checkAllNavBadges();
 }
 
-// 예산 관리 테이블 렌더링 (헤더 9개 열 정렬 보장 및 커스텀 마우스 호버 이벤트)
+// 예산 관리 테이블 렌더링
 function renderBudgetTable() {
     const budgetTbody = document.getElementById('budgetTable');
     if (!budgetTbody) return;
@@ -3284,9 +3287,10 @@ function renderBudgetTable() {
         
         const formatWon = (val) => val.toLocaleString() + '원';
         const contractPeriod = data.contractPeriod || '-'; 
-        const memoText = (data.memo || data.budgetMemo) ? (data.memo || data.budgetMemo) : '';
+        
+        // budgetMemo 및 memo 필드 폴백 참조
+        const memoText = (data.budgetMemo || data.memo) ? (data.budgetMemo || data.memo) : '';
 
-        // 잘림 없는 마우스 호버 이벤트를 지원하는 메모 요소 생성
         const memoContentHtml = memoText ? `
             <span class="memo-hover-trigger truncate block max-w-[150px] text-gray-700 font-medium cursor-pointer" data-memo="${memoText.replace(/"/g, '&quot;')}">${memoText}</span>
         ` : `<span class="text-gray-400">-</span>`;
@@ -3350,7 +3354,6 @@ function openBudgetEditModal(clientId) {
     if (usedIn) usedIn.value = client.usedBudget || 0;
     if (contractIn) contractIn.value = client.contractPeriod || '';
 
-    // 모달 내 메모 입력 인풋창 동적 보완 (없을 경우 자동 추가)
     const formEl = document.getElementById('budgetEditForm');
     let memoIn = document.getElementById('edit_b_memo');
     if (!memoIn && formEl) {
@@ -3370,7 +3373,7 @@ function openBudgetEditModal(clientId) {
     }
 
     if (memoIn) {
-        memoIn.value = client.memo || client.budgetMemo || '';
+        memoIn.value = client.budgetMemo || client.memo || '';
     }
 
     if (budgetEditModal) {
@@ -3404,7 +3407,7 @@ safeAddListener('budgetEditForm', 'submit', async (e) => {
         if (contractIn) updateData.contractPeriod = contractIn.value;
         if (memoIn) {
             updateData.memo = memoIn.value;
-            updateData.budgetMemo = memoIn.value;
+            updateData.budgetMemo = memoIn.value; // 동시 저장으로 완벽한 연동 보장
         }
 
         await updateDoc(doc(db, "clients", currentEditBudgetId), updateData);

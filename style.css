@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ADplanters x NOAH UNIVERSE - Global & Table Layout Stylesheet (v1.5.0)
+   ADplanters x NOAH UNIVERSE - Global & Table Layout Stylesheet (v1.5.2)
    ========================================================================== */
 
 /* 1. Global Reset & Layout Isolation */
@@ -19,6 +19,13 @@ html, body {
   overflow-x: hidden;
   overflow-y: auto !important;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Subtle Grid Background Pattern */
+.bg-grid-pattern {
+  background-color: #f8fafc;
+  background-image: radial-gradient(#cbd5e1 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
 }
 
 /* 2. Background Watermark Isolation */
@@ -608,7 +615,7 @@ table th {
   border: 1px solid #fed7aa;
 }
 
-/* 🌟 Note 전용 서식 툴바 & 텍스트/HTML 에디터 스타일링 */
+/* Note 전용 서식 툴바 & 텍스트/HTML 에디터 스타일링 */
 .note-toolbar {
   display: flex;
   flex-wrap: wrap;

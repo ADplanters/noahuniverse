@@ -85,7 +85,7 @@
         </div>
     </div>
 
-    <!-- 2. 대시보 화면 -->
+    <!-- 2. 대시보드 화면 -->
     <div id="dashboardSection" class="hidden relative z-10 min-h-screen flex flex-col md:flex-row w-full">
         
         <div id="mobileOverlay" class="fixed inset-0 bg-black/50 z-30 hidden md:hidden backdrop-blur-sm transition-opacity"></div>
@@ -290,7 +290,6 @@
                                 <th class="p-3 md:p-4 font-bold">URL (홈/인스타)</th>
                                 <th class="p-3 md:p-4 font-bold">메타광고 계정 (ID/PW)</th>
                                 <th class="p-3 md:p-4 font-bold min-w-[150px]">담당자 추가정보(메모)</th>
-                                <!-- 🌟 클라이언트 리스트에도 기타(Admin 메모) 노출 -->
                                 <th class="p-3 md:p-4 font-bold min-w-[200px] text-yellow-700">기타(Admin 메모)</th>
                                 <th class="p-3 md:p-4 font-bold">작업/광고 시작일</th>
                                 <th class="p-3 md:p-4 font-bold">등록자</th>
@@ -346,7 +345,6 @@
                                     <th class="p-3 md:p-4 font-bold">충전대기</th>
                                     <th class="p-3 md:p-4 font-bold text-blue-600">계약 기간/마감일</th>
                                     <th class="p-3 md:p-4 font-bold">소진율(%)</th>
-                                    <!-- 🌟 예산 통합 관리 리스트 우측에도 기타(메모) 노출 추가 -->
                                     <th class="p-3 md:p-4 font-bold min-w-[200px] text-yellow-700">기타(메모)</th>
                                     <th class="p-3 md:p-4 font-bold text-center">예산 수정</th>
                                 </tr>
@@ -430,7 +428,7 @@
         </main>
     </div>
 
-    <!-- 클라이언트 등록 모달 -->
+    <!-- 신규 클라이언트 등록 모달 (인스타그램 계정 ID/PW 필드 통합) -->
     <div id="clientModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-xl p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-5 border-b pb-3"><h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-address-card text-hermes mr-2"></i> 신규 클라이언트 DB 등록</h3><button id="closeClientModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button></div>
@@ -444,31 +442,35 @@
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">4. 메타광고계정 ID</label><input type="text" id="c_metaId" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">5. 메타광고계정 PW</label><input type="text" id="c_metaPw" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                 </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <div><label class="block text-xs font-bold text-gray-700 mb-1">6. 인스타그램 계정 ID</label><input type="text" id="c_instaId" placeholder="인스타 계정 ID" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
+                    <div><label class="block text-xs font-bold text-gray-700 mb-1">7. 인스타그램 계정 PW</label><input type="text" id="c_instaPw" placeholder="인스타 계정 PW" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
+                </div>
                 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 p-3 bg-gray-50 rounded-xl border border-gray-200 mt-2">
-                    <div class="col-span-1 sm:col-span-2 text-[11px] font-black text-gray-600 border-b border-gray-200 pb-1 mb-1">6. 담당자 추가 정보 및 메모</div>
+                    <div class="col-span-1 sm:col-span-2 text-[11px] font-black text-gray-600 border-b border-gray-200 pb-1 mb-1">8. 담당자 추가 정보 및 메모</div>
                     <div><label class="block text-[10px] font-bold text-gray-600 mb-1">메타 연결 이메일</label><input type="email" id="c_metaEmail" placeholder="example@email.com" class="w-full text-xs border border-gray-300 rounded-md p-2 focus:border-hermes outline-none"></div>
                     <div><label class="block text-[10px] font-bold text-gray-600 mb-1">인증용 폰번호</label><input type="text" id="c_metaPhone" placeholder="010-0000-0000" class="w-full text-xs border border-gray-300 rounded-md p-2 focus:border-hermes outline-none"></div>
                     <div class="col-span-1 sm:col-span-2"><label class="block text-[10px] font-bold text-gray-600 mb-1">특이사항 (메모)</label><input type="text" id="c_memo" placeholder="기타 전달사항" class="w-full text-xs border border-gray-300 rounded-md p-2 focus:border-hermes outline-none"></div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-2">
-                    <div><label class="block text-xs font-bold text-gray-700 mb-1">7. 인스타 기술작업 시작일</label><input type="date" id="c_instaDate" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
-                    <div><label class="block text-xs font-bold text-gray-700 mb-1">8. 메타 광고 시작 예정일</label><input type="date" id="c_metaDate" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
+                    <div><label class="block text-xs font-bold text-gray-700 mb-1">9. 인스타 기술작업 시작일</label><input type="date" id="c_instaDate" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
+                    <div><label class="block text-xs font-bold text-gray-700 mb-1">10. 메타 광고 시작 예정일</label><input type="date" id="c_metaDate" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                 </div>
                 
                 <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1">9. 계약 기간/마감일</label>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">11. 계약 기간/마감일</label>
                     <input type="text" id="c_contractPeriod" placeholder="예: 2024.01.01 ~ 2024.12.31" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none">
                 </div>
 
-                <div><label class="block text-xs font-bold text-gray-700 mb-1">10. 등록자 (자동입력 및 자동 배정)</label><input type="text" id="c_registerName" readonly class="w-full text-sm bg-gray-50 border border-gray-200 text-gray-500 rounded-lg p-2.5 outline-none font-bold"></div>
+                <div><label class="block text-xs font-bold text-gray-700 mb-1">12. 등록자 (자동입력 및 자동 배정)</label><input type="text" id="c_registerName" readonly class="w-full text-sm bg-gray-50 border border-gray-200 text-gray-500 rounded-lg p-2.5 outline-none font-bold"></div>
                 <div class="flex justify-end gap-2 pt-4 border-t mt-5"><button type="button" id="cancelClientBtn" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-xs font-bold">취소</button><button type="submit" class="px-5 py-2 bg-hermes hover:bg-hermes-hover text-white rounded-xl text-xs font-bold shadow-md">클라이언트 등록</button></div>
             </form>
         </div>
     </div>
 
-    <!-- 클라이언트 수정 모달 -->
+    <!-- 클라이언트 수정 모달 (인스타그램 계정 ID/PW 필드 통합) -->
     <div id="editClientModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-xl p-5 md:p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-5 border-b pb-3"><h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-pen-to-square text-blue-600 mr-2"></i> 클라이언트 정보 수정</h3><button id="closeEditClientModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button></div>
@@ -491,21 +493,25 @@
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">4. 메타광고계정 ID</label><input type="text" id="edit_c_metaId" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">5. 메타광고계정 PW</label><input type="text" id="edit_c_metaPw" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                 </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <div><label class="block text-xs font-bold text-gray-700 mb-1">6. 인스타그램 계정 ID</label><input type="text" id="edit_c_instaId" placeholder="인스타 계정 ID" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
+                    <div><label class="block text-xs font-bold text-gray-700 mb-1">7. 인스타그램 계정 PW</label><input type="text" id="edit_c_instaPw" placeholder="인스타 계정 PW" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
+                </div>
                 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 p-3 bg-gray-50 rounded-xl border border-gray-200 mt-2">
-                    <div class="col-span-1 sm:col-span-2 text-[11px] font-black text-gray-600 border-b border-gray-200 pb-1 mb-1">6. 담당자 추가 정보 및 메모</div>
+                    <div class="col-span-1 sm:col-span-2 text-[11px] font-black text-gray-600 border-b border-gray-200 pb-1 mb-1">8. 담당자 추가 정보 및 메모</div>
                     <div><label class="block text-[10px] font-bold text-gray-600 mb-1">메타 연결 이메일</label><input type="email" id="edit_c_metaEmail" class="w-full text-xs border border-gray-300 rounded-md p-2 focus:border-hermes outline-none"></div>
                     <div><label class="block text-[10px] font-bold text-gray-600 mb-1">인증용 폰번호</label><input type="text" id="edit_c_metaPhone" class="w-full text-xs border border-gray-300 rounded-md p-2 focus:border-hermes outline-none"></div>
                     <div class="col-span-1 sm:col-span-2"><label class="block text-[10px] font-bold text-gray-600 mb-1">특이사항 (메모)</label><input type="text" id="edit_c_memo" class="w-full text-xs border border-gray-300 rounded-md p-2 focus:border-hermes outline-none"></div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                    <div><label class="block text-xs font-bold text-gray-700 mb-1">7. 인스타 기술작업 시작일</label><input type="date" id="edit_c_instaDate" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
-                    <div><label class="block text-xs font-bold text-gray-700 mb-1">8. 메타 광고 시작 예정일</label><input type="date" id="edit_c_metaDate" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
+                    <div><label class="block text-xs font-bold text-gray-700 mb-1">9. 인스타 기술작업 시작일</label><input type="date" id="edit_c_instaDate" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
+                    <div><label class="block text-xs font-bold text-gray-700 mb-1">10. 메타 광고 시작 예정일</label><input type="date" id="edit_c_metaDate" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none"></div>
                 </div>
                 
                 <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1">9. 계약 기간/마감일</label>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">11. 계약 기간/마감일</label>
                     <input type="text" id="edit_c_contractPeriod" placeholder="예: 2024.01.01 ~ 2024.12.31" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-hermes outline-none">
                 </div>
 
@@ -514,9 +520,8 @@
         </div>
     </div>
 
-    <!-- 어드민 전용 예산 직접 수정 모달 (🌟 기타 메모 입력 추가됨) -->
+    <!-- 어드민 전용 예산 직접 수정 모달 -->
     <div id="budgetEditModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <!-- 모달 창 너비 약간 증가 (max-w-md) -->
         <div class="bg-white rounded-2xl w-full max-w-md p-5 md:p-6 shadow-2xl border border-blue-200">
             <div class="flex justify-between items-center mb-4 border-b pb-3">
                 <h3 class="text-base md:text-lg font-bold text-gray-900"><i class="fa-solid fa-coins text-blue-600 mr-2"></i> 예산 정보 수정</h3>
@@ -543,7 +548,6 @@
                     <label class="block text-[10px] font-bold text-gray-700 mb-1">계약 기간/마감일</label>
                     <input type="text" id="edit_b_contract" placeholder="예: 2024.01.01 ~ 2024.12.31" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-blue-500 outline-none font-bold">
                 </div>
-                <!-- 🌟 기타 메모 추가 -->
                 <div>
                     <label class="block text-[10px] font-bold text-gray-700 mb-1">기타 (메모) - <span class="text-blue-500">전체 계정에 노출됩니다.</span></label>
                     <textarea id="edit_b_memo" rows="3" placeholder="기타 특이사항 및 메모 입력" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:border-blue-500 outline-none resize-none font-medium"></textarea>

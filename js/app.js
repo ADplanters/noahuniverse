@@ -1,7 +1,7 @@
 /**
  * ADplanters x NOAH UNIVERSE - Application Main Module
  * File Location: ./js/app.js
- * Version: 1.5.0 (Rich Text Formatting Toolbar & HTML Mode Integration)
+ * Version: 1.5.2 (Instagram ID/PW Fields Integrated Lossless)
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -1235,7 +1235,7 @@ function fallbackCopyToClipboard(text, label = "링크") {
 // ============================================================================
 getRedirectResult(auth).catch((error) => {
     if (error && error.code !== 'auth/popup-closed-by-user') {
-        console.error("Redirect 로그인 에러 객체:", error);
+        console.error("Redirect 로그인 에러 예외 객체:", error);
     }
 });
 
@@ -1865,7 +1865,6 @@ function renderTasksPage(page) {
     const endIndex = startIndex + TASKS_PER_PAGE;
     const pageData = filteredTasksData.slice(startIndex, endIndex);
 
-    // 하단 페이지네이션 컨테이너 동적 검증 및 보완
     let paginationEl = document.getElementById('taskPagination');
     if (!paginationEl) {
         const boardCard = tbody.closest('.bg-white');
@@ -1974,7 +1973,6 @@ function renderTasksPage(page) {
     
     tbody.innerHTML = rowsHtml;
 
-    // 이슈/요청 게시판 하단 페이지네이션 버튼 렌더링
     if (totalPages > 1 && paginationEl) {
         paginationEl.classList.remove('hidden');
         let pageHtml = '';
@@ -2836,7 +2834,7 @@ safeAddListener('submitNewCommentBtn', 'click', async () => {
 });
 
 // ============================================================================
-// 8. 클라이언트 관리
+// 8. 클라이언트 관리 (인스타그램 계정 ID / PW 수집 및 저장 연동 추가)
 // ============================================================================
 safeAddListener('clientForm', 'submit', async (e) => {
     e.preventDefault();
@@ -2847,6 +2845,8 @@ safeAddListener('clientForm', 'submit', async (e) => {
     const instaIn = document.getElementById('c_instaUrl');
     const metaIdIn = document.getElementById('c_metaId');
     const metaPwIn = document.getElementById('c_metaPw');
+    const instaIdIn = document.getElementById('c_instaId'); // 🌟 인스타그램 ID
+    const instaPwIn = document.getElementById('c_instaPw'); // 🌟 인스타그램 PW
     const metaEmailIn = document.getElementById('c_metaEmail');
     const metaPhoneIn = document.getElementById('c_metaPhone');
     const memoIn = document.getElementById('c_memo');
@@ -2868,6 +2868,8 @@ safeAddListener('clientForm', 'submit', async (e) => {
             instaUrl: instaIn ? instaIn.value : '',
             metaId: metaIdIn ? metaIdIn.value : '',
             metaPw: metaPwIn ? metaPwIn.value : '',
+            instaId: instaIdIn ? instaIdIn.value : '', // 🌟 DB 저장
+            instaPw: instaPwIn ? instaPwIn.value : '', // 🌟 DB 저장
             metaEmail: metaEmailIn ? metaEmailIn.value : '', 
             metaPhone: metaPhoneIn ? metaPhoneIn.value : '', 
             memo: memoIn ? memoIn.value : '',                
@@ -2927,6 +2929,8 @@ async function openEditClientModal(clientId) {
         const instaIn = document.getElementById('edit_c_instaUrl');
         const metaIdIn = document.getElementById('edit_c_metaId');
         const metaPwIn = document.getElementById('edit_c_metaPw');
+        const instaIdIn = document.getElementById('edit_c_instaId'); // 🌟 인스타그램 ID 불러오기
+        const instaPwIn = document.getElementById('edit_c_instaPw'); // 🌟 인스타그램 PW 불러오기
         const metaEmailIn = document.getElementById('edit_c_metaEmail');
         const metaPhoneIn = document.getElementById('edit_c_metaPhone');
         const memoIn = document.getElementById('edit_c_memo');
@@ -2939,6 +2943,8 @@ async function openEditClientModal(clientId) {
         if (instaIn) instaIn.value = client.instaUrl || '';
         if (metaIdIn) metaIdIn.value = client.metaId || '';
         if (metaPwIn) metaPwIn.value = client.metaPw || '';
+        if (instaIdIn) instaIdIn.value = client.instaId || ''; // 🌟
+        if (instaPwIn) instaPwIn.value = client.instaPw || ''; // 🌟
         if (metaEmailIn) metaEmailIn.value = client.metaEmail || '';
         if (metaPhoneIn) metaPhoneIn.value = client.metaPhone || '';
         if (memoIn) memoIn.value = client.memo || '';
@@ -2975,6 +2981,8 @@ safeAddListener('editClientForm', 'submit', async (e) => {
     const instaIn = document.getElementById('edit_c_instaUrl');
     const metaIdIn = document.getElementById('edit_c_metaId');
     const metaPwIn = document.getElementById('edit_c_metaPw');
+    const instaIdIn = document.getElementById('edit_c_instaId'); // 🌟 인스타그램 ID 수정
+    const instaPwIn = document.getElementById('edit_c_instaPw'); // 🌟 인스타그램 PW 수정
     const metaEmailIn = document.getElementById('edit_c_metaEmail');
     const metaPhoneIn = document.getElementById('edit_c_metaPhone');
     const memoIn = document.getElementById('edit_c_memo');
@@ -3002,6 +3010,8 @@ safeAddListener('editClientForm', 'submit', async (e) => {
             instaUrl: instaIn ? instaIn.value : clientsMap[currentEditClientId].instaUrl,
             metaId: metaIdIn ? metaIdIn.value : clientsMap[currentEditClientId].metaId,
             metaPw: metaPwIn ? metaPwIn.value : clientsMap[currentEditClientId].metaPw,
+            instaId: instaIdIn ? instaIdIn.value : (clientsMap[currentEditClientId].instaId || ''), // 🌟
+            instaPw: instaPwIn ? instaPwIn.value : (clientsMap[currentEditClientId].instaPw || ''), // 🌟
             metaEmail: metaEmailIn ? metaEmailIn.value : (clientsMap[currentEditClientId].metaEmail || ''),
             metaPhone: metaPhoneIn ? metaPhoneIn.value : (clientsMap[currentEditClientId].metaPhone || ''),
             memo: memoIn ? memoIn.value : (clientsMap[currentEditClientId].memo || ''),
@@ -3126,8 +3136,36 @@ function renderClientsPage(page) {
                 </div>
             </td>` : `<td class="admin-only-col hidden"></td>`;
 
-        let copyIdBtn = data.metaId ? `<button type="button" class="copy-text-btn text-gray-400 hover:text-hermes transition p-0.5 rounded cursor-pointer" data-copy="${data.metaId}" title="ID 복사"><i class="fa-regular fa-copy text-[11px]"></i></button>` : '';
-        let copyPwBtn = data.metaPw ? `<button type="button" class="copy-text-btn text-gray-400 hover:text-hermes transition p-0.5 rounded cursor-pointer" data-copy="${data.metaPw}" title="PW 복사"><i class="fa-regular fa-copy text-[11px]"></i></button>` : '';
+        // 🌟 인스타 및 메타 계정 정보 노출 UI 수정 (복사 버튼 연동 유지)
+        let metaIdHtml = data.metaId ? `
+            <div class="flex items-center gap-1.5 whitespace-nowrap">
+                <span class="font-bold text-[11px] text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 inline-block w-[46px] text-center shrink-0">메타</span>
+                <span class="font-medium text-gray-700 w-16 truncate">ID: ${data.metaId}</span>
+                <button type="button" class="copy-text-btn text-gray-400 hover:text-hermes transition p-0.5 rounded cursor-pointer" data-copy="${data.metaId}" title="메타 ID 복사"><i class="fa-regular fa-copy text-[11px]"></i></button>
+            </div>
+        ` : '';
+        let metaPwHtml = data.metaPw ? `
+            <div class="flex items-center gap-1.5 whitespace-nowrap">
+                <span class="font-bold text-[11px] text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 inline-block w-[46px] text-center shrink-0 invisible">메타</span>
+                <span class="font-bold text-gray-900 w-16 truncate">PW: ${data.metaPw}</span>
+                <button type="button" class="copy-text-btn text-gray-400 hover:text-hermes transition p-0.5 rounded cursor-pointer" data-copy="${data.metaPw}" title="메타 PW 복사"><i class="fa-regular fa-copy text-[11px]"></i></button>
+            </div>
+        ` : '';
+
+        let instaIdHtml = data.instaId ? `
+            <div class="flex items-center gap-1.5 whitespace-nowrap">
+                <span class="font-bold text-[11px] text-pink-700 bg-pink-50 px-1.5 py-0.5 rounded border border-pink-100 inline-block w-[46px] text-center shrink-0">인스타</span>
+                <span class="font-medium text-gray-700 w-16 truncate">ID: ${data.instaId}</span>
+                <button type="button" class="copy-text-btn text-gray-400 hover:text-pink-600 transition p-0.5 rounded cursor-pointer" data-copy="${data.instaId}" title="인스타 ID 복사"><i class="fa-regular fa-copy text-[11px]"></i></button>
+            </div>
+        ` : '';
+        let instaPwHtml = data.instaPw ? `
+            <div class="flex items-center gap-1.5 whitespace-nowrap">
+                <span class="font-bold text-[11px] text-pink-700 bg-pink-50 px-1.5 py-0.5 rounded border border-pink-100 inline-block w-[46px] text-center shrink-0 invisible">인스타</span>
+                <span class="font-bold text-gray-900 w-16 truncate">PW: ${data.instaPw}</span>
+                <button type="button" class="copy-text-btn text-gray-400 hover:text-pink-600 transition p-0.5 rounded cursor-pointer" data-copy="${data.instaPw}" title="인스타 PW 복사"><i class="fa-regular fa-copy text-[11px]"></i></button>
+            </div>
+        ` : '';
 
         let metaExtraHtml = '';
         if(data.metaEmail || data.metaPhone || data.memo) {
@@ -3143,23 +3181,29 @@ function renderClientsPage(page) {
             metaExtraHtml = `<div class="mt-1 text-[10px] text-gray-400 italic">추가 정보 없음</div>`;
         }
 
+        const adminMemoText = data.budgetMemo ? `
+            <span class="memo-hover-trigger truncate block max-w-[200px] text-yellow-700 font-medium cursor-pointer bg-yellow-50 px-2 py-1 rounded border border-yellow-200" data-memo="${data.budgetMemo.replace(/"/g, '&quot;')}">
+                <i class="fa-solid fa-note-sticky mr-1"></i>${data.budgetMemo}
+            </span>
+        ` : `<span class="text-gray-300">-</span>`;
+
         const tr = `
             <tr class="hover:bg-orange-50/30 transition border-b border-gray-100 break-keep">
                 <td class="p-3.5 md:p-4 font-black text-gray-900 align-middle whitespace-nowrap">${data.name}</td>
                 <td class="p-3.5 md:p-4 text-xs text-gray-500 align-middle whitespace-nowrap">
-                    ${data.homeUrl ? `<a href="${data.homeUrl}" target="_blank" class="text-blue-500 hover:underline"><i class="fa-solid fa-link"></i> 웹</a> ` : ''}
-                    ${data.instaUrl ? `<a href="${data.instaUrl}" target="_blank" class="text-pink-500 hover:underline"><i class="fa-brands fa-instagram"></i> 인스타</a>` : ''}
+                    ${data.homeUrl ? `<a href="${data.homeUrl}" target="_blank" class="text-blue-500 hover:underline block mb-1"><i class="fa-solid fa-link"></i> 웹사이트</a> ` : ''}
+                    ${data.instaUrl ? `<a href="${data.instaUrl}" target="_blank" class="text-pink-500 hover:underline block"><i class="fa-brands fa-instagram"></i> 인스타그램</a>` : ''}
                 </td>
                 <td class="p-3.5 md:p-4 text-xs align-middle">
-                    <div class="flex items-center gap-1.5 whitespace-nowrap">
-                        <span class="font-medium text-gray-700">ID: ${data.metaId || '-'}</span>${copyIdBtn}
-                    </div>
-                    <div class="flex items-center gap-1.5 mt-0.5 whitespace-nowrap">
-                        <span class="font-bold text-gray-900">PW: ${data.metaPw || '-'}</span>${copyPwBtn}
+                    <div class="flex flex-col gap-1">
+                        <div class="flex flex-col gap-0.5 mb-1.5">${metaIdHtml}${metaPwHtml}</div>
+                        <div class="flex flex-col gap-0.5">${instaIdHtml}${instaPwHtml}</div>
+                        ${(!data.metaId && !data.metaPw && !data.instaId && !data.instaPw) ? '<span class="text-gray-400 italic">-</span>' : ''}
                     </div>
                 </td>
                 <td class="p-3.5 md:p-4 text-xs align-middle">${metaExtraHtml}</td>
-                <td class="p-3.5 md:p-4 text-xs text-gray-600 align-middle whitespace-nowrap"><div>인스타: ${data.instaDate || '-'}</div><div>메타: ${data.metaDate || '-'}</div></td>
+                <td class="p-3.5 md:p-4 text-xs align-middle min-w-[200px]">${adminMemoText}</td>
+                <td class="p-3.5 md:p-4 text-xs text-gray-600 align-middle whitespace-nowrap"><div>인스타: ${data.instaDate || '-'}</div><div class="mt-1">메타: ${data.metaDate || '-'}</div></td>
                 <td class="p-3.5 md:p-4 text-xs font-bold text-gray-500 align-middle whitespace-nowrap">${data.registeredBy || '-'}</td>
                 <td class="p-3.5 md:p-4 max-w-[130px] overflow-visible align-middle">${managersHtml}</td>
                 ${adminActions}

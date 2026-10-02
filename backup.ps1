@@ -1,8 +1,8 @@
 # ============================================================================
-# ADplanters x NOAH UNIVERSE - 무손실 통합 타임스탬프 백업 스크립트
+# ADplanters x NOAH UNIVERSE - 무손실 통합 타임스탬프 백업 스크립트 (최종 완결본)
 # ============================================================================
 
-# 0. 터미널 한글 깨짐 방지 (UTF-8 인코딩 설정)
+# 0. 터미널 한글 및 특수문자 깨짐 방지
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
 
@@ -10,10 +10,10 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 $sourcePath = "C:\Users\rnap1\Documents\GitHub\noahuniverse"
 $parentPath = "C:\Users\rnap1\Documents\GitHub"
 
-# 2. 고유 구분 타임스탬프 생성 (기존 백업 덮어쓰기 방지)
+# 2. 고유 구분 타임스탬프 생성 (기존 백업 보존)
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-$backupPath = Join-Path -Path $parentPath -ChildPath "noahuniverse_backup_$timestamp"
-$dbBackupPath = Join-Path -Path $backupPath -ChildPath "database_and_env"
+$backupPath = "$parentPath\noahuniverse_backup_$timestamp"
+$dbBackupPath = "$backupPath\database_and_env"
 
 # 백업 저장소 폴더 생성
 New-Item -ItemType Directory -Path $backupPath -Force | Out-Null
@@ -33,18 +33,18 @@ Write-Host "`n------------------------------------------------------------" -For
 Write-Host " [2/3] backup_db.js 실행을 통한 Firebase DB 추출..." -ForegroundColor Yellow
 Write-Host "------------------------------------------------------------" -ForegroundColor Cyan
 
-# -Path 와 $sourcePath 사이 띄어쓰기 공백 적용
-$serviceKeyPath = Join-Path -Path$sourcePath -ChildPath "serviceAccountKey.json"
-$nodeBackupScript = Join-Path -Path$sourcePath -ChildPath "backup_db.js"
+# 문법 오류가 불가능하도록 직관적인 경로 문자열 결합 방식으로 100% 변경
+$serviceKeyPath = "$sourcePath\serviceAccountKey.json"
+$nodeBackupScript = "$sourcePath\backup_db.js"
 
-if ((Test-Path -Path $serviceKeyPath) -and (Test-Path -Path$nodeBackupScript)) {
+if ((Test-Path $serviceKeyPath) -and (Test-Path$nodeBackupScript)) {
     node "$nodeBackupScript" "$serviceKeyPath" "$dbBackupPath"
 } else {
     Write-Host "[경고] serviceAccountKey.json 또는 backup_db.js 파일이 없어 Firebase 추출을 건너뜁니다." -ForegroundColor DarkYellow
 }
 
 
-# 5. Vercel 환경 변수 파일 백업 (로그인 상태 사전 점검으로 멈춤 현상 완벽 방지)
+# 5. Vercel 환경 변수 파일 백업 (로그인 상태 사전 점검으로 멈춤 현상 방지)
 Write-Host "`n------------------------------------------------------------" -ForegroundColor Cyan
 Write-Host " [3/3] Vercel 환경 변수(.env) 다운로드..." -ForegroundColor Yellow
 Write-Host "------------------------------------------------------------" -ForegroundColor Cyan
@@ -55,7 +55,7 @@ try {
     $null = npx --yes vercel whoami 2>&1
     if ($LASTEXITCODE -eq 0) {
         npx --yes vercel env pull "$dbBackupPath\.env.production.local" --yes --environment=production 2>$null
-        if (Test-Path -Path "$dbBackupPath\.env.production.local") {
+        if (Test-Path "$dbBackupPath\.env.production.local") {
             Write-Host "[완료] Vercel 환경 변수 백업 완료" -ForegroundColor Green
         } else {
             Write-Host "[알림] Vercel 프로젝트 연동 정보가 없어 환경 변수 추출을 건너뜁니다." -ForegroundColor DarkYellow

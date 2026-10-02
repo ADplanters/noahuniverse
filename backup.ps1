@@ -33,6 +33,7 @@ Write-Host "`n------------------------------------------------------------" -For
 Write-Host " [2/3] backup_db.js 실행을 통한 Firebase DB 추출..." -ForegroundColor Yellow
 Write-Host "------------------------------------------------------------" -ForegroundColor Cyan
 
+# 경로 구문 공백 오타 수정 (-Path $sourcePath)
 $serviceKeyPath = Join-Path -Path$sourcePath -ChildPath "serviceAccountKey.json"
 $nodeBackupScript = Join-Path -Path$sourcePath -ChildPath "backup_db.js"
 

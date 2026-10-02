@@ -33,7 +33,7 @@ Write-Host "`n------------------------------------------------------------" -For
 Write-Host " [2/3] backup_db.js 실행을 통한 Firebase DB 추출..." -ForegroundColor Yellow
 Write-Host "------------------------------------------------------------" -ForegroundColor Cyan
 
-# 경로 구문 공백 오타 수정 (-Path $sourcePath)
+# 공백 오류 수정: -Path $sourcePath
 $serviceKeyPath = Join-Path -Path$sourcePath -ChildPath "serviceAccountKey.json"
 $nodeBackupScript = Join-Path -Path$sourcePath -ChildPath "backup_db.js"
 
@@ -44,17 +44,16 @@ if ((Test-Path -Path $serviceKeyPath) -and (Test-Path -Path$nodeBackupScript)) {
 }
 
 
-# 5. Vercel 환경 변수 파일 백업 (로그인 상태 사전 점검으로 멈춤 현상 완벽 방지)
+# 5. Vercel 환경 변수 파일 백업 (로그인 상태 사전 점검으로 멈춤 현상 방지)
 Write-Host "`n------------------------------------------------------------" -ForegroundColor Cyan
 Write-Host " [3/3] Vercel 환경 변수(.env) 다운로드..." -ForegroundColor Yellow
 Write-Host "------------------------------------------------------------" -ForegroundColor Cyan
 
 Push-Location $sourcePath
 try {
-    # Vercel CLI 로그인 여부를 먼저 빠르게 체크 (대기 시간 없음)
+    # Vercel CLI 로그인 여부를 사전에 인지하여 무한 대기 현상 방지
     $null = npx --yes vercel whoami 2>&1
     if ($LASTEXITCODE -eq 0) {
-        # 로그인되어 있는 상태에만 진행
         npx --yes vercel env pull "$dbBackupPath\.env.production.local" --yes --environment=production 2>$null
         if (Test-Path -Path "$dbBackupPath\.env.production.local") {
             Write-Host "[완료] Vercel 환경 변수 백업 완료" -ForegroundColor Green
@@ -62,7 +61,6 @@ try {
             Write-Host "[알림] Vercel 프로젝트 연동 정보가 없어 환경 변수 추출을 건너뜁니다." -ForegroundColor DarkYellow
         }
     } else {
-        # 로그인되어 있지 않으면 대기하지 않고 즉시 건너뜀
         Write-Host "[알림] Vercel 미로그인 상태입니다. 대기 없이 Vercel 백업을 건너뜁니다." -ForegroundColor DarkYellow
     }
 } catch {

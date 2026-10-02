@@ -33,7 +33,7 @@ Write-Host "`n------------------------------------------------------------" -For
 Write-Host " [2/3] backup_db.js 실행을 통한 Firebase DB 추출..." -ForegroundColor Yellow
 Write-Host "------------------------------------------------------------" -ForegroundColor Cyan
 
-# 공백 오류 수정: -Path $sourcePath
+# -Path 와 $sourcePath 사이 띄어쓰기 공백 적용
 $serviceKeyPath = Join-Path -Path$sourcePath -ChildPath "serviceAccountKey.json"
 $nodeBackupScript = Join-Path -Path$sourcePath -ChildPath "backup_db.js"
 
@@ -44,7 +44,7 @@ if ((Test-Path -Path $serviceKeyPath) -and (Test-Path -Path$nodeBackupScript)) {
 }
 
 
-# 5. Vercel 환경 변수 파일 백업 (로그인 상태 사전 점검으로 멈춤 현상 방지)
+# 5. Vercel 환경 변수 파일 백업 (로그인 상태 사전 점검으로 멈춤 현상 완벽 방지)
 Write-Host "`n------------------------------------------------------------" -ForegroundColor Cyan
 Write-Host " [3/3] Vercel 환경 변수(.env) 다운로드..." -ForegroundColor Yellow
 Write-Host "------------------------------------------------------------" -ForegroundColor Cyan

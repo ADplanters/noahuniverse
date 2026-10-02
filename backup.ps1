@@ -1,5 +1,5 @@
 # ============================================================================
-# ADplanters x NOAH UNIVERSE - 무손실 통합 타임스탬프 백업 스크립트 (완전 수정본)
+# ADplanters x NOAH UNIVERSE - 무손실 통합 타임스탬프 백업 스크립트
 # ============================================================================
 
 # 0. 터미널 한글 깨짐 방지 (UTF-8 인코딩 설정)
@@ -36,36 +36,42 @@ Write-Host "------------------------------------------------------------" -Foreg
 $serviceKeyPath = Join-Path -Path$sourcePath -ChildPath "serviceAccountKey.json"
 $nodeBackupScript = Join-Path -Path$sourcePath -ChildPath "backup_db.js"
 
-# 변수 검증 및 안전한 파일 존재 확인 (Test-Path Null 오류 방지)
-if (-not [string]::IsNullOrEmpty($serviceKeyPath) -and (Test-Path -LiteralPath$serviceKeyPath)) {
-    if (-not [string]::IsNullOrEmpty($nodeBackupScript) -and (Test-Path -LiteralPath$nodeBackupScript)) {
-        node "$nodeBackupScript" "$serviceKeyPath" "$dbBackupPath"
-    } else {
-        Write-Host "[경고] backup_db.js 파일이 없어 데이터베이스 추출을 건너뜁니다." -ForegroundColor DarkYellow
-    }
+if ((Test-Path -Path $serviceKeyPath) -and (Test-Path -Path$nodeBackupScript)) {
+    node "$nodeBackupScript" "$serviceKeyPath" "$dbBackupPath"
 } else {
-    Write-Host "[경고] serviceAccountKey.json 키 파일이 없어 Firebase 추출을 건너뜁니다." -ForegroundColor DarkYellow
+    Write-Host "[경고] serviceAccountKey.json 또는 backup_db.js 파일이 없어 Firebase 추출을 건너뜁니다." -ForegroundColor DarkYellow
 }
 
 
-# 5. Vercel 환경 변수 파일 백업 (대화형 프롬프트 자동 승인 --yes 추가)
+# 5. Vercel 환경 변수 파일 백업 (로그인 상태 사전 점검으로 멈춤 현상 완벽 방지)
 Write-Host "`n------------------------------------------------------------" -ForegroundColor Cyan
 Write-Host " [3/3] Vercel 환경 변수(.env) 다운로드..." -ForegroundColor Yellow
 Write-Host "------------------------------------------------------------" -ForegroundColor Cyan
 
 Push-Location $sourcePath
 try {
-    # npx --yes 옵션을 통해 대화형 패키지 설치 대기 취소 현상 해결
-    npx --yes vercel env pull "$dbBackupPath\.env.production.local" --yes --environment=production
-    Write-Host "[완료] Vercel 환경 변수 백업 완료" -ForegroundColor Green
+    # Vercel CLI 로그인 여부를 먼저 빠르게 체크 (대기 시간 없음)
+    $null = npx --yes vercel whoami 2>&1
+    if ($LASTEXITCODE -eq 0) {
+        # 로그인되어 있는 상태에만 진행
+        npx --yes vercel env pull "$dbBackupPath\.env.production.local" --yes --environment=production 2>$null
+        if (Test-Path -Path "$dbBackupPath\.env.production.local") {
+            Write-Host "[완료] Vercel 환경 변수 백업 완료" -ForegroundColor Green
+        } else {
+            Write-Host "[알림] Vercel 프로젝트 연동 정보가 없어 환경 변수 추출을 건너뜁니다." -ForegroundColor DarkYellow
+        }
+    } else {
+        # 로그인되어 있지 않으면 대기하지 않고 즉시 건너뜀
+        Write-Host "[알림] Vercel 미로그인 상태입니다. 대기 없이 Vercel 백업을 건너뜁니다." -ForegroundColor DarkYellow
+    }
 } catch {
-    Write-Host "[알림] Vercel CLI 인증 미완료 또는 프로젝트 연동 없음으로 넘어갑니다." -ForegroundColor DarkYellow
+    Write-Host "[알림] Vercel 환경 변수 추출을 건너뜁니다." -ForegroundColor DarkYellow
 } finally {
     Pop-Location
 }
 
 
-# 6. 완료 상태 리포트 출력
+# 6. 백업 완료 상태 리포트 출력
 Write-Host "`n============================================================" -ForegroundColor Green
 Write-Host " 기존 백업 보존 및 신규 백업 작성이 성공적으로 완료되었습니다!" -ForegroundColor Green
 Write-Host " 생성된 저장 경로: $backupPath" -ForegroundColor Cyan

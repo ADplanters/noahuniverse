@@ -863,18 +863,20 @@
         <img id="modalImgTag" src="" alt="원본 확대 이미지" class="max-w-full max-h-full rounded-lg shadow-2xl object-contain">
     </div>
 
-    <!-- 인사이트 라이브러리 HTML 상세보기 모달 -->
-    <div id="libraryViewModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl w-full max-w-4xl p-5 md:p-8 shadow-2xl border border-gray-100 max-h-[95vh] overflow-y-auto flex flex-col relative">
+    <!-- ★ 수정된 부분: 인사이트 라이브러리 풀스크린 모달 -->
+    <div id="libraryViewModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-5">
+        <!-- 모달 전체 크기를 화면에 꽉 차게 변경 (w-[96vw], h-[96vh]) -->
+        <div class="bg-white rounded-2xl w-full max-w-[1600px] w-[96vw] h-[96vh] shadow-2xl border border-gray-100 flex flex-col relative overflow-hidden">
             
-            <button id="closeLibViewModalBtn" type="button" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-1.5 rounded-lg transition z-30 cursor-pointer text-xl" title="닫기">
+            <button id="closeLibViewModalBtn" type="button" class="absolute top-5 right-5 text-gray-400 hover:text-gray-900 bg-gray-50 hover:bg-gray-200 p-2 rounded-xl transition z-50 cursor-pointer text-xl w-10 h-10 flex items-center justify-center" title="닫기">
                 <i class="fa-solid fa-xmark"></i>
             </button>
 
-            <div class="flex justify-between items-start mb-4 border-b pb-4 pr-8">
-                <div class="w-full">
-                    <span id="libViewCategory" class="inline-block px-2.5 py-1 bg-orange-50 text-hermes text-[11px] font-bold rounded-md border border-orange-100 mb-2">퍼포먼스 마케팅</span>
-                    <h3 id="libViewTitle" class="text-xl md:text-2xl font-black text-gray-900 leading-tight mb-3">메타(Meta) 광고 100% 활용 가이드</h3>
+            <!-- 헤더 영역 (고정) -->
+            <div class="flex justify-between items-start border-b border-gray-100 p-6 md:p-8 bg-white shrink-0 z-40 relative">
+                <div class="w-full pr-12">
+                    <span id="libViewCategory" class="inline-block px-3 py-1.5 bg-orange-50 text-hermes text-xs font-bold rounded-lg border border-orange-100 mb-3">퍼포먼스 마케팅</span>
+                    <h3 id="libViewTitle" class="text-2xl md:text-3xl font-black text-gray-900 leading-tight mb-4">메타(Meta) 광고 100% 활용 가이드</h3>
                     
                     <div class="flex flex-wrap items-center gap-2">
                         <div id="libViewCountBadgeWrapper" class="relative inline-block group">
@@ -904,35 +906,42 @@
                 </div>
             </div>
 
-            <!-- 본문 상세 HTML 내용 -->
-            <div id="libViewHtmlContent" class="prose max-w-none text-sm text-gray-800 leading-relaxed min-h-[150px] mb-6 border-b pb-6 block overflow-x-auto overflow-y-auto w-full box-border">
-                <div class="content-section">
-                    <h2 class="section-title">1. 왜 머신러닝 기반 메타광고인가?</h2>
-                    
-                    <div class="callout-box callout-blue">
-                        <div class="callout-title text-blue-800">💡 핵심 성과 공식 및 솔루션</div>
-                        <div class="callout-desc text-blue-600">
-                            메타(Meta) 광고는 단순 타겟팅을 넘어 AI 알고리즘이 구매 가능성이 가장 높은 잠재고객을 찾아내는 강력한 솔루션입니다.<br><br>
-                            <strong>고품질 소재(이미지/숏폼) + 타겟 세분화 + 메타 픽셀 데이터 연동 = ROAS 극대화</strong>
+            <!-- 스크롤 가능한 본문 영역 -->
+            <div class="flex-1 overflow-y-auto bg-gray-50 p-6 md:p-8 lg:p-10 custom-scrollbar">
+                <div class="max-w-5xl mx-auto space-y-6">
+                    <!-- 본문 상세 HTML 내용 -->
+                    <div id="libViewHtmlContent" class="prose max-w-none text-sm md:text-base text-gray-800 leading-relaxed block overflow-x-auto w-full box-border bg-white p-6 md:p-10 rounded-2xl shadow-sm border border-gray-100">
+                        <div class="content-section">
+                            <h2 class="section-title">1. 왜 머신러닝 기반 메타광고인가?</h2>
+                            
+                            <div class="callout-box callout-blue">
+                                <div class="callout-title text-blue-800">💡 핵심 성과 공식 및 솔루션</div>
+                                <div class="callout-desc text-blue-600">
+                                    메타(Meta) 광고는 단순 타겟팅을 넘어 AI 알고리즘이 구매 가능성이 가장 높은 잠재고객을 찾아내는 강력한 솔루션입니다.<br><br>
+                                    <strong>고품질 소재(이미지/숏폼) + 타겟 세분화 + 메타 픽셀 데이터 연동 = ROAS 극대화</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="content-section">
+                            <h2 class="section-title">2. 성공을 위한 3단계 세팅법</h2>
+                            <p class="section-text">효율적인 캠페인 구조 설계와 맞춤 타겟 설정을 통해 전환율을 극대화할 수 있는 단계별 프로세스를 확인하세요.</p>
                         </div>
                     </div>
-                </div>
 
-                <div class="content-section">
-                    <h2 class="section-title">2. 성공을 위한 3단계 세팅법</h2>
-                    <p class="section-text">효율적인 캠페인 구조 설계와 맞춤 타겟 설정을 통해 전환율을 극대화할 수 있는 단계별 프로세스를 확인하세요.</p>
+                    <!-- 파일 첨부 영역 -->
+                    <div id="libViewFileArea" class="clear-both relative bg-white p-6 md:p-10 rounded-2xl shadow-sm border border-gray-100">
+                        <p class="font-bold text-gray-900 mb-4 flex items-center gap-2 text-base md:text-lg">
+                            <i class="fa-solid fa-paperclip text-hermes"></i> 첨부 자료 다운로드
+                        </p>
+                        <div id="libViewFileBtn" class="attachment-grid"></div>
+                    </div>
                 </div>
             </div>
 
-            <div id="libViewFileArea" class="mb-6 clear-both relative">
-                <p class="font-bold text-gray-900 mb-2 flex items-center gap-1">
-                    <i class="fa-solid fa-paperclip text-hermes mr-1"></i> 첨부 자료 다운로드
-                </p>
-                <div id="libViewFileBtn" class="attachment-grid"></div>
-            </div>
-
-            <div class="flex justify-end items-center mt-auto border-t pt-4">
-                <button id="closeLibViewBtn" type="button" class="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-xs font-bold cursor-pointer transition">닫기</button>
+            <!-- 하단 푸터 영역 (고정) -->
+            <div class="flex justify-end items-center shrink-0 border-t border-gray-100 p-4 md:p-5 bg-white z-40">
+                <button id="closeLibViewBtn" type="button" class="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-bold cursor-pointer transition">닫기</button>
             </div>
         </div>
     </div>
